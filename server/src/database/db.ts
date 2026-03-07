@@ -39,7 +39,7 @@ export const query = async (sql: string, params?: unknown[]) => {
     }
   }
 
-  const [results] = await pool.execute(mysqlSql, mysqlParams.length > 0 ? mysqlParams : (params || []));
+  const [results] = await pool.execute(mysqlSql as string, (mysqlParams.length > 0 ? mysqlParams : (params || [])) as any[]);
   return { rows: Array.isArray(results) ? (results as unknown[]) : [results] };
 };
 
