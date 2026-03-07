@@ -1,0 +1,21 @@
+node_modules
+.DS_Store
+.env
+.env.*
+dist
+build
+.vite
+coverage
+
+# Deployment and Temporary files
+deploy_tmp/
+delete-this/
+forms-upload/
+*.zip
+*.log
+database_dump.sql
+
+# IDE and System
+.vscode/
+.idea/
+Thumbs.db

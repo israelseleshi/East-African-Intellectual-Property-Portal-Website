@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /
+
+# Pass /api/ requests directly to Passenger (Node.js backend) - DO NOT rewrite
+RewriteRule ^api/ - [L]
+
+# Pass actual static files/directories through without rewriting
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Everything else → React SPA index.html
+RewriteRule ^ index.html [L]

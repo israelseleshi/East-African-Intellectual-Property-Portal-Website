@@ -1,0 +1,6 @@
+PassengerEnabled on
+PassengerAppType node
+PassengerAppRoot /home/falolega/eastafricanip.com/api
+PassengerStartupFile dist/server.js
+PassengerNodejs /opt/alt/alt-nodejs20/root/usr/bin/node
+PassengerBaseURI /api

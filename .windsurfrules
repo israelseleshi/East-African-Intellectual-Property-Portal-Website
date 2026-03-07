@@ -1,0 +1,44 @@
+
+## **1. Persona & Audience**
+* **Project:** High-end Trademark Practice Management System (TPMS).
+* **User:** Lawyers only (Power users).
+* **Focus:** Speed, data density, and accuracy. No marketing fluff.
+
+## **2. Design Language (Apple Pro UI)**
+* **Frameworks:** `shadcn/ui`, `cult-ui`, `Tailwind CSS`.
+* **Philosophy:** Apple HIG (Hierarchy, Harmony, Clarity).
+* **Components:** 
+  - Use "Sidebar + Main Detail" layouts (macOS style).
+  - Use `System-ui` fonts (San Francisco).
+  - 44pt minimum hit targets for touch responsiveness.
+  - Subtle blurs (backdrop-blur) and high-quality rounded corners (`rounded-xl` to `rounded-3xl$).
+
+## **3. Code Structure & Architecture**
+* **client/**: React 19 + Vite frontend (formerly apps/web).
+* **server/**: Node.js/Express backend (formerly apps/api).
+* **Flat Architecture**: Standalone dependencies, no pnpm workspaces.
+* **Shared Types**: Located in `server/src/types`. Import directly.
+
+## **4. Workflow Logic (Source of Truth)**
+* **Primary Directive**: All case logic and database schemas MUST follow `PRD.md` and `PLAN.md`.
+* **Trademark States**: Strictly follow the state machine: Intake -> Formal Exam -> Substantive Exam -> Publication -> Registration -> Renewal.
+* **Deadline Engine**: Mission Critical. Use `date-fns`. Always calculate the "Opposition Window" (60 days post-publication for Ethiopia) and "Renewal Dates" (10 years post-registration).
+
+## **5. Priority Project Rules**
+* **Relative API Calls**: Always use relative `/api/*` paths for backend calls. Never hardcode the domain.
+* **Axios Instance**: Use the configured axios instance in `client/src/lib/api.ts` for all frontend requests.
+* **HTACCESS Safety**: Do not modify `.htaccess` files without explicit verification; they are critical for Passenger/SPA routing.
+* **Database Source of Truth**: `docs/schema.md` is the primary reference. Before altering DB, check existing migrations in `docs/`.
+* **Efficiency & Token Saving**: Before writing new features, read the relevant `docs/[feature].md` file.
+
+## **6. Database Reference (falolega_tpms)**
+- Tables: trademark_cases, clients, users, deadlines, invoices, invoice_items, jurisdictions, mark_assets, nice_classes, nice_class_mappings, notifications, oppositions, fee_schedules, case_notes, case_history.
+- Connection: Environment variables based (DB_HOST, DB_NAME, etc.).
+- Primary Host: localhost (Production).
+
+## **7. cPanel Production Deployment**
+* **Frontend**: Upload `client/dist/` contents to `eastafricanip.com/`.
+* **Backend**: Upload `server/dist/` + `package.json` to `eastafricanip.com/api/`.
+* **Process**: Use `scripts/deploy.ps1` for one-click deployment via SSH.
+* **Passenger Config**: Managed via `.htaccess` in `eastafricanip.com/` and `eastafricanip.com/api/`.
+* **Cold Start Fix**: Keep-warm cron job runs every 10 minutes (`curl -s https://eastafricanip.com/api/health`).

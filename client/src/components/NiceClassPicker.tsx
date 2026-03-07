@@ -1,0 +1,189 @@
+import { useMemo, useState } from 'react';
+
+// Nice Classification classes 1-45 with descriptions
+const NICE_CLASSES = [
+  { id: 1, description: "Chemicals" },
+  { id: 2, description: "Paints, varnishes, lacquers; preservatives" },
+  { id: 3, description: "Cosmetics, bleaching preparations, soaps" },
+  { id: 4, description: "Industrial oils, greases, fuels" },
+  { id: 5, description: "Pharmaceuticals, medical, veterinary" },
+  { id: 6, description: "Metals, common metals, ores" },
+  { id: 7, description: "Machines, machine tools, motors" },
+  { id: 8, description: "Hand tools, cutlery, electrical goods" },
+  { id: 9, description: "Scientific, nautical, electrical apparatus" },
+  { id: 10, description: "Food processing, agricultural machines" },
+  { id: 11, description: "Lighting, heating, cooking equipment" },
+  { id: 12, description: "Vehicles, locomotives, aircraft, boats" },
+  { id: 13, description: "Firearms, ammunition, explosives" },
+  { id: 14, description: "Precious metals, jewelry, clocks" },
+  { id: 15, description: "Musical instruments" },
+  { id: 16, description: "Paper, cardboard, printed matter" },
+  { id: 17, description: "Rubber, gutta-percha, plastics" },
+  { id: 18, description: "Leather, imitations of leather, travel goods" },
+  { id: 19, description: "Building materials, non-metallic" },
+  { id: 20, description: "Furniture, mirrors, picture frames" },
+  { id: 21, description: "Small domestic utensils, brushes" },
+  { id: 22, description: "Ropes, strings, nets, tents" },
+  { id: 23, description: "Yarns, threads, textiles" },
+  { id: 24, description: "Textiles, clothing, footwear" },
+  { id: 25, description: "Clothing, footwear, headgear" },
+  { id: 26, description: "Lace, embroidery, ribbons, buttons" },
+  { id: 27, description: "Carpets, rugs, linoleum, wall coverings" },
+  { id: 28, description: "Games, toys, sports equipment" },
+  { id: 29, description: "Meat, fish, poultry, milk products" },
+  { id: 30, description: "Coffee, tea, cocoa, sugar, rice" },
+  { id: 31, description: "Agricultural, horticultural, forestry products" },
+  { id: 32, description: "Beers, mineral waters, soft drinks" },
+  { id: 33, description: "Wines, spirits, alcoholic beverages" },
+  { id: 34, description: "Tobacco, smokers' articles" },
+  { id: 35, description: "Advertising, business management" },
+  { id: 36, description: "Insurance, financial affairs, real estate" },
+  { id: 37, description: "Construction, repair, installation services" },
+  { id: 38, description: "Telecommunications" },
+  { id: 39, description: "Transport, packaging, storage" },
+  { id: 40, description: "Treatment of materials, recycling" },
+  { id: 41, description: "Education, training, entertainment" },
+  { id: 42, description: "Scientific, technological services" },
+  { id: 43, description: "Restaurant, hotel, temporary accommodation" },
+  { id: 44, description: "Medical, legal, beauty, agricultural services" },
+  { id: 45, description: "Personal, social, security services" }
+]
+
+type Props = {
+  selectedClasses: number[]
+  onSelectionChange: (classes: number[]) => void
+  placeholder?: string
+}
+
+export default function NiceClassPicker({ 
+  selectedClasses, 
+  onSelectionChange, 
+  placeholder = "Select Nice classes..." 
+}: Props) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return NICE_CLASSES
+    
+    return NICE_CLASSES.filter(cls => 
+      cls.id.toString().includes(q) || 
+      cls.description.toLowerCase().includes(q)
+    )
+  }, [query])
+
+  const toggleClass = (classId: number) => {
+    const newSelection = selectedClasses.includes(classId)
+      ? selectedClasses.filter(id => id !== classId)
+      : [...selectedClasses, classId].sort((a, b) => a - b)
+    
+    onSelectionChange(newSelection)
+  }
+
+  const removeClass = (classId: number) => {
+    const newSelection = selectedClasses.filter(id => id !== classId)
+    onSelectionChange(newSelection)
+  }
+
+  return (
+    <div className="relative">
+      {/* Selected classes display */}
+      <div 
+        className="min-h-11 rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)]/60 px-3 py-2 cursor-text"
+        onClick={() => setIsOpen(true)}
+      >
+        {selectedClasses.length === 0 ? (
+          <div className="text-[15px] text-[var(--eai-muted)]">{placeholder}</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {selectedClasses.map(classId => (
+              <span
+                key={classId}
+                className="inline-flex items-center gap-1 rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)]/80 px-2 py-1 text-[13px]"
+              >
+                <span className="font-medium">Class {classId}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeClass(classId)
+                  }}
+                  className="text-[var(--eai-muted)] hover:text-[var(--eai-foreground)]"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-[60]"
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            className="absolute left-0 right-0 top-full z-[70] mt-1 max-h-80 overflow-auto rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div className="sticky top-0 border-b border-[var(--eai-border)] bg-[var(--eai-surface)] p-3 z-10">
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search classes..."
+                className="h-11 w-full rounded-none border border-[var(--eai-border)] bg-transparent px-3 text-[15px] outline-none focus:border-[var(--eai-primary)] transition-colors"
+              />
+            </div>
+            
+            <div className="p-2">
+              {filtered.length === 0 ? (
+                <div className="px-3 py-4 text-center text-sm text-[var(--eai-muted)]">
+                  No classes found.
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filtered.map(cls => {
+                    const isSelected = selectedClasses.includes(cls.id)
+                    return (
+                      <div
+                        key={cls.id}
+                        onClick={() => toggleClass(cls.id)}
+                        className={[
+                          "flex items-center gap-3 rounded-none px-3 py-2 cursor-pointer transition-colors",
+                          isSelected 
+                            ? "bg-[color:var(--eai-primary)]/10 text-[color:var(--eai-primary)]" 
+                            : "hover:bg-[var(--eai-bg)]"
+                        ].join(' ')}
+                      >
+                        <div className={[
+                          "w-4 h-4 rounded-none border flex items-center justify-center transition-all",
+                          isSelected 
+                            ? "border-[color:var(--eai-primary)] bg-[color:var(--eai-primary)]" 
+                            : "border-[var(--eai-border)]"
+                        ].join(' ')}>
+                          {isSelected && (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-[14px]">Class {cls.id}</div>
+                          <div className="text-[12px] text-[var(--eai-text-secondary)] line-clamp-1">{cls.description}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

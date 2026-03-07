@@ -1,0 +1,23 @@
+PassengerEnabled on
+PassengerAppType node
+PassengerStartupFile server.js
+PassengerAppRoot /home/falolega/eastafricanip.com/api
+
+# Prevent Apache from serving source files directly
+<FilesMatch "\.(ts|tsx|js|jsx|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Allow access to server.js for Passenger
+<Files "server.js">
+    Order allow,deny
+    Allow from all
+</Files>
+
+RewriteEngine On
+RewriteBase /api/
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . server.js [L]

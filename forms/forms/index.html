@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Form Live Preview</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; }
+        .preview-container { height: calc(100vh - 40px); }
+        iframe { width: 100%; height: 100%; border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    </style>
+</head>
+<body class="p-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Form Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Application Form</h2>
+            
+            <div class="mb-6 p-4 bg-blue-50 rounded-md border border-blue-200">
+                <label class="block text-sm font-semibold text-blue-800 mb-2">1. Load your PDF Template First</label>
+                <input type="file" id="pdfInput" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <p class="mt-1 text-xs text-blue-600">Select 'application_form.pdf' from your folder.</p>
+            </div>
+
+            <form id="pdfForm" class="space-y-4 opacity-50 pointer-events-none transition-opacity duration-300">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Applicant Name (English)</label>
+                    <input type="text" name="applicant_name_english" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border" placeholder="Enter name in English">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Applicant Name (Amharic)</label>
+                    <input type="text" name="applicant_name_amharic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border" placeholder="Enter name in Amharic">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Address Street</label>
+                    <input type="text" name="address_street" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Address Zone</label>
+                        <input type="text" name="address_zone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">City Code</label>
+                        <input type="text" name="city_code" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">City Name</label>
+                        <input type="text" name="city_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">State Code</label>
+                        <input type="text" name="state_code" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                </div>
+            </form>
+            <div class="mt-6 flex gap-4">
+                <button id="refreshBtn" disabled class="flex-1 bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    Refresh Preview
+                </button>
+                <button id="downloadBtn" disabled class="flex-1 bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    Download PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-container flex flex-col">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Live Preview</h2>
+            <div id="noPdfMessage" class="flex-1 flex items-center justify-center bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                Please select a PDF file to start preview
+            </div>
+            <iframe id="pdfPreview" class="hidden flex-1"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const { PDFDocument, StandardFonts } = PDFLib;
+        const form = document.getElementById('pdfForm');
+        const pdfInput = document.getElementById('pdfInput');
+        const previewFrame = document.getElementById('pdfPreview');
+        const noPdfMessage = document.getElementById('noPdfMessage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        let originalPdfBytes = null;
+        let amharicFontBytes = null;
+
+        // Load Amharic font (Abyssinica SIL)
+        async function loadAmharicFont() {
+            try {
+                // Using a direct, stable URL for the TTF font
+                const response = await fetch('https://cdn.jsdelivr.net/gh/googlefonts/abyssinica-sil@main/fonts/AbyssinicaSIL-Regular.ttf');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                amharicFontBytes = await response.arrayBuffer();
+                console.log('Amharic font loaded successfully');
+            } catch (err) {
+                console.error('Failed to load Amharic font:', err);
+                // Try one more fallback source
+                try {
+                    const fallback = await fetch('https://raw.githubusercontent.com/googlefonts/abyssinica-sil/main/fonts/AbyssinicaSIL-Regular.ttf');
+                    if (fallback.ok) {
+                        amharicFontBytes = await fallback.arrayBuffer();
+                        console.log('Amharic font loaded via fallback');
+                    }
+                } catch (e) {}
+            }
+        }
+        loadAmharicFont();
+
+        // Handle file selection
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                originalPdfBytes = event.target.result;
+                form.classList.remove('opacity-50', 'pointer-events-none');
+                downloadBtn.disabled = false;
+                refreshBtn.disabled = false;
+                noPdfMessage.classList.add('hidden');
+                previewFrame.classList.remove('hidden');
+                updatePreview();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        async function updatePreview() {
+            if (!originalPdfBytes) return;
+
+            try {
+                const pdfDoc = await PDFDocument.load(originalPdfBytes);
+                pdfDoc.registerFontkit(fontkit);
+                
+                const pdfForm = pdfDoc.getForm();
+                
+                let customFont = null;
+                if (amharicFontBytes) {
+                    try {
+                        customFont = await pdfDoc.embedFont(amharicFontBytes);
+                    } catch (fontErr) {
+                        console.error('Error embedding Amharic font:', fontErr);
+                    }
+                }
+                const standardFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                
+                const formData = new FormData(form);
+                for (const [name, value] of formData.entries()) {
+                    try {
+                        const field = pdfForm.getTextField(name);
+                        
+                        // Check if the value contains non-ASCII characters (like Amharic)
+                        const hasNonAscii = /[^\x00-\x7F]/.test(value);
+                        
+                        if (hasNonAscii) {
+                            if (customFont && value.trim() !== '') {
+                                // IMPORTANT: Use the custom font ONLY for Amharic to avoid WinAnsi errors
+                                try {
+                                    field.setText(value);
+                                    field.updateAppearances(customFont);
+                                } catch (err) {
+                                    console.error(`Encoding error on field ${name}:`, err);
+                                }
+                            } else {
+                                console.warn(`Skipping Amharic text in ${name} - font not ready`);
+                            }
+                        } else {
+                            field.setText(value);
+                            field.updateAppearances(standardFont);
+                        }
+                    } catch (e) {
+                        console.error(`Error processing field ${name}:`, e);
+                    }
+                }
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                
+                if (previewFrame.src) {
+                    URL.revokeObjectURL(previewFrame.src);
+                }
+                previewFrame.src = url;
+            } catch (err) {
+                console.error('Preview error:', err);
+            }
+        }
+
+        form.addEventListener('input', () => {
+            if (originalPdfBytes) updatePreview();
+        });
+
+        refreshBtn.addEventListener('click', () => {
+            if (originalPdfBytes) updatePreview();
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            try {
+                const pdfDoc = await PDFDocument.load(originalPdfBytes);
+                pdfDoc.registerFontkit(fontkit);
+                
+                const pdfForm = pdfDoc.getForm();
+                
+                let customFont = null;
+                if (amharicFontBytes) {
+                    try {
+                        customFont = await pdfDoc.embedFont(amharicFontBytes);
+                    } catch (fontErr) {
+                        console.error('Error embedding Amharic font for download:', fontErr);
+                    }
+                }
+                const standardFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                
+                const formData = new FormData(form);
+                for (const [name, value] of formData.entries()) {
+                    try {
+                        const field = pdfForm.getTextField(name);
+                        const hasNonAscii = /[^\x00-\x7F]/.test(value);
+
+                        if (hasNonAscii) {
+                            if (customFont && value.trim() !== '') {
+                                try {
+                                    field.setText(value);
+                                    field.updateAppearances(customFont);
+                                } catch (err) {
+                                    console.error(`Encoding error during download for ${name}:`, err);
+                                }
+                            }
+                        } else {
+                            field.setText(value);
+                            field.updateAppearances(standardFont);
+                        }
+                    } catch (e) {}
+                }
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'filled_application.pdf';
+                link.click();
+            } catch (err) {
+                console.error('Download error:', err);
+                alert('Error generating PDF download.');
+            }
+        });
+    </script>
+</body>
+</html>

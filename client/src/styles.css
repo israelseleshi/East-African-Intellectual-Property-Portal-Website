@@ -1,0 +1,329 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Apple Pro Color Palette */
+  --eai-bg: #F5F5F7;
+  --eai-surface: #FFFFFF;
+  --eai-surface-glass: rgba(255, 255, 255, 0.7);
+  --eai-text: #1D1D1F;
+  --eai-text-secondary: #86868B;
+  --eai-muted: rgba(0, 0, 0, 0.5);
+  --eai-border: rgba(0, 0, 0, 0.08);
+  --eai-border-strong: rgba(0, 0, 0, 0.12);
+
+  --eai-primary: #003B5C;
+  --eai-primary-hover: #004B7C;
+  --eai-success: #34C759;
+  --eai-warning: #FF9500;
+  --eai-critical: #FF3B30;
+
+  /* Shadows & Blurs */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-premium: 0 20px 40px rgba(0,0,0,0.04);
+  --glass-blur: 20px;
+
+  /* Spacing Tokens */
+  --page-padding: 2rem;
+  --section-gap: 2rem;
+  --component-gap: 1.5rem;
+}
+
+html.dark {
+  --eai-bg: #000000;
+  --eai-surface: #1C1C1E;
+  --eai-surface-glass: rgba(28, 28, 30, 0.7);
+  --eai-text: #F5F5F7;
+  --eai-text-secondary: #86868B;
+  --eai-muted: rgba(255, 255, 255, 0.5);
+  --eai-border: rgba(255, 255, 255, 0.12);
+  --eai-border-strong: rgba(255, 255, 255, 0.18);
+
+  --eai-primary: #004B7C;
+  --eai-primary-hover: #005B9C;
+  --eai-success: #30D158;
+  --eai-warning: #FF9F0A;
+  --eai-critical: #FF453A;
+  
+  --shadow-premium: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .glass {
+    backdrop-filter: blur(var(--glass-blur));
+    background-color: var(--eai-surface-glass);
+    border-color: var(--eai-border);
+  }
+
+  /* Standard Typography Utilities */
+  .text-h1 {
+    @apply text-[34px] font-bold tracking-tight leading-tight;
+  }
+  .text-h2 {
+    @apply text-[20px] font-bold tracking-tight leading-snug;
+  }
+  .text-h3 {
+    @apply text-[16px] font-bold leading-normal;
+  }
+  .text-body {
+    @apply text-[15px] font-medium leading-relaxed;
+  }
+  .text-label {
+    @apply text-[13px] font-bold uppercase tracking-tight text-[var(--eai-text-secondary)];
+  }
+  .text-micro {
+    @apply text-[11px] font-bold tracking-tight;
+  }
+
+  .apple-card {
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: var(--eai-border);
+    background-color: var(--eai-surface);
+    box-shadow: var(--shadow-premium);
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+  .apple-card:hover {
+    @apply -translate-y-1 shadow-2xl;
+    border-color: var(--eai-border-strong);
+  }
+  .apple-button-primary {
+    height: 2.75rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 8px;
+    background-color: var(--eai-primary);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .apple-button-primary:hover {
+    background-color: var(--eai-primary-hover);
+    @apply shadow-lg;
+  }
+  .apple-button-primary:active {
+    transform: scale(0.96);
+  }
+  .apple-button-secondary {
+    height: 2.75rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 8px;
+    background-color: var(--eai-surface);
+    border: 1px solid var(--eai-border);
+    color: var(--eai-text);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .apple-button-secondary:hover {
+    background-color: var(--eai-bg);
+    border-color: var(--eai-border-strong);
+  }
+  .apple-button-secondary:active {
+    transform: scale(0.96);
+  }
+  .apple-input {
+    height: 2.75rem;
+    width: 100%;
+    appearance: none;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: var(--eai-border);
+    background-color: var(--eai-surface);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--eai-text);
+    outline: none;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  .apple-input:focus {
+    border-color: var(--eai-primary);
+    box-shadow: 0 0 0 2px var(--eai-primary);
+  }
+  .dark .apple-input {
+    background-color: #1C1C1E;
+    border-color: var(--eai-border-strong);
+    color: #F5F5F7;
+  }
+  .apple-select {
+    height: 2.75rem;
+    width: 100%;
+    appearance: none;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: var(--eai-border);
+    background-color: var(--eai-surface);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--eai-text);
+    outline: none;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  .apple-select:focus {
+    border-color: var(--eai-primary);
+    box-shadow: 0 0 0 2px var(--eai-primary);
+  }
+  .dark .apple-select {
+    background-color: #1C1C1E;
+    border-color: var(--eai-border-strong);
+    color: #F5F5F7;
+  }
+}
+
+html, body {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* Prevent body scroll, let main container handle it */
+}
+
+body {
+  margin: 0;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  letter-spacing: -0.011em;
+  min-height: 100vh;
+}
+
+/* Ensure all scrollable containers work properly */
+.overflow-y-auto {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for framer-motion scroll issues */
+.min-h-0 {
+  min-height: 0;
+}
+
+/* Ensure main content area is scrollable */
+main {
+  contain: layout style paint;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0px;
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
