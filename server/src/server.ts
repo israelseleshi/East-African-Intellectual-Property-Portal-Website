@@ -38,7 +38,10 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve uploads from both /uploads and /api/uploads for production compatibility
 app.use('/uploads', express.static(uploadDir));
+app.use('/api/uploads', express.static(uploadDir));
 
 // Serve Mark Images and PDFs
 const __filename = fileURLToPath(import.meta.url);
