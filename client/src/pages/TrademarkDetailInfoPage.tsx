@@ -70,7 +70,7 @@ function safeDate(value?: string) {
   if (!value) return undefined
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return undefined
-  return d.toLocaleDateString()
+  return d.toLocaleDateString('en-US')
 }
 
 export default function TrademarkDetailInfoPage() {
@@ -138,7 +138,8 @@ export default function TrademarkDetailInfoPage() {
         clientInstructions: editData.clientInstructions,
         remark: editData.remark,
         client: editData.client,
-        eipaForm: editData.eipaForm
+        eipaForm: editData.eipaForm,
+        mark_image: editData.mark_image
       };
 
       await api.patch(`/cases/${id}`, payload);
@@ -277,9 +278,9 @@ export default function TrademarkDetailInfoPage() {
       <header className="flex items-end justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate(`/trademarks/${tm.id}`)}
+            onClick={() => navigate('/trademarks')}
             className="p-2 rounded-xl hover:bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] transition-colors"
-            title="Back to case"
+            title="Back to Docket"
           >
             <ArrowLeft size={24} weight="bold" />
           </button>
@@ -352,8 +353,48 @@ export default function TrademarkDetailInfoPage() {
               <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Identity</h4>
               {tm.mark_image && (
                 <div className="flex justify-center mb-6">
-                  <div className="w-48 h-48 border border-[var(--eai-border)] rounded-xl overflow-hidden bg-[var(--eai-bg)] flex items-center justify-center p-2 shadow-sm">
-                     <img src={`http://localhost:3001${tm.mark_image}`} alt="Mark Logo" className="max-w-full max-h-full object-contain" />
+                  <div className="w-48 h-48 border border-[var(--eai-border)] rounded-xl overflow-hidden flex items-center justify-center p-2 shadow-sm group/image relative">
+                     <img 
+                       src={
+                         (isEditing && editData.mark_image?.startsWith('data:')) 
+                           ? editData.mark_image 
+                           : (tm.mark_image?.startsWith('http') 
+                               ? tm.mark_image 
+                               : `${window.location.origin}${tm.mark_image}`)
+                       } 
+                       alt="Mark Logo" 
+                       className="max-w-full max-h-full object-contain" 
+                       onError={(e) => {
+                         const img = e.currentTarget;
+                         if (!img.src.includes('api') && !img.src.startsWith('data:')) {
+                           img.src = `${window.location.origin}/api${tm.mark_image}`;
+                         }
+                       }}
+                     />
+                     {isEditing && (
+                       <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer">
+                         <PencilSimple size={24} className="text-white mb-1" weight="bold" />
+                         <span className="text-[10px] text-white font-bold uppercase tracking-widest">Change Image</span>
+                         <input 
+                           type="file" 
+                           className="hidden" 
+                           accept="image/*"
+                           onChange={async (e) => {
+                             const file = e.target.files?.[0];
+                             if (file) {
+                               const reader = new FileReader();
+                               reader.onloadend = () => {
+                                 const base64String = reader.result as string;
+                                 handleInputChange('mark_image', base64String);
+                                 // Also update the local view immediately if needed, 
+                                 // but handleInputChange will trigger a re-render with editData
+                               };
+                               reader.readAsDataURL(file);
+                             }
+                           }}
+                         />
+                       </label>
+                     )}
                   </div>
                 </div>
               )}
@@ -520,10 +561,8 @@ export default function TrademarkDetailInfoPage() {
 
             {eipa && (
               <div className="space-y-6 pt-4 border-t border-[var(--eai-border)]">
-                <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">EIPA Form 01 Details</h4>
-
-                <div className="space-y-4">
-                  <div className="text-micro text-[var(--eai-text-secondary)] font-bold uppercase tracking-widest border-b border-[var(--eai-border)] pb-1">IV. Mark specification</div>
+                <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
+                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">IV. Mark specification</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <Label className="text-micro text-[var(--eai-text-secondary)]">Goods mark</Label>
@@ -649,7 +688,7 @@ export default function TrademarkDetailInfoPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <div className="text-micro text-[var(--eai-text-secondary)]">V. Disclaimer</div>
+                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">V. Disclaimer</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <Label className="text-micro text-[var(--eai-text-secondary)]">Amharic disclaimer</Label>
@@ -683,7 +722,7 @@ export default function TrademarkDetailInfoPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <div className="text-micro text-[var(--eai-text-secondary)] font-bold uppercase tracking-widest border-b border-[var(--eai-border)] pb-1">VI. Priority right declaration</div>
+                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">VI. Priority right declaration</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <Label className="text-micro text-[var(--eai-text-secondary)]">Priority application date</Label>
@@ -754,7 +793,7 @@ export default function TrademarkDetailInfoPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <div className="text-micro text-[var(--eai-text-secondary)] font-bold uppercase tracking-widest border-b border-[var(--eai-border)] pb-1">VII. Checklist & signature</div>
+                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">VII. Checklist & signature</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <Label className="text-micro text-[var(--eai-text-secondary)]">3 identical copies of mark</Label>

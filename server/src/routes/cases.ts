@@ -1,8 +1,10 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import { pool, getConnection } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { recalculateDeadlines, addDays, formatDate } from '../utils/deadlines.js';
-import { FEE_SCHEDULE } from '../utils/constants.js';
+import { FEE_SCHEDULE, uploadDir } from '../utils/constants.js';
 import type { CaseRow } from '../database/types.js';
 
 const router = express.Router();
@@ -581,6 +583,29 @@ router.patch('/:id', authenticateToken, async (req, res) => {
             if (data.colorIndication !== undefined) { caseUpdates.push('color_indication = ?'); caseValues.push(data.colorIndication); }
             if (data.priority !== undefined) { caseUpdates.push('priority = ?'); caseValues.push(data.priority); }
             if (data.filingNumber !== undefined) { caseUpdates.push('filing_number = ?'); caseValues.push(data.filingNumber); }
+
+            // Handle image update
+            if (data.mark_image && data.mark_image.startsWith('data:image')) {
+                const parts = data.mark_image.split(',');
+                const mimeType = parts[0].match(/:(.*?);/)?.[1];
+                const extension = mimeType?.split('/')[1] || 'png';
+                const base64Data = parts[1];
+                const filename = `mark_${id}_${Date.now()}.${extension}`;
+                const filePath = path.join(uploadDir, 'marks', filename);
+                
+                // Ensure directory exists
+                if (!fs.existsSync(path.join(uploadDir, 'marks'))) {
+                    fs.mkdirSync(path.join(uploadDir, 'marks'), { recursive: true });
+                }
+                
+                fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+                caseUpdates.push('mark_image = ?');
+                caseValues.push(`/uploads/marks/${filename}`);
+            } else if (data.mark_image !== undefined) {
+                // If it's already a path, just update it
+                caseUpdates.push('mark_image = ?');
+                caseValues.push(data.mark_image);
+            }
 
             if (caseUpdates.length > 0) {
                 caseValues.push(id);

@@ -20,6 +20,7 @@ import { ContactSection } from './FormAutomation/sections/ContactSection';
 import { MarkSpecificationSection } from './FormAutomation/sections/MarkSpecificationSection';
 import { NiceClassificationSection } from './FormAutomation/sections/NiceClassificationSection';
 import { PrioritySection } from './FormAutomation/sections/PrioritySection';
+import { AgentSection } from './FormAutomation/sections/AgentSection';
 import { DisclaimerSection } from './FormAutomation/sections/DisclaimerSection';
 import { ChecklistSection } from './FormAutomation/sections/ChecklistSection';
 import { EipaFormData, Client, FormType } from './FormAutomation/types';
@@ -97,6 +98,11 @@ export default function FormInspectorPage() {
     applicant_sign_day_en: '',
     applicant_sign_month_en: '',
     applicant_sign_year_en: '',
+    agent_name: 'East African IP',
+    agent_subcity: 'Yeka',
+    agent_wereda: '02',
+    agent_telephone: '0939423012',
+    agent_email: 'info@eastafricanip.com',
   });
 
   const tourSteps: Step[] = [
@@ -513,6 +519,7 @@ export default function FormInspectorPage() {
             handleClientSelect={handleClientSelect} 
           />
           <AddressSection formData={formData} handleInputChange={handleInputChange} />
+          <AgentSection formData={formData} handleInputChange={handleInputChange} />
           <ContactSection formData={formData} handleInputChange={handleInputChange} />
           <MarkSpecificationSection 
             formData={formData} 

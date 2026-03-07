@@ -18,6 +18,7 @@ import {
   CaretDown,
   CaretUp
 } from '@phosphor-icons/react'
+import * as XLSX from 'xlsx'
 import Joyride, { Step } from 'react-joyride'
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -380,6 +381,41 @@ export default function DocketPage() {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      const exportData = sortedRows.map(c => ({
+        'Mark Name': c.markName || c.mark_name || '—',
+        'Filing Number': c.filing_number || c.filingNumber || 'PENDING',
+        'Jurisdiction': JURISDICTION_NAMES[c.jurisdiction || 'ET'],
+        'Status': STATUS_NAMES[c.status || 'DRAFT'],
+        'Client': c.client_name || c.client?.name || '—',
+        'Application Date': c.filing_date || c.filingDate || '—',
+        'Registration Date': c.registration_dt || c.registrationDt || '—',
+        'Next Action Date': c.next_action_date || c.nextActionDate || '—',
+        'Color': c.colorIndication || 'B&W',
+        'Type': c.markType || 'WORD'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Trademarks');
+      XLSX.writeFile(wb, `TM_Docket_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      addToast({
+        title: 'Export Successful',
+        description: 'Docket data has been exported to Excel.',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      addToast({
+        title: 'Export Failed',
+        description: 'Could not generate Excel file.',
+        type: 'error'
+      });
+    }
+  };
+
   return (
     <div className="w-full">
       <Joyride
@@ -427,6 +463,23 @@ export default function DocketPage() {
       />
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="trademarks-header">
         <h1 className="text-h1 text-[var(--eai-text)]">Trademarks</h1>
+        <div className="flex items-center gap-2">
+           <button 
+             onClick={handleExportExcel}
+             className="apple-button-secondary flex items-center gap-2 text-label h-10 px-4"
+           >
+             <DownloadSimple size={18} weight="bold" />
+             <span>Export XLSX</span>
+           </button>
+           <button 
+             onClick={() => navigate('/case-intake')}
+             className="apple-button-primary flex items-center gap-2 text-label h-10 px-4"
+             id="new-application-btn"
+           >
+             <Plus size={18} weight="bold" />
+             <span>New Application</span>
+           </button>
+        </div>
       </header>
 
       {/* Delete Confirmation Dialog */}
@@ -684,6 +737,11 @@ export default function DocketPage() {
                     </div>
                   </th>
                   <th 
+                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center"
+                  >
+                    Nice Class
+                  </th>
+                  <th 
                     className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
                     onClick={() => handleSort('region')}
                   >
@@ -749,6 +807,16 @@ export default function DocketPage() {
                     
                     <td className="px-6 py-4 text-center">
                       <span className="text-micro font-bold truncate inline-block max-w-[150px]">{t.client_name || t.client?.name || '—'}</span>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {(t as any).niceClasses?.length ? (t as any).niceClasses.map((c: number) => (
+                          <span key={c} className="text-[10px] w-5 h-5 flex items-center justify-center border border-[var(--eai-border)] bg-[var(--eai-bg)] rounded-sm font-black text-[var(--eai-text)]">
+                            {c}
+                          </span>
+                        )) : '—'}
+                      </div>
                     </td>
 
                     <td className="px-6 py-4 text-center">

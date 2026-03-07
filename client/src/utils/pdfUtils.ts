@@ -76,95 +76,59 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
         try {
           const matchedName = availableFields.find(f => f.trim().toLowerCase() === match.trim().toLowerCase())!;
           console.log(`Matching field: "${matchedName}" for value: "${strValue.substring(0, 20)}..."`);
+          
           let field;
           try {
-            field = form.getTextField(matchedName);
+            field = form.getField(matchedName);
           } catch (e) {
-            try {
-              field = form.getButton(matchedName);
-            } catch (e2) {
-              field = form.getField(matchedName);
-            }
+            console.warn(`Could not get field ${matchedName}:`, e);
+            return;
           }
 
-          // Handle Image Embedding for Logo Placeholder
-          const isLogoField = matchedName.toLowerCase().includes('logo_placeholder') ||
-            matchedName.toLowerCase().includes('mark_logo') ||
-            matchedName.toLowerCase().includes('image_field') ||
-            matchedName.toLowerCase().includes('graphical_representation') ||
-            matchedName.toLowerCase().includes('text field'); // EIPA uses "Text Field" sometimes
-
-          if (isLogoField && strValue.startsWith('data:image')) {
-            // ... (keep image embedding logic)
+          // Handle Image Embedding for "image_field" button
+          if (matchedName.toLowerCase() === 'image_field' && (strValue.startsWith('data:image') || strValue.startsWith('/uploads/'))) {
             try {
-              console.log('Embedding image into field:', matchedName);
-              const acroField = (field as any).acroField;
-              const widgets = acroField.getWidgets();
-              if (widgets.length > 0) {
-                const widget = widgets[0];
-                const rect = widget.getRectangle();
-
-                // Get the page index
-                const pages = pdfDoc.getPages();
-                let page = pages[0]; // Default to Page 1
-                
-                // Try to find which page this field is actually on
-                for (let i = 0; i < pages.length; i++) {
-                  const p = pages[i];
-                  const annots = (p.node as any).Annots();
-                  if (annots) {
-                    const array = annots.asArray();
-                    if (array.some((ref: any) => ref === widget.ref || (ref.num === widget.ref.num && ref.gen === widget.ref.gen))) {
-                      page = p;
-                      console.log(`Found field on page ${i + 1}`);
-                      break;
-                    }
-                  }
-                }
-
-                // Convert base64 to bytes
-                const imageBase64 = strValue.split(',')[1];
-                const imageBytes = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
-                let image;
-                if (strValue.includes('image/png')) {
-                  image = await pdfDoc.embedPng(imageBytes);
-                } else {
-                  image = await pdfDoc.embedJpg(imageBytes);
-                }
-
-                const { width, height } = image.scale(1);
-                const aspectRatio = width / height;
-
-                let drawWidth = rect.width;
-                let drawHeight = rect.width / aspectRatio;
-
-                if (drawHeight > rect.height) {
-                  drawHeight = rect.height;
-                  drawWidth = rect.height * aspectRatio;
-                }
-
-                page.drawImage(image, {
-                  x: rect.x + (rect.width - drawWidth) / 2,
-                  y: rect.y + (rect.height - drawHeight) / 2,
-                  width: drawWidth,
-                  height: drawHeight,
-                });
-
-                // If it's a text field, clear its text to avoid overlapping
-                if (matchedName.toLowerCase().includes('text')) {
-                  try {
-                    (field as any).setText('');
-                  } catch (e) {}
-                }
-                return; // Image handled
+              console.log('Embedding image into button field using setImage:', matchedName);
+              
+              // Handle both base64 and URL-based images
+              let imageBytes: Uint8Array;
+              let mimeType = '';
+              if (strValue.startsWith('data:image')) {
+                const parts = strValue.split(',');
+                mimeType = parts[0];
+                imageBytes = Uint8Array.from(atob(parts[1]), c => c.charCodeAt(0));
+              } else {
+                const url = strValue.startsWith('http') ? strValue : window.location.origin + strValue;
+                const imgRes = await fetch(url);
+                imageBytes = new Uint8Array(await imgRes.arrayBuffer());
+                mimeType = imgRes.headers.get('Content-Type') || '';
               }
+              
+              let image;
+              const isPng = mimeType.includes('png') || (imageBytes[0] === 0x89 && imageBytes[1] === 0x50);
+              const isJpeg = mimeType.includes('jpeg') || (imageBytes[0] === 0xFF && imageBytes[1] === 0xD8);
+              
+              if (isPng) image = await pdfDoc.embedPng(imageBytes);
+              else if (isJpeg) image = await pdfDoc.embedJpg(imageBytes);
+              else {
+                try { image = await pdfDoc.embedPng(imageBytes); }
+                catch { image = await pdfDoc.embedJpg(imageBytes); }
+              }
+
+              // Use the native pdf-lib setImage method for button fields
+              // This is the correct way to fill a PushButton field with an image
+              // It automatically handles coordinates, scaling, and centering based on the field properties
+              const button = form.getButton(matchedName);
+              button.setImage(image);
+              return;
             } catch (imgErr) {
-              console.error('Error embedding image:', imgErr);
+              console.error('Error embedding image into image_field using setImage:', imgErr);
+              // If setImage fails (e.g. not a button), fallback to drawImage logic if absolutely necessary
             }
           }
 
-          // Fallback to text if not an image or image failed
-          if ('setText' in field) {
+          // Fallback to text if not an image
+          if (field instanceof PDFTextField) {
             const textField = field as any;
             
             // Apply font based on content BEFORE setting text

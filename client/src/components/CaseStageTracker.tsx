@@ -41,20 +41,21 @@ interface CaseStageTrackerProps {
 }
 
 const STAGES: { key: CaseFlowStage; label: string; description: string; icon: typeof FileText; actionLabel?: string }[] = [
-  { key: 'DATA_COLLECTION', label: 'Data Collection', description: 'Gathering case information', icon: FileText, actionLabel: 'Ready for Filing' },
+  { key: 'DATA_COLLECTION', label: 'In-take', description: 'Gathering case information', icon: FileText, actionLabel: 'Ready for Filing' },
   { key: 'READY_TO_FILE', label: 'Ready to File', description: 'Prepared for submission', icon: CheckCircle, actionLabel: 'Record Filing' },
   { key: 'FILED', label: 'Filed', description: 'Application submitted', icon: FileText, actionLabel: 'Proceed to Exam' },
   { key: 'FORMAL_EXAM', label: 'Formal Exam', description: 'Checking paperwork', icon: ShieldCheck, actionLabel: 'Pass Formalities' },
   { key: 'SUBSTANTIVE_EXAM', label: 'Substantive Exam', description: 'Examining uniqueness', icon: ShieldCheck, actionLabel: 'Record Result' },
-  { key: 'AMENDMENT_PENDING', label: 'Amendment Pending', description: '90-day response window', icon: Warning, actionLabel: 'Log Response' },
   { key: 'PUBLISHED', label: 'Published', description: 'Public notice period', icon: Globe, actionLabel: 'End Opposition' },
   { key: 'CERTIFICATE_REQUEST', label: 'Certificate Request', description: 'Requesting certificate', icon: Certificate, actionLabel: 'Collect Certificate' },
-  { key: 'CERTIFICATE_ISSUED', label: 'Certificate Issued', description: 'Certificate received', icon: Certificate, actionLabel: 'Register Mark' },
-  { key: 'REGISTERED', label: 'Registered', description: 'Mark registered', icon: CheckCircle, actionLabel: 'Schedule Renewal' },
-  { key: 'RENEWAL_DUE', label: 'Renewal Due', description: 'Renewal required', icon: Clock, actionLabel: 'Pay Renewal' },
-  { key: 'RENEWAL_ON_TIME', label: 'Renewal On Time', description: 'Paid within 30 days', icon: CheckCircle, actionLabel: 'Complete' },
-  { key: 'RENEWAL_PENALTY', label: 'Renewal Penalty', description: 'Late renewal period', icon: Warning, actionLabel: 'Complete Late' },
-  { key: 'DEAD_WITHDRAWN', label: 'Dead/Withdrawn', description: 'Case abandoned', icon: XCircle }
+  { key: 'CERTIFICATE_ISSUED', label: 'Certificate Issued', description: 'Certificate received', icon: Certificate, actionLabel: 'Finalize Registration' },
+  { key: 'REGISTERED', label: 'Registered', description: 'Mark registered', icon: CheckCircle, actionLabel: 'Schedule Renewal' }
+];
+
+const SPECIAL_ACTIONS: { key: CaseFlowStage; label: string; icon: typeof Warning | typeof Clock | typeof XCircle }[] = [
+  { key: 'AMENDMENT_PENDING', label: 'Respond to Office Action', icon: Warning },
+  { key: 'RENEWAL_DUE', label: 'Renew Trademark', icon: Clock },
+  { key: 'DEAD_WITHDRAWN', label: 'Withdraw/Abandon Case', icon: XCircle }
 ];
 
 export default function CaseStageTracker({
@@ -164,6 +165,27 @@ export default function CaseStageTracker({
               </span>
             </div>
           )}
+          {currentStage === 'READY_TO_FILE' && (
+            <div className="mt-4 p-4 bg-white border border-[var(--eai-border)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 bg-[var(--eai-bg)] text-[var(--eai-primary)]">
+                       <FileText size={20} />
+                   </div>
+                   <div>
+                       <div className="text-[14px] font-bold">Filing Application Form</div>
+                       <div className="text-[11px] text-[var(--eai-text-secondary)] uppercase font-black">Ready to download & sign</div>
+                   </div>
+                </div>
+                <Button 
+                   onClick={() => window.open(`/api/cases/${(STAGES as any).id}/download`, '_blank')} // Mocked, need to check actual download URL
+                   className="apple-button-secondary h-8 px-4 text-[11px]"
+                >
+                   Download Filled Form
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Horizontal Timeline (Wave UI) */}
@@ -259,12 +281,20 @@ export default function CaseStageTracker({
           })}
         </div>
 
-        {/* Jurisdiction Info */}
-        <div className="text-[11px] text-[var(--eai-text-secondary)] border-t border-[var(--eai-border)] pt-3">
-          <div className="flex items-center gap-4">
-            <span>Jurisdiction: <strong>{config.name}</strong></span>
-            <span>Opposition: <strong>{config.opposition_period_days} days</strong></span>
-            <span>Renewal: <strong>{config.renewal_years} years</strong></span>
+        {/* Special Actions */}
+        <div className="mt-8 border-t border-[var(--eai-border)] pt-6">
+          <h4 className="text-[12px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] mb-4">Special Actions & Exceptions</h4>
+          <div className="flex flex-wrap gap-2">
+             {SPECIAL_ACTIONS.map(action => (
+                <button
+                  key={action.key}
+                  onClick={() => onStageChange(action.key)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--eai-surface)] border border-[var(--eai-border)] text-[12px] font-bold text-[var(--eai-text)] hover:bg-[var(--eai-bg)] transition-colors"
+                >
+                  <action.icon size={16} />
+                  {action.label}
+                </button>
+             ))}
           </div>
         </div>
       </CardContent>

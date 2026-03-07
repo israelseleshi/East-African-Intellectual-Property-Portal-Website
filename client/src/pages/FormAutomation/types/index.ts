@@ -78,6 +78,11 @@ export interface EipaFormData {
   applicant_sign_day_en: string;
   applicant_sign_month_en: string;
   applicant_sign_year_en: string;
+  agent_name?: string;
+  agent_subcity?: string;
+  agent_wereda?: string;
+  agent_telephone?: string;
+  agent_email?: string;
 }
 
 export type FormType = 'APPLICATION' | 'RENEWAL';

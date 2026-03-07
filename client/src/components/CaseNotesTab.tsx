@@ -31,12 +31,12 @@ const NOTE_TYPE_LABELS: Record<string, string> = {
 };
 
 const NOTE_TYPE_COLORS: Record<string, string> = {
-  GENERAL: 'bg-gray-100 text-gray-800',
-  CLIENT_COMMUNICATION: 'bg-blue-100 text-blue-800',
-  PHONE_CALL: 'bg-green-100 text-green-800',
-  INTERNAL: 'bg-yellow-100 text-yellow-800',
-  STRATEGY: 'bg-purple-100 text-purple-800',
-  REPLY: 'bg-gray-50 text-gray-600'
+  GENERAL: 'bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] border-[var(--eai-border)]',
+  CLIENT_COMMUNICATION: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  PHONE_CALL: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  INTERNAL: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  STRATEGY: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+  REPLY: 'bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] border-[var(--eai-border)]'
 };
 
 export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
@@ -187,36 +187,39 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
   return (
     <div className="space-y-4">
       {/* Add New Note */}
-      <div className="bg-white border rounded-lg p-4">
-        <h4 className="font-medium mb-3">Add Note</h4>
+      <div className="bg-[var(--eai-surface)] border border-[var(--eai-border)] rounded-xl p-4 shadow-sm">
+        <h4 className="font-bold text-[14px] text-[var(--eai-text)] mb-3 tracking-tight">Add Note</h4>
         <Textarea
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
           placeholder="Enter note content..."
-          className="mb-3"
-          rows={3}
+          className="apple-input mb-3 min-h-[100px]"
         />
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-4 mb-4">
           <select
             value={noteType}
             onChange={(e) => setNoteType(e.target.value as Note['note_type'])}
-            className="px-3 py-1.5 border rounded-md text-sm"
+            className="apple-input h-9 px-3 text-[13px] bg-transparent cursor-pointer"
           >
             {Object.entries(NOTE_TYPE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key} className="bg-[var(--eai-surface)] text-[var(--eai-text)]">{label}</option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-[13px] text-[var(--eai-text-secondary)] cursor-pointer select-none">
             <input
               type="checkbox"
               checked={isPrivate}
               onChange={(e) => setIsPrivate(e.target.checked)}
-              className="rounded"
+              className="w-4 h-4 rounded border-[var(--eai-border)] text-[var(--eai-primary)] focus:ring-[var(--eai-primary)] transition-all bg-transparent"
             />
             Private (internal only)
           </label>
         </div>
-        <Button onClick={handleAddNote} disabled={!newNote.trim()}>
+        <Button 
+          onClick={handleAddNote} 
+          disabled={!newNote.trim()}
+          className="apple-button-primary"
+        >
           Add Note
         </Button>
       </div>
@@ -259,20 +262,20 @@ interface NoteItemProps {
 
 function NoteItem({ note, onPin, onDelete, onReply, replyingTo, setReplyingTo, replyContent, setReplyContent, isReply }: NoteItemProps) {
   return (
-    <div className={`bg-white border rounded-lg p-4 ${note.is_pinned ? 'border-yellow-400 bg-yellow-50/30' : ''} ${isReply ? 'ml-8' : ''}`}>
-      <div className="flex items-start justify-between mb-2">
+    <div className={`bg-[var(--eai-surface)] border border-[var(--eai-border)] rounded-xl p-4 shadow-sm transition-all hover:shadow-md ${note.is_pinned ? 'border-amber-400 bg-amber-500/5' : ''} ${isReply ? 'ml-8' : ''}`}>
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${NOTE_TYPE_COLORS[note.note_type]}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${NOTE_TYPE_COLORS[note.note_type]}`}>
             {NOTE_TYPE_LABELS[note.note_type]}
           </span>
           {note.is_private && (
-            <span className="px-2 py-0.5 rounded text-xs bg-red-100 text-red-800">
+            <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-500 border border-red-500/20">
               Private
             </span>
           )}
           {note.is_pinned && (
-            <span className="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800">
-              📌 Pinned
+            <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              Pinned
             </span>
           )}
         </div>
@@ -280,30 +283,34 @@ function NoteItem({ note, onPin, onDelete, onReply, replyingTo, setReplyingTo, r
           {!isReply && (
             <button
               onClick={() => onPin(note.id, !note.is_pinned)}
-              className="p-1 text-gray-400 hover:text-yellow-500"
+              className={`p-1.5 rounded-md transition-colors ${note.is_pinned ? 'text-amber-500 bg-amber-500/10' : 'text-[var(--eai-muted)] hover:text-amber-500 hover:bg-amber-500/10'}`}
               title={note.is_pinned ? 'Unpin' : 'Pin'}
             >
-              {note.is_pinned ? '📌' : '📍'}
+              <svg className="w-4 h-4" fill={note.is_pinned ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              </svg>
             </button>
           )}
           <button
             onClick={() => onDelete(note.id)}
-            className="p-1 text-gray-400 hover:text-red-500"
+            className="p-1.5 rounded-md text-[var(--eai-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
             title="Delete"
           >
-            🗑️
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         </div>
       </div>
 
-      <p className="text-gray-800 mb-3 whitespace-pre-wrap">{note.content}</p>
+      <p className="text-[14px] leading-relaxed text-[var(--eai-text)] mb-4 whitespace-pre-wrap">{note.content}</p>
 
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        <span>{note.user_name || 'Unknown'} • {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}</span>
+      <div className="flex items-center justify-between text-[12px] text-[var(--eai-text-secondary)] border-t border-[var(--eai-border)]/50 pt-3">
+        <span className="font-medium">{note.user_name || 'System'} • {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}</span>
         {!isReply && (
           <button
             onClick={() => setReplyingTo(replyingTo === note.id ? null : note.id)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-[var(--eai-primary)] font-bold hover:underline transition-all"
           >
             Reply
           </button>
@@ -312,16 +319,17 @@ function NoteItem({ note, onPin, onDelete, onReply, replyingTo, setReplyingTo, r
 
       {/* Reply Form */}
       {replyingTo === note.id && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-4 flex gap-2 animate-in slide-in-from-top-2 duration-200">
           <input
             type="text"
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
-            className="flex-1 px-3 py-2 border rounded-md text-sm"
+            className="apple-input flex-1 h-9 px-3 text-[13px]"
             onKeyPress={(e) => e.key === 'Enter' && onReply(note.id)}
+            autoFocus
           />
-          <Button size="sm" onClick={() => onReply(note.id)} disabled={!replyContent.trim()}>
+          <Button size="sm" onClick={() => onReply(note.id)} disabled={!replyContent.trim()} className="apple-button-primary h-9">
             Send
           </Button>
         </div>

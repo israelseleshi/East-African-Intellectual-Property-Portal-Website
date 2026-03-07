@@ -12,14 +12,14 @@ Write-Host "Starting TPMS Deployment to $HOST_NAME..."
 # 1. Build Client
 Write-Host "Building Frontend..."
 Set-Location client
-npm install
+npm install --legacy-peer-deps
 npm run build
 Set-Location ..
 
 # 2. Build Server
 Write-Host "Building Backend..."
 Set-Location server
-npm install
+npm install --legacy-peer-deps
 npm run build
 Set-Location ..
 
@@ -40,20 +40,29 @@ Compress-Archive -Path "deploy_tmp/frontend/*" -DestinationPath "deploy_tmp/fron
 Compress-Archive -Path "deploy_tmp/backend/*" -DestinationPath "deploy_tmp/backend.zip" -Force
 
 # 4. Upload to Server
-Write-Host "Uploading to server..."
+Write-Host "Uploading to server (You will be prompted for your password twice)..."
 scp -P $SSH_PORT deploy_tmp/frontend.zip ${USER}@${HOST_NAME}:/home/${USER}/${REMOTE_FRONTEND_DIR}/
 scp -P $SSH_PORT deploy_tmp/backend.zip ${USER}@${HOST_NAME}:/home/${USER}/${REMOTE_BACKEND_DIR}/
 
-# 5. Extract on Server
-Write-Host "Extracting on server..."
-ssh -p $SSH_PORT ${USER}@${HOST_NAME} "cd /home/${USER}/${REMOTE_FRONTEND_DIR} ; unzip -o frontend.zip ; rm frontend.zip"
-ssh -p $SSH_PORT ${USER}@${HOST_NAME} "cd /home/${USER}/${REMOTE_BACKEND_DIR} ; unzip -o backend.zip ; rm backend.zip"
+# 5. Extract and Restart on Server
+Write-Host "Extracting files and restarting application on server (Final password prompt)..."
+$REMOTE_COMMAND = "
+    echo '--- Extracting Frontend ---' && 
+    cd /home/${USER}/${REMOTE_FRONTEND_DIR} && 
+    unzip -o frontend.zip && 
+    rm frontend.zip && 
+    echo '--- Extracting Backend ---' && 
+    cd /home/${USER}/${REMOTE_BACKEND_DIR} && 
+    unzip -o backend.zip && 
+    rm backend.zip && 
+    echo '--- Restarting Node.js ---' && 
+    mkdir -p /home/${USER}/${REMOTE_BACKEND_DIR}/tmp && 
+    touch /home/${USER}/${REMOTE_BACKEND_DIR}/tmp/restart.txt && 
+    echo '--- Server Tasks Done ---'
+"
+ssh -p $SSH_PORT ${USER}@${HOST_NAME} $REMOTE_COMMAND
 
-# 6. Restart Node.js App
-Write-Host "Restarting Node.js application..."
-ssh -p $SSH_PORT ${USER}@${HOST_NAME} "mkdir -p /home/${USER}/${REMOTE_BACKEND_DIR}/tmp ; touch /home/${USER}/${REMOTE_BACKEND_DIR}/tmp/restart.txt"
-
-Write-Host "Deployment Complete! Refresh your browser."
+Write-Host "Deployment Complete! Please clear your browser cache and refresh."
 
 # Cleanup local temp
 Remove-Item -Recurse -Force deploy_tmp
