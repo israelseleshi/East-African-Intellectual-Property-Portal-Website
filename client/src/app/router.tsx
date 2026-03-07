@@ -8,7 +8,6 @@ import ClientDetailPage from '../pages/ClientDetailPage'
 import NewClientPage from '../pages/NewClientPage'
 import CaseFlowPage from '../pages/CaseFlowPage'
 import CaseFlowDemoPage from '../pages/CaseFlowDemoPage'
-import TrademarkDetailPage from '../pages/TrademarkDetailPage'
 import TrademarkDetailInfoPage from '../pages/TrademarkDetailInfoPage'
 import DeadlinesPage from '../pages/DeadlinesPage'
 
@@ -63,7 +62,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'trademarks', element: <DocketPage /> },
-          { path: 'trademarks/:id', element: <TrademarkDetailPage /> },
+          { path: 'trademarks/:id', element: <TrademarkDetailInfoPage /> },
           { path: 'trademarks/:id/detail', element: <TrademarkDetailInfoPage /> },
           { path: 'deadlines', element: <DeadlinesPage /> },
           { path: 'intake/new', element: <Navigate to="/eipa-forms" replace /> },

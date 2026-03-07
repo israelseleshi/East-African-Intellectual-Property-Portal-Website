@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { dashboardService } from '../utils/api'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const JURISDICTION_IMAGE_FLAGS: Record<string, string> = {
   ET: '/flags/ethiopia-flag.png',
@@ -183,75 +184,70 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="w-full animate-pulse">
-        {/* Header Skeleton */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="h-8 w-40 bg-[var(--eai-border)]/50 rounded-lg" />
+      <div className="w-full max-w-7xl mx-auto p-6 space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-48" />
             <div className="flex items-center gap-2">
-              <div className="h-4 w-56 bg-[var(--eai-border)]/30 rounded" />
-              <div className="h-1 w-1 rounded-full bg-[var(--eai-border)]/50" />
-              <div className="h-4 w-32 bg-[var(--eai-border)]/30 rounded" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="h-3 w-3 rounded-full" />
+              <Skeleton className="h-4 w-32" />
             </div>
           </div>
-          <div className="h-9 w-28 bg-[var(--eai-border)]/50 rounded-lg" />
-        </div>
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </header>
 
-        {/* Stats Grid Skeleton */}
-        <div className="grid gap-6 md:grid-cols-3 mt-8">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="apple-card p-6">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-8">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="apple-card p-6 space-y-6">
               <div className="flex items-start justify-between">
-                <div className="h-12 w-12 bg-[var(--eai-border)]/40 rounded-xl" />
-                <div className="h-5 w-16 bg-[var(--eai-border)]/30 rounded-full" />
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <Skeleton className="h-5 w-16 rounded-full" />
               </div>
-              <div className="mt-6 space-y-2">
-                <div className="h-4 w-28 bg-[var(--eai-border)]/40 rounded" />
-                <div className="h-10 w-16 bg-[var(--eai-border)]/50 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-8 w-16" />
               </div>
             </div>
           ))}
         </div>
 
-        {/* Two Column Section Skeleton */}
-        <div className="grid gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 mt-8">
-          {/* Recent Filings Skeleton */}
-          <div className="apple-card p-6">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="h-7 w-32 bg-[var(--eai-border)]/50 rounded-lg" />
-              <div className="h-5 w-20 bg-[var(--eai-border)]/30 rounded" />
+        <div className="grid gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-2 mt-8">
+          <div className="apple-card p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-40" />
+              <Skeleton className="h-4 w-20" />
             </div>
             <div className="space-y-4">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-4 p-3">
-                  <div className="h-12 w-12 bg-[var(--eai-border)]/30 rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-5 w-3/4 bg-[var(--eai-border)]/40 rounded" />
-                    <div className="h-4 w-1/2 bg-[var(--eai-border)]/30 rounded" />
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 border border-transparent">
+                  <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Skeleton className="h-5 w-full max-w-[200px]" />
+                    <Skeleton className="h-3 w-32" />
                   </div>
-                  <div className="h-4 w-20 bg-[var(--eai-border)]/30 rounded" />
+                  <Skeleton className="h-4 w-20 shrink-0" />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Critical Deadlines Skeleton */}
-          <div className="apple-card p-6 border-l-4 border-l-[var(--eai-border)]/30">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="h-7 w-40 bg-[var(--eai-border)]/50 rounded-lg" />
-              <div className="h-6 w-6 bg-[var(--eai-border)]/30 rounded" />
+          <div className="apple-card p-6 space-y-6 border-l-4 border-l-[var(--eai-border)]/30">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-6 w-6" />
             </div>
             <div className="space-y-4">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="rounded-xl bg-[var(--eai-border)]/20 p-4">
-                  <div className="flex justify-between mb-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-xl border border-[var(--eai-border)]/20 p-4 space-y-3">
+                  <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 bg-[var(--eai-border)]/40 rounded" />
-                      <div className="h-5 w-32 bg-[var(--eai-border)]/40 rounded" />
+                      <Skeleton className="h-5 w-5 rounded-md" />
+                      <Skeleton className="h-5 w-32" />
                     </div>
-                    <div className="h-4 w-16 bg-[var(--eai-border)]/30 rounded" />
+                    <Skeleton className="h-4 w-16" />
                   </div>
-                  <div className="h-4 w-48 bg-[var(--eai-border)]/30 rounded" />
+                  <Skeleton className="h-4 w-full max-w-[300px]" />
                 </div>
               ))}
             </div>

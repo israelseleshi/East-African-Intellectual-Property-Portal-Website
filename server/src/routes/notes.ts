@@ -95,7 +95,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
         const { content, noteType, isPrivate, isPinned } = req.body;
         
         const fields: string[] = [];
-        const values: unknown[] = [];
+        const values: any[] = [];
         
         if (content !== undefined) {
             fields.push('content = ?');

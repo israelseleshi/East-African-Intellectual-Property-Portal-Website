@@ -15,7 +15,8 @@ import {
   Globe,
   Eye,
   SealCheck,
-  CaretDown
+  CaretDown,
+  CaretUp
 } from '@phosphor-icons/react'
 import Joyride, { Step } from 'react-joyride'
 import { useMemo, useState, useEffect } from 'react'
@@ -24,8 +25,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { Jurisdiction, TrademarkStatus } from '@/shared/database'
 
 import JurisdictionBadge from '../components/JurisdictionBadge'
+import { Skeleton } from '@/components/ui/skeleton'
 import StatusPill from '../components/StatusPill'
 import { trademarkService } from '../utils/api'
+import { fillPdfForm } from '../utils/pdfUtils'
 import { useToast } from '../components/ui/toast'
 import { useApi } from '../hooks/useApi'
 import { Card } from "@/components/ui/card"
@@ -127,6 +130,7 @@ const JurisdictionFlag = ({ code, className = "h-4 w-6" }: { code: string, class
 export default function DocketPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const api = useApi();
   const [searchParams, setSearchParams] = useSearchParams()
   const startTourFromUrl = searchParams.get('tour') === 'true'
 
@@ -137,6 +141,7 @@ export default function DocketPage() {
   const [status, setStatus] = useState<TrademarkStatus | 'ALL'>('ALL')
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null)
   const pageSize = 5
 
   // Delete Dialog State
@@ -211,6 +216,14 @@ export default function DocketPage() {
     }
   }
 
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc'
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
   const filteredRows = useMemo(() => {
     return cases.filter((c: { 
       markName?: string; 
@@ -237,12 +250,50 @@ export default function DocketPage() {
     })
   }, [cases, q, jurisdiction, status])
 
+  const sortedRows = useMemo(() => {
+    if (!sortConfig) return filteredRows
+
+    return [...filteredRows].sort((a, b) => {
+      let aValue: any = ''
+      let bValue: any = ''
+
+      switch (sortConfig.key) {
+        case 'mark':
+          aValue = (a.markName || a.mark_name || '').toLowerCase()
+          bValue = (b.markName || b.mark_name || '').toLowerCase()
+          break
+        case 'client':
+          aValue = (a.client_name || a.client?.name || '').toLowerCase()
+          bValue = (b.client_name || b.client?.name || '').toLowerCase()
+          break
+        case 'region':
+          aValue = (a.jurisdiction || '').toLowerCase()
+          bValue = (b.jurisdiction || '').toLowerCase()
+          break
+        case 'status':
+          aValue = (a.status || '').toLowerCase()
+          bValue = (b.status || '').toLowerCase()
+          break
+        case 'filing':
+          aValue = (a.filing_number || a.filingNumber || '').toLowerCase()
+          bValue = (b.filing_number || b.filingNumber || '').toLowerCase()
+          break
+        default:
+          return 0
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filteredRows, sortConfig])
+
   const totalPages = Math.ceil(filteredRows.length / pageSize)
 
   const paginatedRows = useMemo(() => {
     const start = (currentPage - 1) * pageSize
-    return filteredRows.slice(start, start + pageSize)
-  }, [filteredRows, currentPage])
+    return sortedRows.slice(start, start + pageSize)
+  }, [sortedRows, currentPage, pageSize])
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -268,52 +319,62 @@ export default function DocketPage() {
     }
   }
 
-  const handleDownloadForm = async (e: React.MouseEvent, caseId: string) => {
+  const handleDownloadForm = async (e: React.MouseEvent, t: any) => {
     e.stopPropagation();
     try {
-      const api = useApi();
-      const forms = await api.get(`/forms/list/${caseId}`);
+      const caseId = t.id;
       
-      if (!forms || forms.length === 0) {
+      // 1. Fetch EIPA form data for this case
+      const caseData = await api.get(`/cases/${caseId}`);
+      
+      if (!caseData || !caseData.eipaForm) {
         addToast({
-          title: 'No Form Available',
-          description: 'No uploaded form found for this trademark.',
+          title: 'No Data Available',
+          description: 'No form data found for this trademark to fill the PDF.',
           type: 'warning'
         });
         return;
       }
 
-      const form = forms[0];
-      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/forms/download/${form.file_name}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      // 2. Prepare data for filling
+      const fillData = {
+        ...caseData.eipaForm,
+        applicant_name: caseData.client?.name || caseData.client_name,
+        address_street: caseData.client?.addressStreet || caseData.client_address_street,
+        city_name: caseData.client?.city || caseData.client_city,
+        nationality: caseData.client?.nationality || caseData.client_nationality,
+        email: caseData.client?.email || caseData.client_email,
+        mark_description: caseData.mark_name || caseData.markName,
+        filing_number: caseData.filing_number || caseData.filingNumber,
+        registration_no: caseData.registration_no || caseData.registrationNo,
+        jurisdiction: caseData.jurisdiction,
+      };
 
-      if (!response.ok) {
-        throw new Error('Download failed');
-      }
+      // 3. Fill the PDF
+      const pdfUrl = '/application_form.pdf';
+      const pdfBytes = await fillPdfForm(pdfUrl, fillData, true);
 
-      const blob = await response.blob();
+      // 4. Download the generated PDF
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = form.file_name;
+      link.download = `EIPA_FORM_01_${fillData.applicant_name || 'Trademark'}_${caseId.substring(0, 8)}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
       addToast({
-        title: 'Download Complete',
-        description: `Downloaded ${form.file_name}`,
+        title: 'Download Started',
+        description: 'Generating filled PDF form...',
         type: 'success'
       });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('PDF Fill/Download error:', error);
       addToast({
         title: 'Download Failed',
-        description: 'Could not download the form. Please try again.',
+        description: 'Could not generate the filled form. Please try again.',
         type: 'error'
       });
     }
@@ -366,14 +427,6 @@ export default function DocketPage() {
       />
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="trademarks-header">
         <h1 className="text-h1 text-[var(--eai-text)]">Trademarks</h1>
-        <button
-          id="new-application-btn"
-          onClick={() => navigate('/intake/new')}
-          className="apple-button-primary flex items-center justify-center gap-2 shadow-lg shadow-[var(--eai-primary)]/20 w-full sm:w-auto"
-        >
-          <Plus size={18} weight="bold" />
-          <span className="text-label text-white">New Application</span>
-        </button>
       </header>
 
       {/* Delete Confirmation Dialog */}
@@ -504,29 +557,50 @@ export default function DocketPage() {
 
       <div className="mt-8">
         {loading ? (
-          <div className="w-full animate-pulse">
-            {/* Table Skeleton */}
-            <div className="apple-card overflow-hidden">
+          <div className="w-full">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <Skeleton className="h-10 w-48" />
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Skeleton className="h-10 w-32 rounded-xl" />
+                <Skeleton className="h-10 w-32 rounded-xl" />
+              </div>
+            </header>
+
+            <Card className="apple-card p-4 bg-[var(--eai-surface)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <Skeleton className="h-10 flex-1 max-w-md rounded-xl" />
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <Skeleton className="h-10 w-40 rounded-xl" />
+                  <Skeleton className="h-10 w-40 rounded-xl" />
+                  <Skeleton className="h-10 w-24 rounded-xl" />
+                  <Skeleton className="h-10 w-20 rounded-xl" />
+                </div>
+              </div>
+            </Card>
+
+            <div className="mt-8 apple-card overflow-hidden">
               <div className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30 px-6 py-4">
-                <div className="h-6 w-48 bg-[var(--eai-border)]/50 rounded" />
+                <div className="grid grid-cols-6 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-4 w-full" />
+                  ))}
+                </div>
               </div>
               <div className="divide-y divide-[var(--eai-border)]">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <div key={i} className="flex items-center gap-4 px-6 py-5">
-                    <div className="h-10 w-10 bg-[var(--eai-border)]/40 rounded-xl" />
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="px-6 py-5 flex items-center gap-4">
+                    <Skeleton className="h-10 w-10 rounded-xl" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-5 w-48 bg-[var(--eai-border)]/40 rounded" />
-                      <div className="h-4 w-32 bg-[var(--eai-border)]/30 rounded" />
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-4 w-32" />
                     </div>
-                    <div className="h-4 w-24 bg-[var(--eai-border)]/30 rounded" />
-                    <div className="h-4 w-20 bg-[var(--eai-border)]/30 rounded" />
-                    <div className="h-4 w-16 bg-[var(--eai-border)]/30 rounded" />
-                    <div className="h-4 w-20 bg-[var(--eai-border)]/30 rounded" />
-                    <div className="h-4 w-16 bg-[var(--eai-border)]/30 rounded" />
-                    <div className="h-4 w-20 bg-[var(--eai-border)]/30 rounded" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-24" />
                     <div className="flex gap-2">
-                      <div className="h-8 w-8 bg-[var(--eai-border)]/30 rounded" />
-                      <div className="h-8 w-8 bg-[var(--eai-border)]/30 rounded" />
+                      <Skeleton className="h-8 w-8 rounded-xl" />
+                      <Skeleton className="h-8 w-8 rounded-xl" />
                     </div>
                   </div>
                 ))}
@@ -582,17 +656,82 @@ export default function DocketPage() {
           </div>
         ) : (
           <div className="apple-card overflow-hidden">
-            <div className="divide-y divide-[var(--eai-border)]">
-              {filteredRows.length > 0 ? (
-                paginatedRows.map((t) => (
-                  <div 
-                    key={t.id}
-                    className="p-4 sm:p-6 hover:bg-[var(--eai-bg)]/40 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/trademarks/${t.id}`)}
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30">
+                  <th 
+                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
+                    onClick={() => handleSort('mark')}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <span>Mark information</span>
+                      <div className="flex flex-col opacity-0 group-hover/th:opacity-100 transition-opacity">
+                        <CaretUp size={10} weight="fill" className={sortConfig?.key === 'mark' && sortConfig.direction === 'asc' ? 'text-[var(--eai-primary)]' : ''} />
+                        <CaretDown size={10} weight="fill" className={sortConfig?.key === 'mark' && sortConfig.direction === 'desc' ? 'text-[var(--eai-primary)]' : ''} />
+                      </div>
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
+                    onClick={() => handleSort('client')}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Client</span>
+                      <div className="flex flex-col opacity-0 group-hover/th:opacity-100 transition-opacity">
+                        <CaretUp size={10} weight="fill" className={sortConfig?.key === 'client' && sortConfig.direction === 'asc' ? 'text-[var(--eai-primary)]' : ''} />
+                        <CaretDown size={10} weight="fill" className={sortConfig?.key === 'client' && sortConfig.direction === 'desc' ? 'text-[var(--eai-primary)]' : ''} />
+                      </div>
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
+                    onClick={() => handleSort('region')}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Region</span>
+                      <div className="flex flex-col opacity-0 group-hover/th:opacity-100 transition-opacity">
+                        <CaretUp size={10} weight="fill" className={sortConfig?.key === 'region' && sortConfig.direction === 'asc' ? 'text-[var(--eai-primary)]' : ''} />
+                        <CaretDown size={10} weight="fill" className={sortConfig?.key === 'region' && sortConfig.direction === 'desc' ? 'text-[var(--eai-primary)]' : ''} />
+                      </div>
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Status</span>
+                      <div className="flex flex-col opacity-0 group-hover/th:opacity-100 transition-opacity">
+                        <CaretUp size={10} weight="fill" className={sortConfig?.key === 'status' && sortConfig.direction === 'asc' ? 'text-[var(--eai-primary)]' : ''} />
+                        <CaretDown size={10} weight="fill" className={sortConfig?.key === 'status' && sortConfig.direction === 'desc' ? 'text-[var(--eai-primary)]' : ''} />
+                      </div>
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
+                    onClick={() => handleSort('filing')}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Filing #</span>
+                      <div className="flex flex-col opacity-0 group-hover/th:opacity-100 transition-opacity">
+                        <CaretUp size={10} weight="fill" className={sortConfig?.key === 'filing' && sortConfig.direction === 'asc' ? 'text-[var(--eai-primary)]' : ''} />
+                        <CaretDown size={10} weight="fill" className={sortConfig?.key === 'filing' && sortConfig.direction === 'desc' ? 'text-[var(--eai-primary)]' : ''} />
+                      </div>
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--eai-border)]">
+                {paginatedRows.map((t) => (
+                  <tr 
+                    key={t.id}
+                    className="hover:bg-[var(--eai-bg)]/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate(`/trademarks/${t.id}/detail`)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] shadow-sm group-hover:text-[var(--eai-primary)] transition-colors">
                           <FileText size={24} weight="duotone" />
                         </div>
                         <div className="min-w-0">
@@ -606,42 +745,46 @@ export default function DocketPage() {
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="grid grid-cols-2 sm:grid-cols-4 flex-1 gap-4 items-center">
-                        <div className="flex flex-col sm:items-center gap-1">
-                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Client</span>
-                          <span className="text-micro font-bold truncate max-w-[100px]">{t.client_name || t.client?.name || '—'}</span>
-                        </div>
-                        <div className="flex flex-col sm:items-center gap-1">
-                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Region</span>
-                          <JurisdictionBadge jurisdiction={(t.jurisdiction || 'ET') as Jurisdiction} />
-                        </div>
-                        <div className="flex flex-col sm:items-center gap-1">
-                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Status</span>
-                          <StatusPill status={(t.status as TrademarkStatus) || 'DRAFT'} />
-                        </div>
-                        <div className="flex flex-col sm:items-center gap-1">
-                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Filing #</span>
-                          <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
-                            {t.filing_number || t.filingNumber || 'PENDING'}
-                          </span>
-                        </div>
-                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-micro font-bold truncate inline-block max-w-[150px]">{t.client_name || t.client?.name || '—'}</span>
+                    </td>
 
-                      <div className="flex items-center justify-end gap-2 shrink-0">
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center">
+                        <JurisdictionBadge jurisdiction={(t.jurisdiction || 'ET') as Jurisdiction} />
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center">
+                        <StatusPill status={(t.status as TrademarkStatus) || 'DRAFT'} />
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
+                        {t.filing_number || t.filingNumber || 'PENDING'}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={(e) => handleDownloadForm(e, t.id)}
+                          onClick={(e) => handleDownloadForm(e, t)}
                           className="p-2 rounded-xl hover:bg-[var(--eai-bg)] text-[var(--eai-primary)] transition-all"
+                          title="Download Form"
                         >
                           <DownloadSimple size={18} weight="bold" />
                         </button>
                         <CaretRight size={18} weight="bold" className="text-[var(--eai-border-strong)]" />
                       </div>
-                    </div>
-                  </div>
-                ))
-              ) : null}
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

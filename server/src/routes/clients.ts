@@ -12,7 +12,7 @@ router.get('/', authenticateToken, async (req, res) => {
         const offset = (Number(page) - 1) * Number(limit);
 
         let sql = 'FROM clients WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
 
         if (type && type !== 'ALL') {
             sql += ' AND type = ?';
@@ -31,7 +31,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
         const [rows] = await pool.execute(
             `SELECT * ${sql} ORDER BY name ASC LIMIT ? OFFSET ?`,
-            [...params, Number(limit), offset]
+            [...params, Number(limit), offset] as any[]
         );
 
         res.json({

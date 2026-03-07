@@ -66,7 +66,7 @@ async function generateTablesMd() {
             }
         }
 
-        fs.writeFileSync('../tables.md', md);
+        fs.writeFileSync('tables.md', md);
         console.log('Successfully updated tables.md');
     } catch (error) {
         console.error('Error:', error);

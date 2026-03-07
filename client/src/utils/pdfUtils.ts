@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, PDFFont, PDFTextField, PDFCheckBox, PDFObject } from 'pdf-lib'
+import { PDFDocument, StandardFonts, PDFFont, PDFTextField, PDFCheckBox, PDFObject, PDFName } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 
 export async function getPdfFields(pdfUrl: string) {
@@ -48,12 +48,25 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
-    const form = pdfDoc.getForm()
+    // Register fonts in the Form resources
+    const form = pdfDoc.getForm();
+    const formDict = (form as any).node;
+    if (formDict) {
+      const dr = formDict.getOrCreateDict(PDFName.of('DR'));
+      const fontDict = dr.getOrCreateDict(PDFName.of('Font'));
+      if (amharicFont) {
+        fontDict.set(PDFName.of(amharicFont.name), amharicFont.ref);
+      }
+      fontDict.set(PDFName.of(timesRomanFont.name), timesRomanFont.ref);
+    }
     const availableFields = form.getFields().map(f => f.getName());
 
     const fillField = async (possibleNames: string[], value: unknown, customFontSize?: number) => {
       if (value === undefined || value === null || value === '') return;
       const strValue = String(value);
+
+      // Detect if the value contains Amharic characters (Ethiopic script range)
+      const hasAmharic = /[\u1200-\u137F]/.test(strValue);
 
       const match = possibleNames.find(name =>
         availableFields.some(f => f.trim().toLowerCase() === name.trim().toLowerCase())
@@ -82,6 +95,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
             matchedName.toLowerCase().includes('text field'); // EIPA uses "Text Field" sometimes
 
           if (isLogoField && strValue.startsWith('data:image')) {
+            // ... (keep image embedding logic)
             try {
               console.log('Embedding image into field:', matchedName);
               const acroField = (field as any).acroField;
@@ -152,6 +166,20 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
           // Fallback to text if not an image or image failed
           if ('setText' in field) {
             const textField = field as any;
+            
+            // Apply font based on content BEFORE setting text
+            if (hasAmharic && amharicFont) {
+              textField.updateAppearances(amharicFont);
+              const acroField = (textField as any).acroField;
+              if (acroField) {
+                acroField.setDefaultAppearance(`/${amharicFont.name} ${customFontSize || 10} Tf 0 g`);
+              }
+              textField.setFontSize(customFontSize || 10);
+            } else {
+              textField.updateAppearances(timesRomanFont);
+              textField.setFontSize(customFontSize || 11);
+            }
+
             const currentText = textField.getText() || '';
             if (currentText.length < strValue.length) {
               const maxLen = textField.getMaxLength();
@@ -159,6 +187,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
                 textField.setMaxLength(strValue.length + 10);
               }
             }
+            
             textField.setText(strValue);
           }
         } catch (e) {

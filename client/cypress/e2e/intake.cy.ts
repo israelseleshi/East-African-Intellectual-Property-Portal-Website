@@ -7,134 +7,126 @@ describe('Trademark Intake Flow', () => {
     cy.get('input[placeholder="Enter your email"]').type('israelseleshi09@gmail.com');
     cy.get('input[placeholder="Enter your password"]').type('1q2w3e4r5t');
     cy.get('button[type="submit"]').click();
-    // Use include to be more flexible with the URL check
-    cy.url().should('include', '/');
+    
+    // Wait for the login to complete and redirect to dashboard
+    cy.url().should('not.include', '/login');
+    // Give global state a tiny moment to register the auth token before moving
+    cy.wait(500); 
+    
     cy.visit('/eipa-forms');
   });
 
   it('should validate required fields in intake form', () => {
     cy.get('#submit-button').click();
-    cy.get('div').contains('Applicant Name is required').should('be.visible');
+    cy.get('div').contains('Please select an existing client or enter an applicant name').should('be.visible');
   });
 
-  it('should fill and submit a Kenyan trademark application with all fields', () => {
+  it('should fill and submit an EIPA trademark application using client dropdown', () => {
     // ==========================================
-    // SECTION I: Applicant Information
+    // SECTION I: Applicant Information loaded from Database
     // ==========================================
-    cy.get('input[placeholder="Enter full legal name in English"]').type('Kenya Test Corp Ltd');
-    cy.get('input[placeholder="ሙሉ ስም እዚህ ያስገቡ"]').type('ኬንያ ቴስት ኮርፕ');
-    cy.get('span').contains('Company').parent().click({force: true});
-    cy.get('span').contains('Male').parent().click({force: true});
-    cy.get('span').contains('Female').parent().click({force: true});
+    // Click the Quick load client dropdown
+    cy.get('button').contains('Quick load client').click();
+    
+    // Select first client or specific client "Abebe Bekele"
+    cy.get('[role="menuitem"]').contains('Abebe Bekele').click();
+
+    // The name should now be filled. We repeat the English name in the Amharic field
+    cy.get('input[placeholder="Enter full legal name in English"]')
+      .should('not.have.value', '')
+      .invoke('val')
+      .then((val) => {
+        cy.get('input[placeholder="ሙሉ ስም እዚህ ያስገቡ"]').clear().type(val as string);
+      });
 
     // ==========================================
-    // SECTION II: Address Details (Kenyan format)
+    // SECTION II: Address Details
     // ==========================================
-    cy.get('input[placeholder="Enter street address"]').type('Mombasa Road, Industrial Area');
-    cy.get('input[placeholder="Enter zone or subcity"]').type('Industrial Area');
-    // Wereda is Ethiopian field - skip for Kenya
-    cy.get('input[placeholder="Enter city name"]').type('Nairobi');
-    // House No is Ethiopian field - skip for Kenya
-    cy.get('input[placeholder="Enter state or region"]').type('Nairobi County');
-    cy.get('input[placeholder="State code"]').type('NRB');
-    cy.get('input[placeholder="Enter city code"]').type('00100');
+    // ==========================================
+    // SECTION II: Address Details
+    // ==========================================
+    cy.get('input[placeholder="Enter street address"]').clear().type('Mombasa Road, Industrial Area');
+    cy.get('input[placeholder="Enter zone or subcity"]').clear().type('Industrial Area');
+    cy.get('input[placeholder="Enter wereda/district"]').clear().type('01');
+    cy.get('input[placeholder="Enter city name"]').clear().type('Addis Ababa');
+    cy.get('input[placeholder="Enter house no."]').clear().type('123');
+    cy.get('input[placeholder="Enter ZIP code"]').clear().type('1000');
 
     // ==========================================
     // SECTION III: Contact Details
     // ==========================================
-    cy.get('input[placeholder="Enter telephone number"]').type('+254712345678');
-    cy.get('input[placeholder="Enter email address"]').type('legal@kenyatest.co.ke');
-    cy.get('input[placeholder="Enter fax (optional)"]').type('+254202345678');
-    cy.get('input[placeholder="Enter P.O. Box"]').type('12345-00100');
-    cy.get('select').select('Kenya');
-    cy.get('input[placeholder="Enter postal code"]').type('00100');
-    cy.get('input[placeholder="Principal place of business"]').type('Kenya');
+    cy.get('input[placeholder="+251 ..."]').clear().type('+251911234567');
+    cy.get('input[placeholder="name@example.com"]').clear().type('legal@test.com');
+    cy.get('input[placeholder="Enter fax number"]').clear().type('+251112345678');
+    cy.get('input[placeholder="Enter P.O. Box"]').clear().type('12345');
+    cy.get('input[placeholder="Enter nationality"]').clear().type('Ethiopian');
+    cy.get('input[placeholder="Enter residence country"]').clear().type('Ethiopia');
 
     // ==========================================
     // SECTION IV: Mark Specification
     // ==========================================
     // Scroll to Mark Type section first
-    cy.get('span').contains('Goods Mark').scrollIntoView();
+    cy.get('span').contains('Goods mark').scrollIntoView();
+    cy.get('span').contains('Goods mark').parent().click({force: true});
     
-    // Mark Type - click labels to toggle checkboxes
-    cy.get('span').contains('Goods Mark').parent().click({force: true});
-    cy.get('span').contains('Service Mark').parent().click({force: true});
-    cy.get('span').contains('Collective Mark').parent().click({force: true});
-    
-    // Mark Form Type - click labels
-    cy.get('span').contains('Type - Word').parent().click({force: true});
-    cy.get('span').contains('Type - Figurative').parent().click({force: true});
-    cy.get('span').contains('Type - Mixed').parent().click({force: true});
-    cy.get('span').contains('Type - 3D').parent().click({force: true});
+    cy.get('span').contains('Word mark').parent().click({force: true});
+    cy.get('span').contains('Figurative mark').parent().click({force: true});
+
+    // Upload Mark Image
+    cy.get('input[type="file"]').selectFile('public/eaip-logo.png', { force: true });
 
     // Mark Description
-    cy.get('textarea[placeholder="Describe the mark visual elements..."]').type('A mixed trademark featuring the text "KENYA TRADE" with a distinctive circular logo containing mountain imagery');
-    cy.get('input[placeholder="English translation"]').type('Kenya Trade');
-    cy.get('input[placeholder="Phonetic pronunciation"]').type('KEH-nya TRAYD');
-    cy.get('input[placeholder="State the language (if not English/Amharic)"]').type('Swahili');
-    cy.get('input[placeholder="Describe three-dimensional features if any"]').type('N/A');
-    cy.get('input[placeholder="Indication of colors (if other than B/W)"]').type('Green and Yellow');
+    cy.get('textarea[placeholder="Describe the visual and literal elements of the mark..."]').clear().type('A trademark featuring coffee beans and the text Coffee Brand Trademark');
+    cy.get('input[placeholder="English translation"]').clear().type('Coffee Brand');
+    cy.get('input[placeholder="Phonetic pronunciation"]').clear().type('Co-fee Brand');
+    cy.get('input[placeholder="e.g., Amharic, Oromo"]').clear().type('N/A');
+    cy.get('input[placeholder="e.g., Blue and White"]').clear().type('Black & White');
 
-    // Nice Classification - Click container to open dropdown, then select classes 35 and 36
+    // Nice Classification - Click container to open dropdown, then select class 35
     cy.get('#nice-classification').find('div[class*="cursor-text"]').first().click();
-    // Wait for dropdown to open
     cy.get('input[placeholder="Search classes..."]').should('be.visible');
-    // Select Class 35
     cy.contains('Class 35').parent().parent().click();
-    // Select Class 36
-    cy.contains('Class 36').parent().parent().click();
-    // Close dropdown by clicking outside
     cy.get('body').click('topRight');
-    cy.wait(500); // Wait for dropdown animation to complete
+    cy.wait(500); // Wait for dropdown animation
     
     // Goods & Services
-    cy.get('textarea[placeholder="Class 01: Item description..."]').type('Business management services; retail store services; advertising; Insurance services; financial services', {force: true});
+    cy.get('textarea[placeholder="List specific goods and services for the selected classes..."]')
+      .clear({force: true})
+      .type('Coffee wholesale and retail services', {force: true});
 
     // ==========================================
     // SECTION V: Disclaimer
     // ==========================================
-    cy.get('input[placeholder="የመብት ገደቡን እዚህ ያስገቡ..."]').type('ምንም የተለየ መብት የለም');
-    cy.get('input[placeholder="e.g. No claim to exclusive right of use of..."]').type('No claim to exclusive right to use the word "KENYA" apart from the mark as shown');
+    cy.get('input[placeholder="የመብት ገደቡን እዚህ ያስገቡ..."]').clear().type('ምንም የተለየ መብት የለም');
+    cy.get('input[placeholder="e.g. No claim to exclusive right of use of..."]').clear().type('No claim to exclusive right to use the word "Coffee"');
 
     // ==========================================
     // SECTION VI: Priority Right Declaration
     // ==========================================
-    cy.get('input[type="date"]').first().type('2025-01-15'); // Priority Application Date
-    cy.get('input[type="date"]').eq(1).type('2025-01-15'); // Priority Filing Date
-    cy.get('input[placeholder="Enter country"]').type('United Kingdom');
-    cy.get('textarea[placeholder="Covered goods/services..."]').type('Same as current application');
-    
-    // Priority Documents - click labels
-    cy.get('span').contains('Accompanies this form').parent().click({force: true});
-    cy.get('span').contains('Will be submitted in 3 months').parent().click({force: true});
+    cy.get('input[type="date"]').first().type('2025-01-15'); 
+    cy.get('input[placeholder="Country of first filing"]').clear().type('United Kingdom');
+    cy.get('textarea[placeholder="List goods/services covered by priority claim"]').clear().type('Coffee wholesale and retail services');
+    cy.get('span').contains('Documents accompany form').parent().click({force: true});
 
     // ==========================================
     // SECTION VII: Checklist & Signature
     // ==========================================
-    // Checklist - click labels
-    cy.get('span').contains('3 Identical Copies of Mark').parent().click({force: true});
-    cy.get('span').contains('Statutes Governing Mark Use').parent().click({force: true});
-    cy.get('span').contains('Power of Attorney').parent().click({force: true});
-    cy.get('span').contains('Priority Documents').parent().click({force: true});
-    cy.get('span').contains('Mark Drawing (3D Features)').parent().click({force: true});
-    cy.get('span').contains('Proof of Payment').parent().click({force: true});
-    cy.get('span').contains('Other Document(s)').parent().click({force: true});
+    cy.get('span').contains('3 identical copies of mark').parent().click({force: true});
+    cy.get('span').contains('Power of attorney').parent().click({force: true});
+    cy.get('span').contains('Proof of payment').parent().click({force: true});
 
-    // Applicant Signature
-    cy.get('input[placeholder="Typed name for signature"]').type('John Kamau, Managing Director');
-    cy.get('input[placeholder="DD"]').type('21');
-    cy.get('input[placeholder="Month name"]').type('February');
-    cy.get('input[placeholder="YYYY"]').type('2026');
+    cy.get('input[placeholder="Type name for digital signature"]').clear().type('Abebe Bekele');
+    cy.get('input[placeholder="DD"]').clear().type('21');
+    cy.get('input[placeholder="MM"]').clear().type('02');
+    cy.get('input[placeholder="YYYY"]').clear().type('2026');
 
     // ==========================================
     // SUBMIT
     // ==========================================
-    // PDF Preview Check
-    cy.get('#pdf-preview-section').should('be.visible');
-
-    // Submit
-    cy.get('#submit-button').click();
-    cy.get('div').contains('Application Submitted Successfully!').should('be.visible');
-    cy.url().should('include', '/trademarks');
+    cy.get('#submit-button').click({force: true});
+    
+    // Verify successful submission redirect and toast
+    cy.get('div').contains('Application submitted! Filing number:').should('be.visible');
+    cy.url().should('include', '/trademarks/');
   });
 });

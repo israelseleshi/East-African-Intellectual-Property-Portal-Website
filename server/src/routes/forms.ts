@@ -29,6 +29,9 @@ if (!fs.existsSync(FORMS_UPLOAD_DIR)) {
 router.post('/submit', authenticateToken, async (req, res) => {
     try {
         const {
+            // Pre-existing client ID (if user selected from dropdown)
+            clientId: existingClientId,
+
             // Applicant/Client Info
             applicantName,
             applicantNameAmharic,
@@ -44,6 +47,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
             state,
             zipCode,
             poBox,
+            fax,
             
             // Mark Info
             markName,
@@ -70,13 +74,19 @@ router.post('/submit', authenticateToken, async (req, res) => {
             formData
         } = req.body;
 
-        const userId = (req as unknown as { user: { userId: string } }).user.userId;
+        const userId = (req as unknown as { user: { id: string } }).user.id || null;
 
         // Validate required fields
-        if (!applicantName || !markName) {
+        if (!existingClientId && !applicantName) {
             return res.status(400).json({ 
                 error: 'Missing required fields',
-                details: 'Applicant name and mark name are required'
+                details: 'Either select an existing client or provide an applicant name'
+            });
+        }
+        if (!markName) {
+            return res.status(400).json({ 
+                error: 'Missing required fields',
+                details: 'Mark name (description) is required'
             });
         }
 
@@ -85,21 +95,28 @@ router.post('/submit', authenticateToken, async (req, res) => {
         await connection.beginTransaction();
 
         try {
-            // 1. Check if client exists (by email) or create new one
+            // 1. Resolve client: use existing client if provided, otherwise create one
             let clientId: string;
-            const [existingClients] = await connection.execute(
-                'SELECT id FROM clients WHERE email = ? AND name = ?',
-                [email || '', applicantName]
-            );
 
-            if ((existingClients as Array<{ id: string }>).length > 0) {
-                clientId = (existingClients as Array<{ id: string }>)[0].id;
+            if (existingClientId) {
+                // Verify the provided client ID actually exists
+                const [clientRows] = await connection.execute(
+                    'SELECT id FROM clients WHERE id = ?',
+                    [existingClientId]
+                );
+                if ((clientRows as Array<{ id: string }>).length === 0) {
+                    throw new Error(`Client with id '${existingClientId}' not found`);
+                }
+                clientId = existingClientId;
             } else {
-                // Create new client
+                // Create new client from form data
+                if (!applicantName) {
+                    throw new Error('Applicant name is required when no existing client is selected');
+                }
                 clientId = crypto.randomUUID();
                 await connection.execute(
-                    `INSERT INTO clients (id, name, local_name, type, nationality, email, address_street, city, zip_code, created_at, updated_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                    `INSERT INTO clients (id, name, local_name, type, nationality, email, address_street, city, zip_code, address_zone, wereda, house_no, po_box, telephone, fax, created_at, updated_at) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                     [
                         clientId,
                         applicantName,
@@ -107,9 +124,15 @@ router.post('/submit', authenticateToken, async (req, res) => {
                         applicantType === 'COMPANY' ? 'COMPANY' : 'INDIVIDUAL',
                         nationality || 'Ethiopia',
                         email || '',
-                        `${addressStreet || ''} ${addressZone || ''} ${wereda || ''} ${houseNo || ''}`.trim(),
+                        addressStreet || '',
                         city || 'Addis Ababa',
-                        zipCode || ''
+                        zipCode || '',
+                        addressZone || '',
+                        wereda || '',
+                        houseNo || '',
+                        poBox || '',
+                        telephone || '',
+                        fax || ''
                     ]
                 );
             }
@@ -123,19 +146,34 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     id, client_id, jurisdiction, mark_name, mark_type, 
                     color_indication, status, filing_number, priority,
                     flow_stage, user_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'FILED', ?, ?, 'FILED', ?, NOW(), NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                     caseId,
                     clientId,
-                    jurisdiction,
+                    jurisdiction || 'ET',
                     markName,
                     markType || 'WORD',
                     colorIndication || 'Black & White',
+                    'FILED',
                     filingNumber,
                     priority === 'YES' ? 'YES' : 'NO',
+                    'FILED',
                     userId
                 ]
             );
+
+            // 2.5 Save Nice Classes and mappings
+            if (niceClasses && Array.isArray(niceClasses)) {
+                for (const nc of niceClasses) {
+                    const classNo = typeof nc === 'object' ? nc.classNo : nc;
+                    const description = typeof nc === 'object' ? nc.description : (formData?.goods_services_list || eipaFormData?.goods_services_list || '');
+                    
+                    await connection.execute(
+                        'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
+                        [caseId, classNo, description]
+                    );
+                }
+            }
 
             const fullPayload = (eipaFormData || formData) as unknown;
             if (fullPayload) {
@@ -163,16 +201,14 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 
                 fs.writeFileSync(pdfPath, pdfBuffer);
 
-                // 4. Store form metadata in database (optional - for tracking)
+                // 4. Store PDF as POA asset (mark_assets only supports LOGO, POA, PRIORITY types)
                 await connection.execute(
-                    `INSERT INTO mark_assets (id, case_id, type, file_path, file_name, file_size, created_at) 
-                     VALUES (?, ?, 'FORM', ?, ?, ?, NOW())`,
+                    `INSERT INTO mark_assets (id, case_id, type, file_path, created_at) 
+                     VALUES (?, ?, 'POA', ?, NOW())`,
                     [
                         crypto.randomUUID(),
                         caseId,
-                        `/forms-download/${pdfFilename}`,
-                        pdfFilename,
-                        pdfBuffer.length
+                        `/forms-download/${pdfFilename}`
                     ]
                 );
             }
@@ -188,15 +224,18 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 fs.writeFileSync(imagePath, imageBuffer);
 
                 await connection.execute(
-                    `INSERT INTO mark_assets (id, case_id, type, file_path, file_name, file_size, created_at) 
-                     VALUES (?, ?, 'MARK', ?, ?, ?, NOW())`,
+                    `INSERT INTO mark_assets (id, case_id, type, file_path, created_at) 
+                     VALUES (?, ?, 'LOGO', ?, NOW())`,
                     [
                         crypto.randomUUID(),
                         caseId,
-                        `/forms-download/${imageFilename}`,
-                        imageFilename,
-                        imageBuffer.length
+                        `/forms-download/${imageFilename}`
                     ]
+                );
+
+                await connection.execute(
+                    `UPDATE trademark_cases SET mark_image = ? WHERE id = ?`,
+                    [`/forms-download/${imageFilename}`, caseId]
                 );
             }
 
@@ -226,8 +265,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
             formalExamDeadline.setDate(formalExamDeadline.getDate() + 60);
             
             await connection.execute(
-                `INSERT INTO deadlines (id, case_id, type, due_date, description, is_completed, created_at)
-                 VALUES (?, ?, 'FORMAL_EXAM', ?, 'Formal Examination Deadline', false, NOW())`,
+                `INSERT INTO deadlines (id, case_id, type, due_date, is_completed, created_at)
+                 VALUES (?, ?, 'FORMAL_EXAM', ?, false, NOW())`,
                 [
                     crypto.randomUUID(),
                     caseId,

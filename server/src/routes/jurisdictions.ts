@@ -146,7 +146,7 @@ router.patch('/:code', authenticateToken, async (req, res) => {
         ];
         
         const fields: string[] = [];
-        const values: unknown[] = [];
+        const values: any[] = [];
         
         for (const key of allowedFields) {
             if (updates[key] !== undefined) {

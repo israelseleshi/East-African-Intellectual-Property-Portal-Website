@@ -17,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
             JOIN clients c ON tc.client_id = c.id
             WHERE o.deleted_at IS NULL
         `;
-        const params: unknown[] = [];
+        const params: any[] = [];
         
         if (status) {
             sql += ' AND o.status = ?';
@@ -75,8 +75,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
              JOIN trademark_cases tc ON o.case_id = tc.id
              JOIN clients c ON tc.client_id = c.id
              WHERE o.id = ? AND o.deleted_at IS NULL`,
-            [id]
-        );
+            [String(id)] as any[]
+        ) as [any, any];
         
         if ((rows as unknown[]).length === 0) {
             return res.status(404).json({ error: 'Opposition not found' });
@@ -176,7 +176,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
         ];
         
         const fields: string[] = [];
-        const values: unknown[] = [];
+        const values: any[] = [];
         
         for (const key of allowedFields) {
             if (updates[key] !== undefined) {
@@ -224,7 +224,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
         }
         
         const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-        const values = [...Object.values(updates), id];
+        const values = [...Object.values(updates), id] as any[];
         
         await pool.execute(
             `UPDATE oppositions SET ${fields} WHERE id = ? AND deleted_at IS NULL`,
@@ -278,7 +278,7 @@ router.get('/dashboard/pending', authenticateToken, async (req, res) => {
              AND o.deleted_at IS NULL
              AND o.deadline_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
              ORDER BY o.deadline_date ASC`,
-            [days]
+            [Number(days)]
         );
         
         res.json(rows);

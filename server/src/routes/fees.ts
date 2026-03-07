@@ -17,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
             LEFT JOIN users u ON fs.created_by = u.id
             WHERE fs.deleted_at IS NULL
         `;
-        const params: unknown[] = [];
+        const params: any[] = [];
         
         if (jurisdiction) {
             sql += ' AND fs.jurisdiction = ?';
@@ -213,7 +213,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
         ];
         
         const fields: string[] = [];
-        const values: unknown[] = [];
+        const values: any[] = [];
         
         for (const key of allowedFields) {
             if (updates[key] !== undefined) {
@@ -280,7 +280,7 @@ router.get('/compare/:stage', authenticateToken, async (req, res) => {
              AND fs.deleted_at IS NULL
              AND (fs.expiry_date IS NULL OR fs.expiry_date >= CURDATE())
              ORDER BY fs.amount ASC`,
-            [stage, category]
+            [stage, category] as any[]
         ) as [unknown[], unknown[]];
         
         res.json({

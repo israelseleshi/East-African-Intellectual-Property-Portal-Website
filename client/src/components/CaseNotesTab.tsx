@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Note {
@@ -149,7 +150,38 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
   };
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-500">Loading notes...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="apple-card p-4 space-y-4">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-24 w-full" />
+          <div className="flex gap-3">
+            <Skeleton className="h-8 w-32 rounded-md" />
+            <Skeleton className="h-8 w-40 rounded-md" />
+          </div>
+          <Skeleton className="h-10 w-24 rounded-md" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="apple-card p-4 space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-6 rounded-md" />
+                  <Skeleton className="h-6 w-6 rounded-md" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

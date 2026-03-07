@@ -18,7 +18,9 @@ import {
   ArrowsMerge
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input';
 import { clientService } from '@/utils/api';
 import type { ApplicantType } from '@/shared/database';
@@ -234,6 +236,55 @@ export default function ClientsPage() {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="w-full space-y-8">
+        <header className="flex items-center justify-between mb-8">
+          <Skeleton className="h-10 w-48" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="apple-card border-none shadow-lg">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-10 w-10 rounded-xl" />
+                  <Skeleton className="h-4 w-12 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="apple-card p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-[var(--eai-border)] pb-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--eai-border)] last:border-0">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-1/3" />
+                  <Skeleton className="h-4 w-1/4" />
+                </div>
+                <Skeleton className="h-4 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full">
       <Joyride
@@ -428,39 +479,7 @@ export default function ClientsPage() {
       </div>
 
       <div className="mt-8" id="clients-grid">
-        {loading ? (
-          <div className="w-full animate-pulse">
-            {/* Filters Skeleton */}
-            <div className="apple-card p-4 bg-[var(--eai-surface)] mb-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="h-10 w-full max-w-md bg-[var(--eai-border)]/50 rounded-xl" />
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="h-10 w-32 bg-[var(--eai-border)]/50 rounded-xl" />
-                  <div className="h-10 w-20 bg-[var(--eai-border)]/50 rounded-xl" />
-                </div>
-              </div>
-            </div>
-
-            {/* Grid Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="apple-card p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="h-12 w-12 bg-[var(--eai-border)]/40 rounded-xl" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-5 w-32 bg-[var(--eai-border)]/50 rounded" />
-                      <div className="h-4 w-20 bg-[var(--eai-border)]/30 rounded" />
-                    </div>
-                  </div>
-                  <div className="mt-6 space-y-2 border-t border-[var(--eai-border)] pt-4">
-                    <div className="h-4 w-full bg-[var(--eai-border)]/30 rounded" />
-                    <div className="h-4 w-3/4 bg-[var(--eai-border)]/30 rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (clients || []).length === 0 ? (
+        {(clients || []).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center apple-card">
             <div className="p-6 rounded-full bg-[var(--eai-bg)] mb-6">
               <Building size={48} weight="duotone" className="text-[var(--eai-text-secondary)] opacity-20" />

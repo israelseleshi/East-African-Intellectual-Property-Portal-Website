@@ -17,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
       JOIN clients c ON tc.client_id = c.id
       WHERE 1=1
     `;
-        const params: unknown[] = [];
+        const params: any[] = [];
 
         if (status && status !== 'ALL') {
             sql += ' AND tc.status = ?';
@@ -98,7 +98,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
             zipCode: caseData.client_zip_code as string
         };
 
-        await pool.execute('SELECT * FROM nice_class_mappings WHERE case_id = ?', [id]);
+        const [niceRows] = await pool.execute('SELECT class_no as classNo, description FROM nice_class_mappings WHERE case_id = ?', [id]);
+        const niceMappings = niceRows as any[];
+        const niceClasses = niceMappings.map(m => m.classNo);
+
         const [assetsRows] = await pool.execute('SELECT * FROM mark_assets WHERE case_id = ? AND is_active = 1', [id]);
         const [historyRows] = await pool.execute('SELECT * FROM case_history WHERE case_id = ? ORDER BY created_at DESC', [id]);
         const [deadlineRows] = await pool.execute('SELECT * FROM deadlines WHERE case_id = ? ORDER BY due_date ASC', [id]);
@@ -121,6 +124,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
         const result = {
             ...caseData,
             client,
+            niceClasses,
+            niceMappings,
             assets: assetsRows,
             history: historyRows,
             deadlines: deadlineRows,
@@ -157,7 +162,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
                 }
 
                 clientId = crypto.randomUUID();
-                const clientParams = sanitize([
+                const clientParams: any[] = [
                     clientId,
                     data.applicantName,
                     data.applicantType || 'COMPANY',
@@ -166,7 +171,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
                     data.addressStreet || null,
                     data.city || null,
                     data.zipCode || null
-                ]);
+                ];
 
                 try {
                     console.log('Inserting client with params:', clientParams);
@@ -183,7 +188,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
 
             // 2. Create the Trademark Case
             const newCaseId = crypto.randomUUID();
-            const caseParams = sanitize([
+            const caseParams: any[] = [
                 newCaseId,
                 data.jurisdiction || 'ET',
                 data.markName || data.markDescription || 'New Mark',
@@ -197,7 +202,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
                 data.clientInstructions || null,
                 data.remark || null,
                 data.markImage || null
-            ]);
+            ];
 
             try {
                 console.log('Inserting case with params:', caseParams);
@@ -219,8 +224,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
                     const classNo = typeof nc === 'object' ? nc.classNo : nc;
                     const description = typeof nc === 'object' ? nc.description : (data.goodsServicesDescription || '');
 
-                    // EXPLICIT sanitize here
-                    const classParams = sanitize([newCaseId, classNo, description]);
+                    const classParams: any[] = [newCaseId, classNo, description];
                     console.log(`Inserting nice class [${classNo}] params:`, classParams);
 
                     try {
@@ -274,7 +278,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
             );
 
             let updateSql = 'UPDATE trademark_cases SET status = ?';
-            const params: unknown[] = [status];
+            const params: any[] = [status];
 
             if (status === 'FILED' && !oldCase.filing_date) updateSql += ', filing_date = NOW()';
             if (status === 'REGISTERED' && !oldCase.registration_dt) updateSql += ', registration_dt = NOW()';
@@ -420,7 +424,7 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
             const setClause = fields.map(f => `${f} = ?`).join(', ');
 
             // Format all dates as strings for the UPDATE query
-            const values = fields.map(f => {
+            const values: any[] = fields.map(f => {
                 const val = deadlineUpdates[f];
                 return val instanceof Date ? formatDate(val) : val;
             });
@@ -522,30 +526,105 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
     }
 });
 
-// Delete case
-router.delete('/:id', authenticateToken, async (req, res) => {
+// Update trademark case and associated client details
+router.patch('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
+        const data = req.body;
         const connection = await getConnection();
+
         try {
             await connection.beginTransaction();
-            // Delete related records first
-            await connection.execute('DELETE FROM nice_class_mappings WHERE case_id = ?', [id]);
-            await connection.execute('DELETE FROM mark_assets WHERE case_id = ?', [id]);
-            await connection.execute('DELETE FROM case_history WHERE case_id = ?', [id]);
-            await connection.execute('DELETE FROM deadlines WHERE case_id = ?', [id]);
-            await connection.execute('DELETE FROM trademark_cases WHERE id = ?', [id]);
+
+            // 1. Get existing case to find clientId
+            const [caseRows] = await connection.execute(
+                'SELECT client_id FROM trademark_cases WHERE id = ?',
+                [id]
+            );
+            
+            if ((caseRows as any[]).length === 0) {
+                throw new Error('Case not found');
+            }
+            
+            const clientId = (caseRows as any[])[0].client_id;
+
+            // 2. Update Client Details if provided
+            if (data.client) {
+                const client = data.client;
+                const clientUpdates: string[] = [];
+                const clientValues: any[] = [];
+
+                if (client.name !== undefined) { clientUpdates.push('name = ?'); clientValues.push(client.name); }
+                if (client.nationality !== undefined) { clientUpdates.push('nationality = ?'); clientValues.push(client.nationality); }
+                if (client.email !== undefined) { clientUpdates.push('email = ?'); clientValues.push(client.email); }
+                if (client.phone !== undefined) { clientUpdates.push('phone = ?'); clientValues.push(client.phone); }
+                
+                // Special handling for address split
+                if (client.addressStreet !== undefined) { clientUpdates.push('address_street = ?'); clientValues.push(client.addressStreet); }
+                if (client.city !== undefined) { clientUpdates.push('city = ?'); clientValues.push(client.city); }
+
+                if (clientUpdates.length > 0) {
+                    clientValues.push(clientId);
+                    await connection.execute(
+                        `UPDATE clients SET ${clientUpdates.join(', ')}, updated_at = NOW() WHERE id = ?`,
+                        clientValues
+                    );
+                }
+            }
+
+            // 3. Update Trademark Case Details
+            const caseUpdates: string[] = [];
+            const caseValues: any[] = [];
+
+            if (data.markName !== undefined) { caseUpdates.push('mark_name = ?'); caseValues.push(data.markName); }
+            if (data.markType !== undefined) { caseUpdates.push('mark_type = ?'); caseValues.push(data.markType); }
+            if (data.colorIndication !== undefined) { caseUpdates.push('color_indication = ?'); caseValues.push(data.colorIndication); }
+            if (data.priority !== undefined) { caseUpdates.push('priority = ?'); caseValues.push(data.priority); }
+            if (data.filingNumber !== undefined) { caseUpdates.push('filing_number = ?'); caseValues.push(data.filingNumber); }
+
+            if (caseUpdates.length > 0) {
+                caseValues.push(id);
+                await connection.execute(
+                    `UPDATE trademark_cases SET ${caseUpdates.join(', ')}, updated_at = NOW() WHERE id = ?`,
+                    caseValues
+                );
+            }
+
+            // 4. Update Nice Classes if provided
+            if (data.niceClasses !== undefined && Array.isArray(data.niceClasses)) {
+                // Delete existing mappings
+                await connection.execute('DELETE FROM nice_class_mappings WHERE case_id = ?', [id]);
+                
+                // Insert new mappings
+                for (const classNo of data.niceClasses) {
+                    await connection.execute(
+                        'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
+                        [id, classNo, data.goodsServices || data.goods_services || '']
+                    );
+                }
+            }
+
+            // 5. Update EIPA Form Payload if provided
+            if (data.eipaForm !== undefined) {
+                await connection.execute(
+                    `INSERT INTO eipa_form_payloads (id, case_id, jurisdiction, form_version, payload_json, updated_at)
+                     VALUES (?, ?, ?, ?, ?, NOW())
+                     ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json), updated_at = NOW()`,
+                    [crypto.randomUUID(), id, 'ET', 'EIPA_FORM_01', JSON.stringify(data.eipaForm)]
+                );
+            }
+
             await connection.commit();
-            res.json({ success: true, message: 'Case deleted' });
-        } catch (e) {
+            res.json({ success: true, message: 'Trademark and client details updated' });
+        } catch (error) {
             await connection.rollback();
-            throw e;
+            throw error;
         } finally {
             connection.release();
         }
-    } catch (error) {
-        console.error('Error deleting case:', error);
-        res.status(500).json({ error: 'Failed to delete case' });
+    } catch (error: any) {
+        console.error('Error updating trademark:', error);
+        res.status(500).json({ error: 'Failed to update trademark', details: error.message });
     }
 });
 

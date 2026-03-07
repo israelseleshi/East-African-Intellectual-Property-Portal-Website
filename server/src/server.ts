@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { uploadDir } from './utils/constants.js';
 
 // Import Routes
@@ -29,12 +31,20 @@ app.use(cors({
     'http://eastafricanip.com',
     'http://www.eastafricanip.com',
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:3001'
   ],
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(uploadDir));
+
+// Serve Mark Images and PDFs
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const FORMS_UPLOAD_DIR = path.resolve(__dirname, '../../forms-upload');
+app.use('/forms-download', express.static(FORMS_UPLOAD_DIR));
 
 // Route Registration
 const registerRoutes = (prefix: string = '') => {
