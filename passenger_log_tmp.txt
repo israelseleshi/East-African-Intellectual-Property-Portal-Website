@@ -1,0 +1,60 @@
+App 28212 output: file:///home/falolega/eastafricanip.com/api/server.js:42
+App 28212 output:   app.use(${prefix}/auth, authRoutes);
+App 28212 output:           ^
+App 28212 output: SyntaxError: missing ) after argument list
+App 28212 output:     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
+App 28212 output:     at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:382:18)
+App 28212 output:     at loadESMFromCJS (node:internal/modules/cjs/loader:1363:24)
+App 28212 output:     at Module._compile (node:internal/modules/cjs/loader:1503:5)
+App 28212 output:     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+App 28212 output:     at Module.load (node:internal/modules/cjs/loader:1266:32)
+App 28212 output:     at Module._load (node:internal/modules/cjs/loader:1091:12)
+App 28212 output:     at Module.require (node:internal/modules/cjs/loader:1289:19)
+App 28212 output:     at Module.require (/opt/cpanel/ea-ruby27/root/usr/share/passenger/helper-scripts/node-loader.js:80:25)
+App 28212 output:     at require (node:internal/modules/helpers:182:18)
+App 28212 output: Node.js v20.20.0
+App 28692 output: file:///home/falolega/eastafricanip.com/api/server.js:42
+App 28692 output:   app.use(${prefix}/auth, authRoutes);
+App 28692 output:           ^
+App 28692 output: SyntaxError: missing ) after argument list
+App 28692 output:     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
+App 28692 output:     at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:382:18)
+App 28692 output:     at loadESMFromCJS (node:internal/modules/cjs/loader:1363:24)
+App 28692 output:     at Module._compile (node:internal/modules/cjs/loader:1503:5)
+App 28692 output:     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+App 28692 output:     at Module.load (node:internal/modules/cjs/loader:1266:32)
+App 28692 output:     at Module._load (node:internal/modules/cjs/loader:1091:12)
+App 28692 output:     at Module.require (node:internal/modules/cjs/loader:1289:19)
+App 28692 output:     at Module.require (/opt/cpanel/ea-ruby27/root/usr/share/passenger/helper-scripts/node-loader.js:80:25)
+App 28692 output:     at require (node:internal/modules/helpers:182:18)
+App 28692 output: Node.js v20.20.0
+App 28794 output: file:///home/falolega/eastafricanip.com/api/server.js:42
+App 28794 output:   app.use(${prefix}/auth, authRoutes);
+App 28794 output:           ^
+App 28794 output: SyntaxError: missing ) after argument list
+App 28794 output:     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
+App 28794 output:     at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:382:18)
+App 28794 output:     at loadESMFromCJS (node:internal/modules/cjs/loader:1363:24)
+App 28794 output:     at Module._compile (node:internal/modules/cjs/loader:1503:5)
+App 28794 output:     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+App 28794 output:     at Module.load (node:internal/modules/cjs/loader:1266:32)
+App 28794 output:     at Module._load (node:internal/modules/cjs/loader:1091:12)
+App 28794 output:     at Module.require (node:internal/modules/cjs/loader:1289:19)
+App 28794 output:     at Module.require (/opt/cpanel/ea-ruby27/root/usr/share/passenger/helper-scripts/node-loader.js:80:25)
+App 28794 output:     at require (node:internal/modules/helpers:182:18)
+App 28794 output: Node.js v20.20.0
+App 29691 output: file:///home/falolega/eastafricanip.com/api/server.js:42
+App 29691 output:   app.use(${prefix}/auth, authRoutes);
+App 29691 output:           ^
+App 29691 output: SyntaxError: missing ) after argument list
+App 29691 output:     at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
+App 29691 output:     at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:382:18)
+App 29691 output:     at loadESMFromCJS (node:internal/modules/cjs/loader:1363:24)
+App 29691 output:     at Module._compile (node:internal/modules/cjs/loader:1503:5)
+App 29691 output:     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+App 29691 output:     at Module.load (node:internal/modules/cjs/loader:1266:32)
+App 29691 output:     at Module._load (node:internal/modules/cjs/loader:1091:12)
+App 29691 output:     at Module.require (node:internal/modules/cjs/loader:1289:19)
+App 29691 output:     at Module.require (/opt/cpanel/ea-ruby27/root/usr/share/passenger/helper-scripts/node-loader.js:80:25)
+App 29691 output:     at require (node:internal/modules/helpers:182:18)
+App 29691 output: Node.js v20.20.0

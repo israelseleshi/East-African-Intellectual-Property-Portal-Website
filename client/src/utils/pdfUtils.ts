@@ -56,25 +56,30 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       const strValue = String(value);
 
       const match = possibleNames.find(name =>
-        availableFields.some(f => f.toLowerCase() === name.toLowerCase())
+        availableFields.some(f => f.trim().toLowerCase() === name.trim().toLowerCase())
       );
 
       if (match) {
         try {
-          const matchedName = availableFields.find(f => f.toLowerCase() === match.toLowerCase())!;
+          const matchedName = availableFields.find(f => f.trim().toLowerCase() === match.trim().toLowerCase())!;
+          console.log(`Matching field: "${matchedName}" for value: "${strValue.substring(0, 20)}..."`);
           let field;
           try {
             field = form.getTextField(matchedName);
           } catch (e) {
-            // If it's not a text field, it might be a button (common for image placeholders)
-            field = form.getButton(matchedName);
+            try {
+              field = form.getButton(matchedName);
+            } catch (e2) {
+              field = form.getField(matchedName);
+            }
           }
 
           // Handle Image Embedding for Logo Placeholder
           const isLogoField = matchedName.toLowerCase().includes('logo_placeholder') ||
             matchedName.toLowerCase().includes('mark_logo') ||
             matchedName.toLowerCase().includes('image_field') ||
-            matchedName.toLowerCase().includes('graphical_representation');
+            matchedName.toLowerCase().includes('graphical_representation') ||
+            matchedName.toLowerCase().includes('text field'); // EIPA uses "Text Field" sometimes
 
           if (isLogoField && strValue.startsWith('data:image')) {
             try {
@@ -87,17 +92,17 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
 
                 // Get the page index
                 const pages = pdfDoc.getPages();
-                let page = pages[1]; // Default to Page 2
-                console.log('Using page:', page.getSize());
-
+                let page = pages[0]; // Default to Page 1
+                
                 // Try to find which page this field is actually on
                 for (let i = 0; i < pages.length; i++) {
                   const p = pages[i];
                   const annots = (p.node as any).Annots();
                   if (annots) {
                     const array = annots.asArray();
-                    if (array.includes(widget.ref)) {
+                    if (array.some((ref: any) => ref === widget.ref || (ref.num === widget.ref.num && ref.gen === widget.ref.gen))) {
                       page = p;
+                      console.log(`Found field on page ${i + 1}`);
                       break;
                     }
                   }
@@ -166,13 +171,13 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       console.log(`Attempting to set checkbox for names: ${names.join(', ')} with value: ${value}`);
 
       const match = names.find(name =>
-        availableFields.some(f => f.toLowerCase() === name.toLowerCase())
+        availableFields.some(f => f.trim().toLowerCase() === name.trim().toLowerCase())
       );
 
       if (match) {
         let actualFieldName = "";
         try {
-          actualFieldName = availableFields.find(f => f.toLowerCase() === match.toLowerCase())!;
+          actualFieldName = availableFields.find(f => f.trim().toLowerCase() === match.trim().toLowerCase())!;
           console.log(`Found actual field for checkbox: ${actualFieldName}`);
           const field = form.getField(actualFieldName);
 
@@ -248,7 +253,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation', 'mark_language_requiring_translation\t'], data.mark_language_requiring_translation);
     await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
     await fillField(['mark_color_indication'], data.mark_color_indication);
-    await fillField(['mark_logo_placeholder', 'mark_logo', 'logo_placeholder', 'image_field', 'graphical_representation', 'Text Field'], data.mark_image);
+    await fillField(['mark_logo_placeholder', 'mark_logo', 'logo_placeholder', 'image_field', 'graphical_representation', 'Text Field', 'image_field_1'], data.mark_image);
     await fillField(['goods_services_list'], data.goods_services_list);
 
     // 6. Disclaimer & Priority (Section V & VI)

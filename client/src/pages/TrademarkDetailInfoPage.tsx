@@ -139,7 +139,7 @@ export default function TrademarkDetailInfoPage() {
           <div className="flex flex-col gap-1">
             <h1 className="text-h1 text-[var(--eai-text)] leading-none">{markName}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none uppercase">
+              <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
                 {filingNo}
               </span>
               <JurisdictionBadge jurisdiction={(tm.jurisdiction || 'ET') as Jurisdiction} />
@@ -167,38 +167,38 @@ export default function TrademarkDetailInfoPage() {
               <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">Identity</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Mark Name</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Mark name</Label>
                   <div className="text-body font-bold text-[var(--eai-text)]">{markName}</div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Filing Number</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Filing number</Label>
                   <div className="text-body font-bold text-[var(--eai-text)]">{filingNo}</div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Mark Type</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Mark type</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">{tm.markType || tm.mark_type || '—'}</div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Color Indication</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Color indication</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">{tm.colorIndication || tm.color_indication || '—'}</div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Priority</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Priority</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">{tm.priority || '—'}</div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Nice Classes</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Nice classes</Label>
                   <div className="flex flex-wrap gap-2">
                     {niceClasses.length ? (
                       niceClasses.map((c) => (
                         <span
                           key={c}
-                          className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] rounded-none uppercase"
+                          className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] rounded-none"
                         >
                           Class {c}
                         </span>
@@ -217,7 +217,7 @@ export default function TrademarkDetailInfoPage() {
                 {tm.niceMappings?.length ? (
                   tm.niceMappings.map((m) => (
                     <div key={m.id} className="p-4 bg-[var(--eai-bg)]/30 border border-[var(--eai-border)] rounded-none">
-                      <div className="text-[11px] font-black text-[var(--eai-primary)] mb-2 uppercase tracking-tight">Class {m.classNo}</div>
+                      <div className="text-[11px] font-black text-[var(--eai-primary)] mb-2 tracking-tight">Class {m.classNo}</div>
                       <div className="text-body text-[var(--eai-text)] font-medium">{m.description || '—'}</div>
                     </div>
                   ))
@@ -233,31 +233,31 @@ export default function TrademarkDetailInfoPage() {
               <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">Key Dates</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Application Date</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Application date</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">
                     {safeDate(tm.applicationDate || tm.application_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Publication Date</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Publication date</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">
                     {safeDate(tm.publicationDate || tm.publication_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Registration Date</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Registration date</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">
                     {safeDate(tm.registrationDate || tm.registration_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Expiry Date</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Expiry date</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">
                     {safeDate(tm.expiryDate || tm.expiry_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Next Renewal Date</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Next renewal date</Label>
                   <div className="text-body font-medium text-[var(--eai-text)]">
                     {safeDate(tm.nextRenewalDate || tm.next_renewal_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>
@@ -270,40 +270,40 @@ export default function TrademarkDetailInfoPage() {
                 <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">EIPA Form 01 Details</h4>
 
                 <div className="space-y-4">
-                  <div className="text-micro text-[var(--eai-text-secondary)] uppercase">IV. Mark Specification</div>
+                  <div className="text-micro text-[var(--eai-text-secondary)]">IV. Mark specification</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Goods Mark</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Goods mark</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_goods') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Service Mark</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Service mark</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_services') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Collective Mark</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Collective mark</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_collective') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Type - Word</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - word</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('type_word') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Type - Figurative</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - figurative</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('type_figur') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Type - Mixed</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - mixed</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('k_type_mi') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Type - 3D</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - 3D</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('type_thre') ? 'Yes' : 'No'}</div>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Mark Description</Label>
+                    <Label className="text-micro text-[var(--eai-text-secondary)]">Mark description</Label>
                     <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
                       {String(eipaField('mark_description') ?? '—')}
                     </div>
@@ -311,39 +311,39 @@ export default function TrademarkDetailInfoPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Translation</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Translation</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_translation') ? String(eipaField('mark_translation')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Transliteration</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Transliteration</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_transliteration') ? String(eipaField('mark_transliteration')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Language Requiring Translation</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Language requiring translation</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_language_requiring_translation') ? String(eipaField('mark_language_requiring_translation')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">3D Features Description</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">3D features description</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_has_three_dim_features') ? String(eipaField('mark_has_three_dim_features')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Color Indication (Form)</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Color indication (Form)</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_color_indication') ? String(eipaField('mark_color_indication')) : '—'}</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <div className="text-micro text-[var(--eai-text-secondary)] uppercase">V. Disclaimer</div>
+                  <div className="text-micro text-[var(--eai-text-secondary)]">V. Disclaimer</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Amharic Disclaimer</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Amharic disclaimer</Label>
                       <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
                         {eipaField('disclaimer_text_amharic') ? String(eipaField('disclaimer_text_amharic')) : '—'}
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Disclaimer Text (English)</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Disclaimer text (English)</Label>
                       <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
                         {eipaField('disclaimer_text_english') ? String(eipaField('disclaimer_text_english')) : '—'}
                       </div>
@@ -352,22 +352,22 @@ export default function TrademarkDetailInfoPage() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <div className="text-micro text-[var(--eai-text-secondary)] uppercase">VI. Priority Right Declaration</div>
+                  <div className="text-micro text-[var(--eai-text-secondary)]">VI. Priority right declaration</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Priority Application Date</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority application date</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('priority_application_filing_date') ? String(eipaField('priority_application_filing_date')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Priority Filing Date</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority filing date</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('priority_filing_date') ? String(eipaField('priority_filing_date')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Priority Country</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority country</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('priority_country') ? String(eipaField('priority_country')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Priority Goods & Services</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority goods & services</Label>
                       <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
                         {eipaField('priority_goods_services') ? String(eipaField('priority_goods_services')) : '—'}
                       </div>
@@ -376,60 +376,60 @@ export default function TrademarkDetailInfoPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Supporting Documents: Accompanies this form</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Supporting documents: Accompanies this form</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_priority_accompanies') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Supporting Documents: Submit within 3 months</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Supporting documents: Submit within 3 months</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_priority_submitted_later') ? 'Yes' : 'No'}</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <div className="text-micro text-[var(--eai-text-secondary)] uppercase">VII. Checklist & Signature</div>
+                  <div className="text-micro text-[var(--eai-text-secondary)]">VII. Checklist & signature</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">3 Identical Copies of Mark</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">3 identical copies of mark</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_copies') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Statutes Governing Mark Use</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Statutes governing mark use</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_statutes') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Power of Attorney</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Power of attorney</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_poa') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Priority Documents</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority documents</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_priority_docs') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Mark Drawing (3D Features)</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Mark drawing (3D features)</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_drawing') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Proof of Payment</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Proof of payment</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_payment') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Other Document(s)</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Other document(s)</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_other') ? 'Yes' : 'No'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Other Documents Text</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Other documents text</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('other_documents_text') ? String(eipaField('other_documents_text')) : '—'}</div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Applicant Signature Name</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Applicant signature name</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('applicant_signature') ? String(eipaField('applicant_signature')) : '—'}</div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Signed Date (Day/Month/Year)</Label>
+                      <Label className="text-micro text-[var(--eai-text-secondary)]">Signed date (Day/Month/Year)</Label>
                       <div className="text-body font-medium text-[var(--eai-text)]">
                         {eipaField('applicant_sign_day_en') || eipaField('applicant_sign_month_en') || eipaField('applicant_sign_year_en')
                           ? `${String(eipaField('applicant_sign_day_en') || '')} ${String(eipaField('applicant_sign_month_en') || '')} ${String(eipaField('applicant_sign_year_en') || '')}`.trim()
@@ -456,25 +456,25 @@ export default function TrademarkDetailInfoPage() {
               <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">Owner Information</h4>
               <div className="space-y-6">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Applicant Name</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Applicant name</Label>
                   <div className="text-body font-bold text-[var(--eai-text)]">{tm.client?.name || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Nationality</Label>
+                    <Label className="text-micro text-[var(--eai-text-secondary)]">Nationality</Label>
                     <div className="text-body font-medium text-[var(--eai-text)]">{tm.client?.nationality || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Telephone</Label>
+                    <Label className="text-micro text-[var(--eai-text-secondary)]">Telephone</Label>
                     <div className="text-body font-medium text-[var(--eai-text)]">{tm.client?.phone || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Email</Label>
+                    <Label className="text-micro text-[var(--eai-text-secondary)]">Email</Label>
                     <div className="text-body font-medium text-[var(--eai-text)]">{tm.client?.email || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Address</Label>
+                    <Label className="text-micro text-[var(--eai-text-secondary)]">Address</Label>
                     <div className="text-body font-medium text-[var(--eai-text)]">
                       {tm.client?.addressStreet || tm.client?.address_street ? (
                         <span>
@@ -494,14 +494,14 @@ export default function TrademarkDetailInfoPage() {
               <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">Instructions & Remarks</h4>
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Client Instruction</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Client instruction</Label>
                   <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
                     {tm.clientInstructions || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Legal Remark</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Legal remark</Label>
                   <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
                     {tm.remark || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                   </div>

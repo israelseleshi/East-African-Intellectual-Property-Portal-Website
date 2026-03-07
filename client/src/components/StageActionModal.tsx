@@ -128,7 +128,7 @@ export function StageActionModal({ isOpen, onClose, onConfirm, currentStage, nex
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     {config.fields.map((field) => (
                         <div key={field.key} className="space-y-1.5">
-                            <Label className="text-[12px] font-bold uppercase tracking-wider text-[var(--eai-text-secondary)]">
+                            <Label className="text-[12px] font-bold tracking-wider text-[var(--eai-text-secondary)]">
                                 {field.label} {field.required && <span className="text-[#FF3B30]">*</span>}
                             </Label>
 

@@ -56,6 +56,9 @@ router.post('/submit', authenticateToken, async (req, res) => {
             // Nice Classes
             niceClasses,
             
+            // Mark Image (Base64)
+            markImage,
+            
             // PDF Data (Base64)
             pdfBase64,
             
@@ -170,6 +173,29 @@ router.post('/submit', authenticateToken, async (req, res) => {
                         `/forms-download/${pdfFilename}`,
                         pdfFilename,
                         pdfBuffer.length
+                    ]
+                );
+            }
+
+            // 3.5 Save Mark Image (optional)
+            if (markImage && markImage.startsWith('data:image')) {
+                const base64Data = markImage.replace(/^data:image\/\w+;base64,/, "");
+                const imageBuffer = Buffer.from(base64Data, 'base64');
+                const extension = markImage.split(';')[0].split('/')[1] || 'png';
+                const imageFilename = `mark_${caseId}.${extension}`;
+                const imagePath = path.join(FORMS_UPLOAD_DIR, imageFilename);
+                
+                fs.writeFileSync(imagePath, imageBuffer);
+
+                await connection.execute(
+                    `INSERT INTO mark_assets (id, case_id, type, file_path, file_name, file_size, created_at) 
+                     VALUES (?, ?, 'MARK', ?, ?, ?, NOW())`,
+                    [
+                        crypto.randomUUID(),
+                        caseId,
+                        `/forms-download/${imageFilename}`,
+                        imageFilename,
+                        imageBuffer.length
                     ]
                 );
             }

@@ -30,8 +30,14 @@ interface Client {
   nationality: string;
   email: string;
   address_street: string;
+  address_zone?: string;
+  wereda?: string;
   city: string;
+  house_no?: string;
   zip_code: string;
+  po_box?: string;
+  telephone?: string;
+  fax?: string;
   created_at: string;
   trademarks?: AssociatedTrademark[];
 }
@@ -58,7 +64,6 @@ export default function ClientDetailPage() {
     if (id) {
       fetchClient(id);
     }
-    // Clear override on unmount
     return () => clearOverride();
   }, [id]);
 
@@ -67,7 +72,6 @@ export default function ClientDetailPage() {
       const data = await clientService.getClient(clientId);
       setClient(data);
       setFormData(data);
-      // Set page title to client name
       setOverrideTitle(data.name);
     } catch (error) {
       console.error('Failed to fetch client:', error);
@@ -82,8 +86,13 @@ export default function ClientDetailPage() {
     setSaving(true);
     try {
       await clientService.updateClient(id, formData);
-      setClient({ ...client!, ...formData });
+      setClient({ ...client!, ...formData as Client });
       setIsEditing(false);
+      addToast({
+        title: 'Success',
+        description: 'Client updated successfully',
+        type: 'success'
+      });
     } catch (error: unknown) {
       console.error('Failed to update client:', error);
       const err = error as { response?: { data?: { error?: string } } };
@@ -188,14 +197,11 @@ export default function ClientDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-8">
-            {/* Identity Section */}
             <div className="space-y-4">
-              <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">
-                Identity
-              </h4>
+              <h4 className="text-label text-[var(--eai-text-secondary)] tracking-wider text-[11px] font-bold">Identity</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Client Name</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Client name</Label>
                   {isEditing ? (
                     <Input
                       value={formData.name || ''}
@@ -203,20 +209,18 @@ export default function ClientDetailPage() {
                       className="apple-input"
                     />
                   ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">
-                      {client.name}
-                    </div>
+                    <div className="text-body font-bold text-[var(--eai-text)]">{client.name}</div>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Local Name (Amharic)</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Local name (Amharic)</Label>
                   {isEditing ? (
                     <Input
                       value={formData.local_name || ''}
                       onChange={(e) => handleChange('local_name', e.target.value)}
                       placeholder="ምሳሌ ድርጅት"
-                      className="apple-input"
+                      className="apple-input font-amharic"
                     />
                   ) : (
                     <div className="text-body font-bold text-[var(--eai-text)]">
@@ -226,12 +230,12 @@ export default function ClientDetailPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Client Type</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Client type</Label>
                   {isEditing ? (
                     <div className="apple-input-container">
                       <select
                         value={formData.type || ''}
-                        onChange={(e) => handleChange('type', e.target.value as string)}
+                        onChange={(e) => handleChange('type', e.target.value as ApplicantType)}
                         className="w-full h-11 bg-transparent text-body outline-none appearance-none cursor-pointer"
                       >
                         <option value="INDIVIDUAL">Individual</option>
@@ -241,7 +245,7 @@ export default function ClientDetailPage() {
                     </div>
                   ) : (
                     <div className="mt-1">
-                      <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none uppercase">
+                      <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
                         {CLIENT_TYPE_LABELS[client.type]}
                       </span>
                     </div>
@@ -250,30 +254,23 @@ export default function ClientDetailPage() {
               </div>
             </div>
 
-            {/* Contact Section */}
             <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">
-                Contact Information
-              </h4>
+              <h4 className="text-label text-[var(--eai-text-secondary)] tracking-wider text-[11px] font-bold">Contact & Address</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Email Address</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Email</Label>
                   {isEditing ? (
                     <Input
-                      type="email"
                       value={formData.email || ''}
                       onChange={(e) => handleChange('email', e.target.value)}
                       className="apple-input"
                     />
                   ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">
-                      {client.email || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                    </div>
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.email || '—'}</div>
                   )}
                 </div>
-
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Nationality</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Nationality</Label>
                   {isEditing ? (
                     <Input
                       value={formData.nationality || ''}
@@ -281,73 +278,116 @@ export default function ClientDetailPage() {
                       className="apple-input"
                     />
                   ) : (
-                    <div className="mt-1">
-                      {client.nationality ? (
-                        <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] rounded-none uppercase">
-                          {client.nationality}
-                        </span>
-                      ) : (
-                        <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>
-                      )}
-                    </div>
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.nationality || '—'}</div>
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* Address Section */}
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-label text-[var(--eai-text-secondary)] flex items-center gap-2">
-                Address
-              </h4>
-              <div className="space-y-6">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">Street Address</Label>
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Telephone</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.telephone || ''}
+                      onChange={(e) => handleChange('telephone', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.telephone || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Fax</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.fax || ''}
+                      onChange={(e) => handleChange('fax', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.fax || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Street address</Label>
                   {isEditing ? (
                     <Input
                       value={formData.address_street || ''}
                       onChange={(e) => handleChange('address_street', e.target.value)}
-                      placeholder="Street Address"
                       className="apple-input"
                     />
                   ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">
-                      {client.address_street || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                    </div>
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.address_street || '—'}</div>
                   )}
                 </div>
-                
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">City</Label>
-                    {isEditing ? (
-                      <Input
-                        value={formData.city || ''}
-                        onChange={(e) => handleChange('city', e.target.value)}
-                        placeholder="City"
-                        className="apple-input"
-                      />
-                    ) : (
-                      <div className="text-body font-medium text-[var(--eai-text)]">
-                        {client.city || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)] uppercase">ZIP / Postal Code</Label>
-                    {isEditing ? (
-                      <Input
-                        value={formData.zip_code || ''}
-                        onChange={(e) => handleChange('zip_code', e.target.value)}
-                        placeholder="ZIP / Postal Code"
-                        className="apple-input"
-                      />
-                    ) : (
-                      <div className="text-body font-medium text-[var(--eai-text)]">
-                        {client.zip_code || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                      </div>
-                    )}
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Zone / Subcity</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.address_zone || ''}
+                      onChange={(e) => handleChange('address_zone', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.address_zone || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Wereda</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.wereda || ''}
+                      onChange={(e) => handleChange('wereda', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.wereda || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">City</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.city || ''}
+                      onChange={(e) => handleChange('city', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.city || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">House no.</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.house_no || ''}
+                      onChange={(e) => handleChange('house_no', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.house_no || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">ZIP / Postal code</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.zip_code || ''}
+                      onChange={(e) => handleChange('zip_code', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.zip_code || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">P.O. Box</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.po_box || ''}
+                      onChange={(e) => handleChange('po_box', e.target.value)}
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.po_box || '—'}</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -393,7 +433,7 @@ export default function ClientDetailPage() {
                       </div>
                       <div className="min-w-0 max-w-[300px]">
                         <div className="text-body font-bold text-[var(--eai-text)] line-clamp-2">{tm.mark_name}</div>
-                        <div className="text-micro text-[var(--eai-text-secondary)] uppercase">
+                        <div className="text-micro text-[var(--eai-text-secondary)]">
                           {tm.filing_number || 'No Filing #'}
                         </div>
                       </div>

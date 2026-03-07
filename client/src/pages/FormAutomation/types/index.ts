@@ -1,0 +1,83 @@
+import type { ApplicantType } from '@/shared/database';
+
+export interface Client {
+  id: string;
+  name: string;
+  local_name?: string;
+  type: ApplicantType;
+  nationality: string;
+  email: string;
+  address_street: string;
+  address_zone?: string;
+  wereda?: string;
+  city: string;
+  house_no?: string;
+  zip_code: string;
+  po_box?: string;
+  telephone?: string;
+  fax?: string;
+  created_at: string;
+}
+
+export interface EipaFormData {
+  applicant_name: string;
+  applicant_name_amharic: string;
+  address_street: string;
+  address_zone: string;
+  city_name: string;
+  city_code: string;
+  state_name: string;
+  state_code: string;
+  zip_code: string;
+  wereda: string;
+  house_no: string;
+  telephone: string;
+  email: string;
+  fax: string;
+  nationality: string;
+  po_box: string;
+  residence_country: string;
+  chk_female: boolean;
+  chk_male: boolean;
+  chk_company: boolean;
+  chk_goods: boolean;
+  chk_services: boolean;
+  chk_collective: boolean;
+  type_figur: boolean;
+  type_word: boolean;
+  k_type_mi: boolean;
+  type_thre: boolean;
+  mark_description: string;
+  mark_translation: string;
+  mark_transliteration: string;
+  mark_language_requiring_translation: string;
+  mark_has_three_dim_features: string;
+  mark_color_indication: string;
+  mark_image: string;
+  goods_services_list: string;
+  disclaimer_text_amharic: string;
+  disclaimer_text_english: string;
+  priority_application_filing_date: string;
+  priority_filing_date: string;
+  priority_goods_services: string;
+  priority_country: string;
+  chk_priority_accompanies: boolean;
+  chk_priority_submitted_later: boolean;
+  registration_no: string;
+  registration_date: string;
+  application_no: string;
+  chk_list_copies: boolean;
+  chk_list_statutes: boolean;
+  chk_list_poa: boolean;
+  chk_list_priority_docs: boolean;
+  chk_list_drawing: boolean;
+  chk_list_payment: boolean;
+  chk_list_other: boolean;
+  other_documents_text: string;
+  applicant_signature: string;
+  applicant_sign_day_en: string;
+  applicant_sign_month_en: string;
+  applicant_sign_year_en: string;
+}
+
+export type FormType = 'APPLICATION' | 'RENEWAL';

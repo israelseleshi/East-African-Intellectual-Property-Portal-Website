@@ -8,7 +8,6 @@ import ClientDetailPage from '../pages/ClientDetailPage'
 import NewClientPage from '../pages/NewClientPage'
 import CaseFlowPage from '../pages/CaseFlowPage'
 import CaseFlowDemoPage from '../pages/CaseFlowDemoPage'
-import ReportsPage from '../pages/ReportsPage'
 import TrademarkDetailPage from '../pages/TrademarkDetailPage'
 import TrademarkDetailInfoPage from '../pages/TrademarkDetailInfoPage'
 import DeadlinesPage from '../pages/DeadlinesPage'
@@ -20,7 +19,6 @@ import VerifyOtpPage from '../pages/VerifyOtpPage'
 import FormInspectorPage from '../pages/FormInspectorPage'
 import HelpPage from '../pages/HelpPage'
 import TrashPage from '../pages/TrashPage'
-import NotificationsPage from '../pages/NotificationsPage'
 import { useAuthStore } from '../store/authStore'
 import ErrorPage from '../components/ErrorPage'
 
@@ -76,8 +74,6 @@ export const router = createBrowserRouter([
           { path: 'case-flow/:id', element: <CaseFlowPage /> },
           { path: 'case-flow/demo', element: <CaseFlowDemoPage /> },
           { path: 'invoicing', element: <BillingPage /> },
-          { path: 'reports', element: <ReportsPage /> },
-          { path: 'notifications', element: <NotificationsPage /> },
           { path: 'trash', element: <TrashPage /> },
           { path: 'help', element: <HelpPage /> }
         ]

@@ -36,10 +36,6 @@ Copy-Item -Path "client/public/.htaccess" -Destination "deploy_tmp/frontend"
 # Copy backend dist + essentials
 Copy-Item -Recurse -Path "server/dist/*" -Destination "deploy_tmp/backend"
 Copy-Item -Path "server/package.json" -Destination "deploy_tmp/backend"
-Copy-Item -Path "server/.htaccess" -Destination "deploy_tmp/backend"
-Copy-Item -Path "server/.env" -Destination "deploy_tmp/backend" -ErrorAction SilentlyContinue
-
-# Zip them up
 Compress-Archive -Path "deploy_tmp/frontend/*" -DestinationPath "deploy_tmp/frontend.zip" -Force
 Compress-Archive -Path "deploy_tmp/backend/*" -DestinationPath "deploy_tmp/backend.zip" -Force
 

@@ -9,18 +9,46 @@ import { clientService } from '@/utils/api';
 import { useToast } from '@/components/ui/toast';
 import type { ApplicantType } from '@/shared/database';
 
+interface Client {
+  id: string;
+  name: string;
+  local_name?: string;
+  type: ApplicantType;
+  nationality: string;
+  email: string;
+  address_street: string;
+  address_zone?: string;
+  wereda?: string;
+  city: string;
+  house_no?: string;
+  zip_code: string;
+  po_box?: string;
+  telephone?: string;
+  fax?: string;
+  created_at: string;
+}
+
 export default function NewClientPage() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Client>({
+    id: '',
     name: '',
+    local_name: '',
     type: 'INDIVIDUAL' as ApplicantType,
     nationality: '',
     email: '',
-    addressStreet: '',
+    address_street: '',
+    address_zone: '',
+    wereda: '',
     city: '',
-    zipCode: ''
+    house_no: '',
+    zip_code: '',
+    po_box: '',
+    telephone: '',
+    fax: '',
+    created_at: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +65,7 @@ export default function NewClientPage() {
 
     setSaving(true);
     try {
-      const newClient = await clientService.createClient(formData);
+      const newClient = await clientService.createClient(formData as unknown as Record<string, unknown>);
       addToast({
         title: 'Client Created',
         description: `${newClient.name} has been created successfully`,
@@ -115,13 +143,12 @@ export default function NewClientPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-[var(--eai-text)]">Email Address</Label>
+                <Label className="text-sm font-semibold text-[var(--eai-text)]">ሙሉ ስም (Amharic Name)</Label>
                 <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  placeholder="client@example.com"
-                  className="apple-input"
+                  value={formData.local_name}
+                  onChange={(e) => handleChange('local_name', e.target.value)}
+                  placeholder="ሙሉ ስም እዚህ ያስገቡ"
+                  className="apple-input font-amharic"
                 />
               </div>
 
@@ -135,29 +162,82 @@ export default function NewClientPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-[var(--eai-text)]">Email Address</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  placeholder="client@example.com"
+                  className="apple-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-[var(--eai-text)]">Telephone</Label>
+                <Input
+                  value={formData.telephone}
+                  onChange={(e) => handleChange('telephone', e.target.value)}
+                  placeholder="+251..."
+                  className="apple-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-[var(--eai-text)]">Fax</Label>
+                <Input
+                  value={formData.fax}
+                  onChange={(e) => handleChange('fax', e.target.value)}
+                  placeholder="Fax number"
+                  className="apple-input"
+                />
+              </div>
+
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-sm font-semibold text-[var(--eai-text)]">Address</Label>
-                <div className="space-y-3">
+                <Label className="text-sm font-semibold text-[var(--eai-text)]">Address Details</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Input
-                    value={formData.addressStreet}
-                    onChange={(e) => handleChange('addressStreet', e.target.value)}
+                    value={formData.address_street}
+                    onChange={(e) => handleChange('address_street', e.target.value)}
                     placeholder="Street Address"
                     className="apple-input"
                   />
-                  <div className="flex gap-3">
-                    <Input
-                      value={formData.city}
-                      onChange={(e) => handleChange('city', e.target.value)}
-                      placeholder="City"
-                      className="apple-input flex-1"
-                    />
-                    <Input
-                      value={formData.zipCode}
-                      onChange={(e) => handleChange('zipCode', e.target.value)}
-                      placeholder="ZIP / Postal Code"
-                      className="apple-input flex-1"
-                    />
-                  </div>
+                  <Input
+                    value={formData.address_zone}
+                    onChange={(e) => handleChange('address_zone', e.target.value)}
+                    placeholder="Zone / Subcity"
+                    className="apple-input"
+                  />
+                  <Input
+                    value={formData.wereda}
+                    onChange={(e) => handleChange('wereda', e.target.value)}
+                    placeholder="Wereda"
+                    className="apple-input"
+                  />
+                  <Input
+                    value={formData.city}
+                    onChange={(e) => handleChange('city', e.target.value)}
+                    placeholder="City"
+                    className="apple-input"
+                  />
+                  <Input
+                    value={formData.house_no}
+                    onChange={(e) => handleChange('house_no', e.target.value)}
+                    placeholder="House No."
+                    className="apple-input"
+                  />
+                  <Input
+                    value={formData.zip_code}
+                    onChange={(e) => handleChange('zip_code', e.target.value)}
+                    placeholder="ZIP / Postal Code"
+                    className="apple-input"
+                  />
+                  <Input
+                    value={formData.po_box}
+                    onChange={(e) => handleChange('po_box', e.target.value)}
+                    placeholder="P.O. Box"
+                    className="apple-input md:col-span-2"
+                  />
                 </div>
               </div>
             </div>

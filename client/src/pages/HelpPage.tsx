@@ -208,9 +208,9 @@ export default function HelpPage() {
                                 <p className="text-label normal-case font-medium">{tour.description}</p>
                                 <button 
                                     onClick={() => navigate(tour.route)}
-                                    className="apple-button-primary text-micro w-full uppercase"
+                                    className="apple-button-primary text-micro w-full"
                                 >
-                                    Start Tour
+                                    Start tour
                                 </button>
                             </div>
                         )
@@ -231,7 +231,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3">User Guide</h3>
                         <p className="text-label normal-case font-medium">Detailed documentation on every feature.</p>
-                        <button className="apple-button-secondary text-micro w-full uppercase">Read Guide</button>
+                        <button className="apple-button-secondary text-micro w-full">Read guide</button>
                     </div>
 
                     {/* Support Ticket */}
@@ -241,7 +241,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3">Support Ticket</h3>
                         <p className="text-label normal-case font-medium">Facing a bug? Open a priority ticket.</p>
-                        <button className="apple-button-secondary text-micro w-full uppercase">Contact Support</button>
+                        <button className="apple-button-secondary text-micro w-full">Contact support</button>
                     </div>
 
                     {/* Email Us */}

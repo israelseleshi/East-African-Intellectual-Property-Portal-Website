@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { MagnifyingGlass, Plus, Archive, Clock, FileText, CreditCard, BookOpen, House, Command, Users, ShieldCheck, Building, User, Trash, Bell, ChartBar } from '@phosphor-icons/react'
+import { MagnifyingGlass, Plus, Archive, Clock, FileText, CreditCard, BookOpen, House, Command, Users, ShieldCheck, Building, User, Trash } from '@phosphor-icons/react'
 import { clientService, trademarkService } from '../utils/api'
 
 type Props = {
@@ -50,8 +50,6 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
       { label: 'EIPA Forms', path: '/eipa-forms', icon: FileText },
       { label: 'Invoicing', path: '/invoicing', icon: CreditCard },
       { label: 'Clients', path: '/clients', icon: Users },
-      { label: 'Notifications', path: '/notifications', icon: Bell },
-      { label: 'Reports', path: '/reports', icon: ChartBar },
       { label: 'Trash', path: '/trash', icon: Trash },
       { label: 'Help & Support', path: '/help', icon: BookOpen }
     ],

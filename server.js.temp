@@ -15,6 +15,7 @@ import jurisdictionRoutes from './routes/jurisdictions.js';
 import notesRoutes from './routes/notes.js';
 import oppositionsRoutes from './routes/oppositions.js';
 import feesRoutes from './routes/fees.js';
+import notificationsRoutes from './routes/notifications.js';
 import formsRoutes from './routes/forms.js';
 import { pool } from './database/db.js';
 
@@ -37,12 +38,11 @@ app.use(express.json());
 app.use('/uploads', express.static(uploadDir));
 
 // Route Registration
-const registerRoutes = (prefix: string = '') => {
+const registerRoutes = (prefix = '') => {
   app.use(`${prefix}/auth`, authRoutes);
   app.use(`${prefix}/cases`, caseRoutes);
   app.use(`${prefix}/clients`, clientRoutes);
   app.use(`${prefix}/deadlines`, deadlineRoutes);
-  // Support both /financials and /invoicing if used interchangeably
   app.use(`${prefix}/financials`, financialRoutes);
   app.use(`${prefix}/invoicing`, financialRoutes);
   app.use(`${prefix}/documents`, documentRoutes);
@@ -54,11 +54,10 @@ const registerRoutes = (prefix: string = '') => {
   app.use(`${prefix}/notes`, notesRoutes);
   app.use(`${prefix}/oppositions`, oppositionsRoutes);
   app.use(`${prefix}/fees`, feesRoutes);
+  app.use(`${prefix}/notifications`, notificationsRoutes);
   app.use(`${prefix}/forms`, formsRoutes);
 };
 
-// Register routes at both root and /api
-// This is critical for cPanel Passenger which sometimes strips or keeps the /api prefix
 registerRoutes('');
 registerRoutes('/api');
 
@@ -66,6 +65,7 @@ registerRoutes('/api');
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', environment: process.env.NODE_ENV, timestamp: new Date().toISOString() });
 });
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -81,9 +81,8 @@ app.get('/api/db-check', async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT 1 as connected');
     res.json({ status: 'Database Connected', data: rows });
-  } catch (error: unknown) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const err = error as any;
+  } catch (error) {
+    const err = error;
     res.status(500).json({
       status: 'Database Error',
       message: err.message,

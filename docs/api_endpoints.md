@@ -1,59 +1,104 @@
-# API Endpoints Documentation
+# TPMS API Documentation
 
 ## Base URL
-`http://localhost:3000/api` (Local) or `https://eastafricanip.com/api` (Production)
+- **Local:** `http://localhost:3001/api`
+- **Production:** `https://eastafricanip.com/api`
 
-## 1. Authentication
-| Method | Endpoint | Description | Auth Required |
+## Authentication
+All endpoints except Login, Register, and OTP Verification require a Bearer Token in the `Authorization` header.
+
+| Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/auth/login` | Login with email/password. Returns JWT. | No |
-| `POST` | `/auth/register` | Register a new lawyer/firm. | No |
+| `POST` | `/auth/login` | Returns JWT and user object. | No |
+| `POST` | `/auth/register` | Create new account. Sends verification email. | No |
 | `POST` | `/auth/verify-otp` | Verify email with 6-digit code. | No |
 | `GET` | `/auth/me` | Get current user profile. | Yes |
 
-## 2. Trademark Cases
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/cases` | List all cases (Recent first). | Yes |
-| `POST` | `/cases` | Create a new trademark application. | Yes |
-| `GET` | `/cases/:id` | Get full details (including assets, history). | Yes |
-| `PATCH` | `/cases/:id/status` | Manual status update. | Yes |
-| `PATCH` | `/cases/:id/flow-stage` | **Core Engine**: Move case to next lifecycle stage (e.g., `FILED` -> `FORMAL_EXAM`) and auto-calc deadlines. | Yes |
+---
 
-## 3. Clients (Trademark Owners)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/clients` | List all clients. | Yes |
-| `POST` | `/clients` | Add a new client. | Yes |
-| `GET` | `/clients/:id` | Get client details. | Yes |
-| `PATCH` | `/clients/:id` | Update client contact info. | Yes |
+## Trademark Cases (`/cases`)
+The core engine for managing trademark lifecycles.
 
-## 4. Deadlines & Dashboard
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/dashboard/stats` | Get counts (Active Cases, Urgent Deadlines). | Yes |
-| `GET` | `/deadlines/upcoming` | Get deadlines due in next X days (query `?days=30`). | Yes |
-| `GET` | `/cases/:id/deadlines` | Get specific deadlines for a case. | Yes |
-| `PATCH` | `/deadlines/:id/complete` | Mark a deadline as resolved. | Yes |
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/cases` | List cases. Query params: `q` (search), `status`, `jurisdiction`. |
+| `POST` | `/cases` | Create case. Can auto-create client if `clientId` is missing. |
+| `GET` | `/cases/:id` | Get full case details, history, assets, and deadlines. |
+| `PATCH` | `/cases/:id/status` | Update status (e.g., `FILED`). Auto-generates invoices. |
+| `PATCH` | `/cases/:id/flow-stage` | **Workflow Engine**: Moves case through 10-stage lifecycle. Auto-calculates deadlines and fees. |
+| `DELETE` | `/cases/:id` | Permanent deletion of case and all related records. |
 
 ---
 
-## 5. 🚧 Proposed Endpoints (To Be Implemented)
+## Clients (`/clients`)
+Management of trademark owners/applicants.
 
-### File Uploads (The Vault)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/upload` | Upload a file (Logo, POA). Returns `file_path`. |
-| `DELETE` | `/assets/:id` | Remove a file association. |
+| `GET` | `/clients` | List clients. Query params: `q`, `type`, `page`, `limit`. |
+| `POST` | `/clients` | Create new client. |
+| `GET` | `/clients/:id` | Get client details and their associated trademarks. |
+| `PATCH` | `/clients/:id` | Update client contact info. |
+| `POST` | `/clients/bulk-delete` | Delete multiple clients by ID array. |
+| `POST` | `/clients/merge` | Merge two client records (moves all cases/invoices). |
 
-### Financials (The Ledger)
+---
+
+## Deadlines & Dashboard
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/invoices` | Generate a new invoice for a client. |
-| `GET` | `/invoices` | List invoices (filter by status/client). |
-| `GET` | `/invoices/:id/pdf` | Download invoice as PDF. |
+| `GET` | `/dashboard/stats` | Summary counts for the main dashboard. |
+| `GET` | `/dashboard/unified` | Combined stats, recent activity, and upcoming deadlines. |
+| `GET` | `/deadlines/upcoming` | List pending deadlines. Query param: `days` (default 30). |
+| `PATCH` | `/deadlines/:id/complete` | Mark a specific deadline as resolved. |
 
-### Document Automation (The Factory)
+---
+
+## Oppositions (`/oppositions`)
+Tracking third-party challenges to marks.
+
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/documents/generate` | Generate a legal form (e.g., `FORM_01`) from case data. |
+| `GET` | `/oppositions` | List all oppositions. Supports filtering by `status` or `caseId`. |
+| `POST` | `/oppositions` | Record a new opposition. Auto-creates response deadlines. |
+| `PATCH` | `/oppositions/:id/status` | Update opposition outcome (e.g., `RESOLVED`, `WITHDRAWN`). |
+| `DELETE` | `/oppositions/:id` | Soft or permanent delete of an opposition record. |
+
+---
+
+## Financials & Fees
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/fees` | List the global fee schedule for all jurisdictions. |
+| `GET` | `/fees/calculate/:jur/:stage` | Calculate expected fees for a specific stage. |
+| `GET` | `/fees/case/:caseId` | Calculate total fees incurred by a case to date. |
+| `POST` | `/financials/invoices` | Create a manual invoice with multiple items. |
+| `GET` | `/financials/invoices` | List all invoices in the system. |
+
+---
+
+## System & Jurisdictions
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/jurisdictions` | List supported countries and their base rules. |
+| `GET` | `/jurisdictions/:code/rules` | Detailed legal rules (opposition periods, renewal cycles). |
+| `GET` | `/system/health` | API and Database connectivity check. |
+
+---
+
+## Notes & Collaboration
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/notes/case/:caseId` | Get all internal notes for a specific case. |
+| `POST` | `/notes` | Create a new note (can be `PRIVATE` or `PUBLIC`). |
+| `POST` | `/notes/:id/reply` | Create a threaded reply to an existing note. |
+| `PATCH` | `/notes/:id/pin` | Pin important notes to the top of the case file. |
+
+---
+
+## Forms & Automation
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/forms/submit` | Submit a full EIPA form. Auto-creates client, case, and assets. |
+| `GET` | `/forms/download/:file` | Secure download of submitted PDF forms. |
+| `GET` | `/forms/list/:caseId` | List all official forms associated with a case. |

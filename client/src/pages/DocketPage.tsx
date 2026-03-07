@@ -364,12 +364,12 @@ export default function DocketPage() {
           }
         }}
       />
-      <header className="flex items-end justify-between" id="trademarks-header">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="trademarks-header">
         <h1 className="text-h1 text-[var(--eai-text)]">Trademarks</h1>
         <button
           id="new-application-btn"
           onClick={() => navigate('/intake/new')}
-          className="apple-button-primary flex items-center gap-2 shadow-lg shadow-[var(--eai-primary)]/20"
+          className="apple-button-primary flex items-center justify-center gap-2 shadow-lg shadow-[var(--eai-primary)]/20 w-full sm:w-auto"
         >
           <Plus size={18} weight="bold" />
           <span className="text-label text-white">New Application</span>
@@ -408,7 +408,7 @@ export default function DocketPage() {
 
       <div className="apple-card p-4 bg-[var(--eai-surface)] mt-8" id="search-filter">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative flex-1 max-w-md" id="search-input">
+          <div className="relative flex-1 w-full lg:max-w-md" id="search-input">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -417,14 +417,14 @@ export default function DocketPage() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Jurisdiction Dropdown */}
             <div id="jurisdiction-filter">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-bg)]/30 px-3 py-1.5 h-10 tracking-tight hover:bg-[var(--eai-bg)]/50 transition-colors">
                     <JurisdictionFlag code={jurisdiction} />
-                    <span className="text-label text-[var(--eai-text)] ml-1 uppercase">{JURISDICTION_NAMES[jurisdiction]}</span>
+                    <span className="text-label text-[var(--eai-text)] ml-1">{JURISDICTION_NAMES[jurisdiction]}</span>
                     <CaretDown size={14} className="text-[var(--eai-text-secondary)] ml-1" />
                   </button>
                 </DropdownMenuTrigger>
@@ -453,7 +453,7 @@ export default function DocketPage() {
                       const StatusIcon = STATUS_ICONS[status || 'ALL']
                       return <StatusIcon size={16} weight="bold" className="text-[var(--eai-text-secondary)]" />
                     })()}
-                    <span className="text-label text-[var(--eai-text)] ml-1 uppercase">
+                    <span className="text-label text-[var(--eai-text)] ml-1">
                       {STATUS_NAMES[status || 'ALL']}
                     </span>
                     <CaretDown size={14} className="text-[var(--eai-text-secondary)] ml-1" />
@@ -478,11 +478,11 @@ export default function DocketPage() {
               </DropdownMenu>
             </div>
 
-            <div className="text-label text-[var(--eai-text)] ml-2">
+            <div className="text-label text-[var(--eai-text)] sm:ml-2">
               {filteredRows.length} records
             </div>
 
-            <div className="flex items-center gap-1 border border-[var(--eai-border)] bg-[var(--eai-bg)]/30 rounded-xl h-10 ml-4 overflow-hidden" id="view-toggle">
+            <div className="flex items-center gap-1 border border-[var(--eai-border)] bg-[var(--eai-bg)]/30 rounded-xl h-10 sm:ml-4 overflow-hidden" id="view-toggle">
               <button
                 onClick={() => setViewMode('table')}
                 className={`p-2 transition-colors ${viewMode === 'table' ? 'bg-[var(--eai-primary)] text-white' : 'text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)]'}`}
@@ -542,7 +542,7 @@ export default function DocketPage() {
             </p>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedRows.map((t) => (
               <Card
                 key={t.id}
@@ -567,11 +567,11 @@ export default function DocketPage() {
 
                     <div className="mt-4 space-y-2 border-t border-[var(--eai-border)] pt-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-micro text-[var(--eai-text-secondary)] uppercase">Client</span>
+                        <span className="text-micro text-[var(--eai-text-secondary)]">Client</span>
                         <span className="text-body font-bold truncate max-w-[120px]">{t.client_name || t.client?.name || '—'}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-micro text-[var(--eai-text-secondary)] uppercase">Filing #</span>
+                        <span className="text-micro text-[var(--eai-text-secondary)]">Filing #</span>
                         <span className="text-body font-bold">{t.filing_number || t.filingNumber || '—'}</span>
                       </div>
                     </div>
@@ -581,124 +581,66 @@ export default function DocketPage() {
             ))}
           </div>
         ) : (
-          <div className="apple-card overflow-hidden" id="trademarks-table">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1200px] border-collapse text-left">
-                <thead className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30">
-                  <tr>
-                    <th className="px-6 py-4 text-label">Trademark</th>
-                    <th className="px-6 py-4 text-label">Client Name</th>
-                    <th className="px-6 py-4 text-label">Client Type</th>
-                    <th className="px-6 py-4 text-label">Jurisdiction</th>
-                    <th className="px-6 py-4 text-label">Status</th>
-                    <th className="px-6 py-4 text-label">Filing Date</th>
-                    <th className="px-6 py-4 text-label">Reg. Date</th>
-                    <th className="px-6 py-4 text-label">Priority</th>
-                    <th className="px-6 py-4 text-label">Next Action</th>
-                    <th className="px-6 py-4 text-label text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--eai-border)]">
-                  {paginatedRows.map((t) => (
-                    <tr
-                      key={t.id}
-                      className="group cursor-pointer hover:bg-[var(--eai-bg)]/40 transition-colors"
-                      onClick={() => navigate(`/trademarks/${t.id}`)}
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--eai-bg)] group-hover:bg-white dark:group-hover:bg-[var(--eai-surface)] transition-colors text-[var(--eai-text-secondary)] group-hover:text-[var(--eai-primary)] shadow-sm">
-                            <FileText size={24} weight="duotone" />
+          <div className="apple-card overflow-hidden">
+            <div className="divide-y divide-[var(--eai-border)]">
+              {filteredRows.length > 0 ? (
+                paginatedRows.map((t) => (
+                  <div 
+                    key={t.id}
+                    className="p-4 sm:p-6 hover:bg-[var(--eai-bg)]/40 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/trademarks/${t.id}`)}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] shadow-sm">
+                          <FileText size={24} weight="duotone" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-body font-bold text-[var(--eai-text)] leading-tight truncate">
+                            {markLabel(t)}
                           </div>
-                          <div className="max-w-[200px]">
-                            <div className="text-body font-bold text-[var(--eai-text)] leading-tight line-clamp-2">
-                              {markLabel(t)}
-                            </div>
-                            <div className="max-w-[180px] truncate text-micro text-[var(--eai-text-secondary)] mt-1 uppercase">
-                              {t.markType || '—'} · {t.colorIndication || 'B&W'}
-                            </div>
+                          <div className="text-micro text-[var(--eai-text-secondary)] mt-1 flex flex-wrap gap-x-2">
+                            <span>{t.markType || '—'}</span>
+                            <span className="opacity-30">•</span>
+                            <span>{t.colorIndication || 'B&W'}</span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-5 text-body font-bold text-[var(--eai-text)] max-w-[150px] truncate">
-                        {t.client_name || t.client?.name || '—'}
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none uppercase">
-                          {(t.client_type || t.client?.type || 'COMPANY').replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <JurisdictionBadge jurisdiction={(t.jurisdiction || 'ET') as Jurisdiction} />
-                      </td>
-                      <td className="px-6 py-5">
-                        <StatusPill status={(t.status as TrademarkStatus) || 'DRAFT'} />
-                      </td>
-                      <td className="px-6 py-5 text-body font-medium text-[var(--eai-text-secondary)]">
-                        {(() => { const d = t.filing_date || t.filingDate; return d ? new Date(d).toLocaleDateString() : '—'; })()}
-                      </td>
-                      <td className="px-6 py-5 text-body font-medium text-[var(--eai-text-secondary)]">
-                        {(() => { const d = t.registration_dt || t.registrationDt; return d ? new Date(d).toLocaleDateString() : '—'; })()}
-                      </td>
-                      <td className="px-6 py-5">
-                        {t.priority === 'YES' ? (
-                          <span className="text-micro px-2 py-0.5 bg-[var(--eai-critical)] text-white rounded-none uppercase font-black">
-                            YES
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-4 flex-1 gap-4 items-center">
+                        <div className="flex flex-col sm:items-center gap-1">
+                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Client</span>
+                          <span className="text-micro font-bold truncate max-w-[100px]">{t.client_name || t.client?.name || '—'}</span>
+                        </div>
+                        <div className="flex flex-col sm:items-center gap-1">
+                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Region</span>
+                          <JurisdictionBadge jurisdiction={(t.jurisdiction || 'ET') as Jurisdiction} />
+                        </div>
+                        <div className="flex flex-col sm:items-center gap-1">
+                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Status</span>
+                          <StatusPill status={(t.status as TrademarkStatus) || 'DRAFT'} />
+                        </div>
+                        <div className="flex flex-col sm:items-center gap-1">
+                          <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase">Filing #</span>
+                          <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
+                            {t.filing_number || t.filingNumber || 'PENDING'}
                           </span>
-                        ) : (
-                          <span className="text-body text-[var(--eai-text-secondary)]">No</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-5 text-body font-medium">
-                        {(() => { const d = t.next_action_date || t.nextActionDate; return d ? (
-                          <div className="flex flex-col">
-                            <span className="text-[var(--eai-text)]">{new Date(d).toLocaleDateString()}</span>
-                            <span className="text-micro text-[var(--eai-text-secondary)] uppercase">Pending</span>
-                          </div>
-                        ) : (
-                          <span className="text-[var(--eai-text-secondary)]">—</span>
-                        ); })()}
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={(e) => handleDownloadForm(e, t.id)}
-                            className="p-2 rounded-xl hover:bg-white dark:hover:bg-[var(--eai-surface)] text-[var(--eai-primary)] transition-all shadow-sm"
-                            title="Download Form"
-                          >
-                            <DownloadSimple size={18} weight="bold" />
-                          </button>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-2 rounded-xl hover:bg-white dark:hover:bg-[var(--eai-surface)] text-[var(--eai-text-secondary)] transition-all shadow-sm outline-none"
-                              >
-                                <DotsThree size={20} weight="bold" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-32 rounded-xl border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl">
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/trademarks/${t.id}`)}
-                                className="px-4 py-2 text-orange-500 hover:bg-orange-500/10 cursor-pointer focus:bg-orange-500/10 uppercase font-normal"
-                              >
-                                Edit Case
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setDeleteId(t.id)}
-                                className="px-4 py-2 text-label text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-red-500/10"
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 shrink-0">
+                        <button
+                          onClick={(e) => handleDownloadForm(e, t.id)}
+                          className="p-2 rounded-xl hover:bg-[var(--eai-bg)] text-[var(--eai-primary)] transition-all"
+                        >
+                          <DownloadSimple size={18} weight="bold" />
+                        </button>
+                        <CaretRight size={18} weight="bold" className="text-[var(--eai-border-strong)]" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : null}
             </div>
 
             {/* Pagination Controls */}

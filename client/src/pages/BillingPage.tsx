@@ -352,13 +352,15 @@ export default function BillingPage() {
                   >
                     <td className="px-6 py-5">
                       <div className="text-body font-bold text-[var(--eai-text)]">{tx.markName}</div>
-                      <div className="text-micro text-[var(--eai-text-secondary)] font-medium uppercase">{(tx as { clientName?: string }).clientName || 'Global Legal Ltd.'}</div>
+                      <div className="text-micro text-[var(--eai-text-secondary)]">Client</div>
+                      <div className="text-micro text-[var(--eai-text-secondary)]">{(tx as { clientName?: string }).clientName || 'Global Legal Ltd.'}</div>
                     </td>
-                    <td className="px-6 py-5 text-body font-medium uppercase">{tx.type}</td>
+                    <td className="px-6 py-5 text-body font-medium">{tx.type}</td>
                     <td className="px-6 py-5 text-body text-[var(--eai-text-secondary)] font-medium">{tx.date}</td>
                     <td className="px-6 py-5 text-body font-bold">{formatAmount(tx.amount)}</td>
                     <td className="px-6 py-5">
                       <span className={[
+                        "inline-flex h-6 items-center px-2.5 rounded-none text-micro font-black border",
                         "inline-flex h-6 items-center px-2.5 rounded-none text-micro font-black uppercase border",
                         tx.status === 'PAID' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : 
                         tx.status === 'OVERDUE' ? "bg-red-500/10 text-red-600 border-red-500/20" :

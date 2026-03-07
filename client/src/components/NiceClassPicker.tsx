@@ -51,13 +51,13 @@ const NICE_CLASSES = [
 
 type Props = {
   selectedClasses: number[]
-  onSelectionChange: (classes: number[]) => void
+  onChange: (classes: number[]) => void
   placeholder?: string
 }
 
 export default function NiceClassPicker({ 
   selectedClasses, 
-  onSelectionChange, 
+  onChange, 
   placeholder = "Select Nice classes..." 
 }: Props) {
   const [isOpen, setIsOpen] = useState(false)
@@ -78,12 +78,12 @@ export default function NiceClassPicker({
       ? selectedClasses.filter(id => id !== classId)
       : [...selectedClasses, classId].sort((a, b) => a - b)
     
-    onSelectionChange(newSelection)
+    onChange(newSelection)
   }
 
   const removeClass = (classId: number) => {
     const newSelection = selectedClasses.filter(id => id !== classId)
-    onSelectionChange(newSelection)
+    onChange(newSelection)
   }
 
   return (

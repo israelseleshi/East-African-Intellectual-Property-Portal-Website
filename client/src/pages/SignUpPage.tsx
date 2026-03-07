@@ -208,7 +208,7 @@ export default function SignUpPage() {
                     </svg>
                     CREATING ACCOUNT...
                   </span>
-                ) : 'CREATE ACCOUNT'}
+                ) : 'Create account'}
               </Button>
             </form>
           </CardContent>
@@ -219,8 +219,8 @@ export default function SignUpPage() {
                 Sign In
               </Link>
             </p>
-            <p className="text-[11px] font-bold text-[var(--eai-text-secondary)] uppercase tracking-widest opacity-60">
-              Authorized Legal Access Only
+            <p className="text-[11px] font-bold text-[var(--eai-text-secondary)] tracking-widest opacity-60">
+              Authorized legal access only
             </p>
           </CardFooter>
         </Card>

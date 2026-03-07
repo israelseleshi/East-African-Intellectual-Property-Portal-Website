@@ -78,8 +78,7 @@ export default function TrademarkDetailPage() {
     try {
       const data = await trademarkService.getCase(id)
       setMark(data)
-      // Set page title to mark name
-      setOverrideTitle(data.markName || data.mark_name || 'Draft Trademark')
+      setOverrideTitle(data.markName || data.mark_name || 'Draft trademark')
     } catch (e) {
       console.error('Failed to load trademark details', e)
     } finally {
@@ -89,7 +88,6 @@ export default function TrademarkDetailPage() {
 
   useEffect(() => {
     loadMark()
-    // Clear override on unmount
     return () => clearOverride()
   }, [id])
 
@@ -97,7 +95,7 @@ export default function TrademarkDetailPage() {
     if (!id || updating) return
     
     confirm({
-      title: 'Add Legal Note (Optional)',
+      title: 'Add legal note (optional)',
       description: `Add a note for this status change to ${newStatus}?`,
       onConfirm: async () => {
         setUpdating(true)
@@ -105,7 +103,7 @@ export default function TrademarkDetailPage() {
           await trademarkService.updateStatus(id, newStatus, undefined)
           await loadMark()
           setShowStatusMenu(false)
-          addToast({ title: 'Status Updated', type: 'success' })
+          addToast({ title: 'Status updated', type: 'success' })
         } catch (e: unknown) {
           const err = e as { response?: { data?: { error?: string } } }
           addToast({
@@ -124,13 +122,13 @@ export default function TrademarkDetailPage() {
     if (!id) return
     
     confirm({
-      title: 'Generate Document?',
+      title: 'Generate document?',
       description: `Confirm template name: ${templateName}`,
       onConfirm: async () => {
         try {
           const res = await documentService.generate(id, templateName);
           addToast({
-            title: 'Document Generated',
+            title: 'Document generated',
             description: `URL: ${res.url}`,
             type: 'success'
           })
@@ -177,15 +175,14 @@ export default function TrademarkDetailPage() {
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <WarningCircle size={48} className="text-[var(--eai-critical)]" />
         <h2 className="text-xl font-bold">Matter not found</h2>
-        <button onClick={() => navigate('/trademarks')} className="apple-button-secondary">Back to Trademarks</button>
+        <button onClick={() => navigate('/trademarks')} className="apple-button-secondary">Back to trademarks</button>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto ">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
       {confirmDialog}
-      {/* Header with Navigation & Actions */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <button
@@ -196,11 +193,11 @@ export default function TrademarkDetailPage() {
           </button>
           <div>
             <h1 className="text-[28px] font-bold tracking-tight text-[var(--eai-text)] leading-none max-w-[600px] line-clamp-2">
-              {mark.markName || mark.mark_name || 'DRAFT TRADEMARK'}
+              {mark.markName || mark.mark_name || 'Draft trademark'}
             </h1>
             <div className="flex items-center gap-3 mt-2">
               <span className="text-[13px] font-black text-[var(--eai-text-secondary)] tracking-tight">
-                {mark.filingNumber || 'FILING PENDING'}
+                {mark.filingNumber || 'Filing pending'}
               </span>
               <span className="h-1 w-1 rounded-none bg-[var(--eai-border-strong)]" />
               <JurisdictionBadge jurisdiction={(mark.jurisdiction || 'ET') as Jurisdiction} />
@@ -209,7 +206,6 @@ export default function TrademarkDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Status Update and Lifecycle buttons side by side */}
           <div className="flex items-center gap-2">
             <div className="relative">
               <button
@@ -218,13 +214,13 @@ export default function TrademarkDetailPage() {
                 className="flex h-10 items-center gap-2 rounded-none border border-[var(--eai-primary)] bg-[var(--eai-primary)] px-4 text-[13px] font-bold text-white transition-all hover:opacity-90 shadow-lg shadow-[var(--eai-primary)]/20 tracking-tight"
               >
                 <PencilSimple size={18} weight="bold" />
-                <span>{updating ? 'UPDATING...' : 'UPDATE STATUS'}</span>
+                <span>{updating ? 'Updating...' : 'Update status'}</span>
               </button>
 
               {showStatusMenu && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-56 bg-[var(--eai-surface)] border border-[var(--eai-border)] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                   <div className="p-2 border-b border-[var(--eai-border)]">
-                    <span className="text-[10px] font-black text-[var(--eai-text-secondary)] uppercase tracking-tight px-2">Transition To:</span>
+                    <span className="text-[10px] font-black text-[var(--eai-text-secondary)] tracking-tight px-2">Transition to:</span>
                   </div>
                   {STATUS_OPTIONS.map(status => (
                     <button
@@ -245,13 +241,13 @@ export default function TrademarkDetailPage() {
               className="flex h-10 items-center gap-2 rounded-none border border-[var(--eai-primary)] bg-white px-4 text-[13px] font-bold text-[var(--eai-primary)] transition-all hover:bg-gray-50 shadow-sm tracking-tight"
             >
               <ClockCounterClockwise size={18} weight="bold" />
-              <span>MANAGE LIFECYCLE</span>
+              <span>Manage lifecycle</span>
             </button>
           </div>
 
-          <button className="flex h-10 items-center gap-2 rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] px-4 text-[13px] font-bold transition-all hover:bg-[var(--eai-bg)] shadow-sm  tracking-tight">
+          <button className="flex h-10 items-center gap-2 rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] px-4 text-[13px] font-bold transition-all hover:bg-[var(--eai-bg)] shadow-sm tracking-tight">
             <DownloadSimple size={18} weight="bold" />
-            <span>EXPORT</span>
+            <span>Export</span>
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -266,7 +262,7 @@ export default function TrademarkDetailPage() {
                 onClick={() => navigate(`/trademarks/${id}/detail`)}
                 className="px-4 py-2 text-label cursor-pointer hover:bg-[var(--eai-bg)] focus:bg-[var(--eai-bg)]"
               >
-                Trademark Detail
+                Trademark detail
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate(`/case-flow/${id}?edit=true`)}
@@ -274,7 +270,7 @@ export default function TrademarkDetailPage() {
               >
                 <div className="flex items-center gap-2">
                   <PencilSimple size={14} weight="bold" />
-                  <span>Edit Trademark</span>
+                  <span>Edit trademark</span>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -283,18 +279,16 @@ export default function TrademarkDetailPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
-        {/* Left Column - Mark Asset Only */}
         <div className="space-y-6">
-          {/* Mark Visual Asset */}
           <div className="apple-card p-6 flex flex-col items-center gap-6">
             <div className="flex w-full items-center justify-between">
-              <h3 className="text-[11px] font-black tracking-tight text-[var(--eai-text-secondary)] opacity-60">Mark Asset</h3>
+              <h3 className="text-[11px] font-black tracking-tight text-[var(--eai-text-secondary)] opacity-60">Mark asset</h3>
               <StatusPill status={(mark.status || 'DRAFT') as TrademarkStatus} />
             </div>
             <div className="relative aspect-square w-full rounded-xl border-2 border-dashed border-[var(--eai-border)] bg-[var(--eai-surface)] flex items-center justify-center group overflow-hidden">
               <div className="text-center">
                 <ShieldCheck size={48} weight="duotone" className="text-[var(--eai-text-secondary)] opacity-30 mx-auto mb-2" />
-                <p className="text-micro text-[var(--eai-text-secondary)] opacity-50 uppercase tracking-tight">No Image</p>
+                <p className="text-micro text-[var(--eai-text-secondary)] opacity-50 tracking-tight">No image</p>
               </div>
               <div className="absolute bottom-4 right-4 h-10 w-10 rounded-none bg-white/90 backdrop-blur-md flex items-center justify-center shadow-md border border-[var(--eai-border)]">
                 <Globe size={24} weight="duotone" className="text-[var(--eai-primary)]" />
@@ -302,7 +296,7 @@ export default function TrademarkDetailPage() {
             </div>
             <div className="w-full space-y-4 pt-2">
               <div className="flex justify-between border-b border-[var(--eai-border)] pb-3">
-                <span className="text-[12px] font-bold text-[var(--eai-text-secondary)] opacity-70 tracking-tight">Mark Type</span>
+                <span className="text-[12px] font-bold text-[var(--eai-text-secondary)] opacity-70 tracking-tight">Mark type</span>
                 <span className="text-[13px] font-black tracking-tight text-[var(--eai-text)]">{mark.markType || mark.mark_type || '—'}</span>
               </div>
               <div className="flex justify-between border-b border-[var(--eai-border)] pb-3">
@@ -311,14 +305,14 @@ export default function TrademarkDetailPage() {
               </div>
               <div className="flex justify-between border-b border-[var(--eai-border)] pb-3">
                 <span className="text-[12px] font-bold text-[var(--eai-text-secondary)] opacity-70 tracking-tight">Priority</span>
-                <span className="text-[13px] font-black tracking-tight text-[var(--eai-text)]">{mark.priority || 'NO'}</span>
+                <span className="text-[13px] font-black tracking-tight text-[var(--eai-text)]">{mark.priority || 'No'}</span>
               </div>
               <div className="flex flex-col gap-3">
-                <span className="text-[12px] font-bold text-[var(--eai-text-secondary)] opacity-70 tracking-tight">Nice Classes</span>
+                <span className="text-[12px] font-bold text-[var(--eai-text-secondary)] opacity-70 tracking-tight">Nice classes</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {mark.niceMappings?.map((c: { id: string; classNo: number }) => (
+                  {mark.niceMappings?.map((c) => (
                     <span key={c.id} className="rounded-none bg-[var(--eai-primary)] text-white px-2.5 py-1 text-[11px] font-black border border-[var(--eai-primary)] shadow-sm tracking-tight">
-                      CLASS {c.classNo}
+                      Class {c.classNo}
                     </span>
                   ))}
                 </div>
@@ -327,12 +321,10 @@ export default function TrademarkDetailPage() {
           </div>
         </div>
 
-        {/* Right Column - Everything Else */}
         <div className="space-y-6">
-          {/* Main Case Details & Workflow */}
           <div className="apple-card p-8 space-y-8">
             <div className="space-y-6">
-              <h3 className="text-[11px] font-black tracking-tight text-[var(--eai-text-secondary)] opacity-60">Case Status Workflow</h3>
+              <h3 className="text-[11px] font-black tracking-tight text-[var(--eai-text-secondary)] opacity-60">Case status workflow</h3>
               <WorkflowStepIndicator state={
                 mark.status === 'FILED' || mark.status === 'FORMAL_EXAM' ? 'FORMAL_EXAM' :
                 mark.status === 'SUBSTANTIVE_EXAM' ? 'SUBSTANTIVE_EXAM' :
@@ -344,11 +336,11 @@ export default function TrademarkDetailPage() {
             </div>
 
             <div className="space-y-6 pt-8 border-t border-[var(--eai-border)]">
-              <h3 className="text-[11px] font-black tracking-tight text-[var(--eai-text-secondary)] opacity-60">Goods & Services Description</h3>
+              <h3 className="text-[11px] font-black tracking-tight text-[var(--eai-text-secondary)] opacity-60">Goods and services description</h3>
               <div className="space-y-4">
-                {mark.niceMappings?.map((m: { id: string; classNo: number; description?: string }) => (
+                {mark.niceMappings?.map((m) => (
                   <div key={m.id} className="p-4 bg-[var(--eai-bg)]/30 border border-[var(--eai-border)] rounded-none">
-                    <div className="text-[12px] font-black text-[var(--eai-primary)] mb-2 uppercase tracking-tight">Class {m.classNo}</div>
+                    <div className="text-[11px] font-black text-[var(--eai-primary)] mb-2 tracking-tight">Class {m.classNo}</div>
                     <p className="text-[15px] leading-relaxed text-[var(--eai-text)] font-medium tracking-tight">
                       {m.description}
                     </p>
@@ -358,7 +350,6 @@ export default function TrademarkDetailPage() {
             </div>
           </div>
 
-          {/* Documents & History Grid */}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="apple-card p-6">
               <div className="flex items-center justify-between mb-6">
@@ -369,7 +360,7 @@ export default function TrademarkDetailPage() {
                 <div className="flex items-center">
                   <label className="flex items-center gap-1.5 text-[11px] font-black text-[var(--eai-primary)] hover:opacity-70 transition-opacity cursor-pointer tracking-tight">
                     <Plus size={12} weight="bold" />
-                    <span>Add File</span>
+                    <span>Add file</span>
                     <input type="file" className="hidden" onChange={handleFileUpload} />
                   </label>
                   <button
@@ -377,13 +368,13 @@ export default function TrademarkDetailPage() {
                     className="flex items-center gap-1.5 text-[11px] font-black text-[var(--eai-primary)] hover:opacity-70 transition-opacity tracking-tight ml-4"
                   >
                     <FileText size={12} weight="bold" />
-                    <span>Generate Form 01</span>
+                    <span>Generate form 01</span>
                   </button>
                 </div>
               </div>
               <div className="space-y-3">
                 {(mark.assets?.length || 0) > 0 ? (
-                  mark.assets?.map((asset: { id: string; type: string }) => (
+                  mark.assets?.map((asset) => (
                     <div key={asset.id} className="flex items-center justify-between p-3 bg-[var(--eai-bg)]/50 border border-[var(--eai-border)] group hover:border-[var(--eai-primary)]/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <FileText size={20} className="text-[var(--eai-text-secondary)]" />
@@ -396,7 +387,7 @@ export default function TrademarkDetailPage() {
                   ))
                 ) : (
                   <div className="text-center py-8 border-2 border-dashed border-[var(--eai-border)]">
-                    <p className="text-[12px] text-[var(--eai-muted)] font-bold uppercase tracking-tight">No Assets</p>
+                    <p className="text-[12px] text-[var(--eai-muted)] font-bold tracking-tight">No assets</p>
                   </div>
                 )}
               </div>
@@ -406,13 +397,13 @@ export default function TrademarkDetailPage() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-[15px] font-black flex items-center gap-2 tracking-tight">
                   <ClockCounterClockwise size={20} weight="duotone" className="text-[var(--eai-warning)]" />
-                  Audit History
+                  Audit history
                 </h3>
-                <button className="text-[11px] font-black text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)] transition-colors tracking-tight">Full Log</button>
+                <button className="text-[11px] font-black text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)] transition-colors tracking-tight">Full log</button>
               </div>
               <div className="space-y-5">
                 {(mark.history?.length || 0) > 0 ? (
-                  mark.history?.map((log: { id: string; action: string; newData?: { note?: string }; createdAt: string; user?: { fullName?: string } }) => (
+                  mark.history?.map((log) => (
                     <div key={log.id} className="flex gap-4 relative">
                       <div className="h-2 w-2 rounded-none bg-[var(--eai-primary)] mt-2 shrink-0 shadow-[0_0_8px_rgba(0,122,255,0.4)]" />
                       <div className="flex-1 min-w-0 pb-4 border-b border-[var(--eai-border)] last:border-0 last:pb-0">
@@ -433,18 +424,16 @@ export default function TrademarkDetailPage() {
             </div>
           </div>
 
-          {/* Owner Info & Instructions - Side by Side Below */}
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Owner & Applicant Detail */}
             <div className="apple-card p-6 space-y-6">
               <h3 className="text-[15px] font-black flex items-center gap-2 tracking-tight">
                 <Info size={20} weight="duotone" className="text-[var(--eai-primary)]" />
-                Owner Information
+                Owner information
               </h3>
               <div className="space-y-5">
                 <div className="space-y-1.5">
-                  <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Applicant Name</div>
-                  <div className="text-[16px] font-black leading-tight text-[var(--eai-text)] tracking-tight">{mark.client?.name || 'NAME PENDING'}</div>
+                  <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Applicant name</div>
+                  <div className="text-[16px] font-black leading-tight text-[var(--eai-text)] tracking-tight">{mark.client?.name || 'Name pending'}</div>
                 </div>
                 <div className="space-y-1.5">
                   <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Address</div>
@@ -456,7 +445,7 @@ export default function TrademarkDetailPage() {
                   <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Nationality</div>
                   <div className="text-[13px] font-medium text-[var(--eai-text)] tracking-tight">
                     {mark.client?.nationality ? (
-                      <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] rounded-none uppercase">
+                      <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] rounded-none">
                         {mark.client.nationality}
                       </span>
                     ) : (
@@ -477,21 +466,20 @@ export default function TrademarkDetailPage() {
               </div>
             </div>
 
-            {/* Client Instructions & Remarks */}
             <div className="apple-card p-6 space-y-6">
               <h3 className="text-[15px] font-black flex items-center gap-2 tracking-tight">
                 <PencilSimple size={20} weight="duotone" className="text-[var(--eai-primary)]" />
-                Instructions & Remarks
+                Instructions & remarks
               </h3>
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Client Instruction</div>
+                  <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Client instruction</div>
                   <div className="text-[13px] text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-3 border border-[var(--eai-border)] min-h-[60px]">
                     {mark.clientInstructions || 'No specific instructions provided.'}
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Legal Remark</div>
+                  <div className="text-[11px] text-[var(--eai-text-secondary)] font-bold tracking-tight">Legal remark</div>
                   <div className="text-[13px] text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-3 border border-[var(--eai-border)] min-h-[60px]">
                     {mark.remark || 'Internal notes...'}
                   </div>

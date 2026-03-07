@@ -214,7 +214,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Two Column Section Skeleton */}
-        <div className="grid gap-8 lg:grid-cols-2 mt-8">
+        <div className="grid gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 mt-8">
           {/* Recent Filings Skeleton */}
           <div className="apple-card p-6">
             <div className="mb-6 flex items-center justify-between">
@@ -301,13 +301,13 @@ export default function DashboardPage() {
         }}
       />
       
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4" id="dashboard-header">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="dashboard-header">
         <div className="flex flex-col gap-1">
           <h1 className="text-h1">Dashboard</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="text-body text-[var(--eai-text-secondary)]">Overview of your trademark portfolio.</p>
-            <span className="h-1 w-1 rounded-full bg-[var(--eai-border)]" />
-            <p className="text-micro text-[var(--eai-text-secondary)] uppercase">Last synced: {lastUpdated.toLocaleTimeString()}</p>
+            <span className="hidden sm:block h-1 w-1 rounded-full bg-[var(--eai-border)]" />
+            <p className="text-micro text-[var(--eai-text-secondary)]">Last synced: {lastUpdated.toLocaleTimeString()}</p>
           </div>
         </div>
 
@@ -342,7 +342,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-3 mt-8" id="stats-grid">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-8" id="stats-grid">
         {statCards.map((stat, idx) => (
           <div 
             key={stat.label} 
@@ -381,7 +381,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2 mt-8">
+      <div className="grid gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-2 mt-8">
         {/* Recent Filings Section */}
         <div className="apple-card p-6" id="recent-filings">
           <div className="mb-6 flex items-center justify-between">
@@ -400,18 +400,18 @@ export default function DashboardPage() {
                 <div 
                   key={activity.id} 
                   onClick={() => navigate(`/trademarks/${activity.caseId}`)}
-                  className="flex items-center gap-4 rounded-xl border border-transparent hover:border-[var(--eai-border)] hover:bg-[var(--eai-bg)]/50 p-3 transition-all cursor-pointer group"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-xl border border-transparent hover:border-[var(--eai-border)] hover:bg-[var(--eai-bg)]/50 p-3 transition-all cursor-pointer group"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] group-hover:bg-white transition-colors shadow-sm">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] group-hover:bg-white transition-colors shadow-sm shrink-0">
                     <CheckCircle size={24} weight="duotone" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-body font-bold text-[var(--eai-text)]">{activity.mark_name}</div>
+                    <div className="text-body font-bold text-[var(--eai-text)] truncate">{activity.mark_name}</div>
                     <div className="text-micro text-[var(--eai-text-secondary)] uppercase">
                       {activity.action}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="sm:text-right shrink-0">
                     <div className="text-micro text-[var(--eai-text-secondary)] font-medium">
                       {new Date(activity.createdAt).toLocaleDateString()}
                     </div>
@@ -449,7 +449,7 @@ export default function DashboardPage() {
                     onClick={() => navigate(`/trademarks`)}
                     className={`rounded-xl ${bgColor} p-4 cursor-pointer hover:opacity-80 transition-all border group`}
                   >
-                    <div className={`flex justify-between font-bold text-body ${textColor}`}>
+                    <div className={`flex flex-col sm:flex-row sm:justify-between font-bold text-body gap-1 ${textColor}`}>
                       <span className="flex items-center gap-2">
                         <Clock size={18} />
                         {deadline.type === 'OPPOSITION_WINDOW' ? 'Opposition Window' : 
@@ -461,11 +461,13 @@ export default function DashboardPage() {
                          `${deadline.days_remaining}d left`}
                       </span>
                     </div>
-                    <p className="mt-2 text-micro text-[var(--eai-text)]/80 flex items-center gap-2">
-                      Mark: <span className="font-bold">{deadline.mark_name}</span> 
-                      <JurisdictionFlag code={deadline.jurisdiction} className="h-3 w-4 ml-1" />
-                      ({deadline.jurisdiction})
-                    </p>
+                    <div className="mt-2 text-micro text-[var(--eai-text)]/80 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span>Mark:</span> <span className="font-bold truncate max-w-[150px] sm:max-w-none">{deadline.mark_name}</span> 
+                      <div className="flex items-center gap-1 shrink-0">
+                        <JurisdictionFlag code={deadline.jurisdiction} className="h-3 w-4" />
+                        <span>({deadline.jurisdiction})</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })

@@ -353,9 +353,9 @@ export default function ClientsPage() {
                   />
                   <div className="flex-1">
                     <div className="text-body font-bold">{client.name}</div>
-                    <div className="text-micro text-[var(--eai-text-secondary)]">{client.email}</div>
+                    <div className="text-micro text-[var(--eai-text-secondary)]">Email</div>
                   </div>
-                  <div className="text-micro font-bold uppercase text-[var(--eai-primary)]">
+                  <div className="text-micro font-bold text-[var(--eai-primary)]">
                     Keep
                   </div>
                 </label>

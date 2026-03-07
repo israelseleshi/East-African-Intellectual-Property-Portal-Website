@@ -1,13 +1,27 @@
 RewriteEngine On
 RewriteBase /
 
-# Pass /api/ requests directly to Passenger (Node.js backend) - DO NOT rewrite
-RewriteRule ^api/ - [L]
+# Passenger Configuration - MUST be in root .htaccess
+PassengerEnabled on
+PassengerAppRoot /home/falolega/eastafricanip.com/api
+PassengerBaseURI /api
+PassengerNodejs /home/falolega/nodevenv/eastafricanip.com/api/20/bin/node
+PassengerStartupFile server.js
+PassengerAppType node
+PassengerAppLogFile /home/falolega/logs/passenger.log
 
-# Pass actual static files/directories through without rewriting
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+# Let the /api subfolder handle its own routing via Passenger
+RewriteRule ^api(/.*)?$ - [L,PT]
 
-# Everything else → React SPA index.html
-RewriteRule ^ index.html [L]
+# Frontend SPA Routing
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+# HTTPS Redirect
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-SSL} !on
+RewriteCond %{HTTP_HOST} ^eastafricanip\.com$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.eastafricanip\.com$
+RewriteRule ^(.*)$ "https://eastafricanip.com/$1" [R=301,L]
