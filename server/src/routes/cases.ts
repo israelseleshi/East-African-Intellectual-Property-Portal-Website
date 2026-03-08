@@ -1,10 +1,13 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
+import { TrademarkStatus, CaseFlowStage, JURISDICTION_CONFIG } from '../database/types.js';
 import { pool, getConnection } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { recalculateDeadlines, addDays, formatDate } from '../utils/deadlines.js';
+import { addDays, formatDate, recalculateDeadlines } from '../utils/deadlines.js';
 import { FEE_SCHEDULE, uploadDir } from '../utils/constants.js';
+import { sanitizeFilename } from '../utils/filing.js';
 import type { CaseRow } from '../database/types.js';
 
 const router = express.Router();
@@ -76,7 +79,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
         c.email as client_email,
         c.address_street as client_address_street,
         c.city as client_city,
-        c.zip_code as client_zip_code
+        c.zip_code as client_zip_code,
+        c.telephone as client_telephone,
+        c.fax as client_fax
       FROM trademark_cases tc
       JOIN clients c ON tc.client_id = c.id
       WHERE tc.id = ?
@@ -97,7 +102,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
             email: caseData.client_email as string,
             addressStreet: caseData.client_address_street as string,
             city: caseData.client_city as string,
-            zipCode: caseData.client_zip_code as string
+            zipCode: caseData.client_zip_code as string,
+            phone: caseData.client_telephone as string,
+            fax: caseData.client_fax as string
         };
 
         const [niceRows] = await pool.execute('SELECT class_no as classNo, description FROM nice_class_mappings WHERE case_id = ?', [id]);
@@ -108,21 +115,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
         const [historyRows] = await pool.execute('SELECT * FROM case_history WHERE case_id = ? ORDER BY created_at DESC', [id]);
         const [deadlineRows] = await pool.execute('SELECT * FROM deadlines WHERE case_id = ? ORDER BY due_date ASC', [id]);
 
-        const [eipaRows] = await pool.execute(
-            'SELECT payload_json, form_version, jurisdiction, updated_at FROM eipa_form_payloads WHERE case_id = ? LIMIT 1',
-            [id]
-        );
-
-        let eipaForm: unknown = null;
-        const first = (eipaRows as Array<{ payload_json: unknown }>)[0];
-        if (first && first.payload_json) {
-            try {
-                eipaForm = typeof first.payload_json === 'string' ? JSON.parse(first.payload_json) : first.payload_json;
-            } catch {
-                eipaForm = first.payload_json;
-            }
-        }
-
         const result = {
             ...caseData,
             client,
@@ -131,7 +123,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
             assets: assetsRows,
             history: historyRows,
             deadlines: deadlineRows,
-            eipaForm
+            eipaForm: caseData.eipa_form_json
         };
         res.json(result);
     } catch (error) {
@@ -203,13 +195,14 @@ router.post('/', authenticateToken, async (req: any, res) => {
                 data.priority || 'NO',
                 data.clientInstructions || null,
                 data.remark || null,
-                data.markImage || null
+                data.markImage || null,
+                data.markDescription || null
             ];
 
             try {
                 console.log('Inserting case with params:', caseParams);
                 await connection.execute(
-                    'INSERT INTO trademark_cases (id, jurisdiction, mark_name, mark_type, status, flow_stage, client_id, user_id, color_indication, priority, client_instructions, remark, mark_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO trademark_cases (id, jurisdiction, mark_name, mark_type, status, flow_stage, client_id, user_id, color_indication, priority, client_instructions, remark, mark_image, mark_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     caseParams
                 );
             } catch (caseError: unknown) {
@@ -360,6 +353,9 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
             if (extraData.certificateNumber) deadlineUpdates.certificate_number = extraData.certificateNumber;
 
             switch (stage) {
+                case 'DATA_COLLECTION':
+                    deadlineUpdates.status = 'DRAFT';
+                    break;
                 case 'READY_TO_FILE':
                     deadlineUpdates.status = 'DRAFT';
                     break;
@@ -368,39 +364,56 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
                     if (!caseData.mark_name || !caseData.client_id || !caseData.jurisdiction) {
                         throw new Error('Case validation failed: Mark Name, Client, and Jurisdiction are required for filing.');
                     }
+                    
+                    // AUTO-ASSIGN FILING NUMBER IF MISSING
+                    let filingNumber = caseData.filing_number || extraData.filingNumber;
+                    if (!filingNumber) {
+                        const year = new Date().getFullYear();
+                        const random = Math.floor(1000 + Math.random() * 9000);
+                        filingNumber = `${jurisdiction}/TM/${year}/${random}`;
+                    }
+
                     deadlineUpdates.filing_date = effectiveDate;
-                    deadlineUpdates.next_action_date = addDays(effectiveDate, 30); // Formal exam deadline
+                    deadlineUpdates.next_action_date = addDays(effectiveDate, 20); // Substantive exam watch (20 days)
                     deadlineUpdates.status = 'FILED';
-                    if (extraData.filingNumber) deadlineUpdates.filing_number = extraData.filingNumber;
+                    deadlineUpdates.filing_number = filingNumber;
                     break;
                 case 'FORMAL_EXAM':
                     deadlineUpdates.next_action_date = addDays(effectiveDate, 30);
                     deadlineUpdates.status = 'FORMAL_EXAM';
                     break;
                 case 'SUBSTANTIVE_EXAM':
-                    deadlineUpdates.next_action_date = addDays(effectiveDate, 120); // Default 4-month watch period
+                    // Default to 20 days as per handwritten flow (Day 40 to 60)
+                    const examDays = JURISDICTION_CONFIG[jurisdiction]?.substantial_exam_days || 20;
+                    deadlineUpdates.next_action_date = addDays(effectiveDate, examDays);
                     deadlineUpdates.status = 'SUBSTANTIVE_EXAM';
                     break;
                 case 'AMENDMENT_PENDING':
-                    deadlineUpdates.next_action_date = addDays(effectiveDate, 90);
-                    deadlineUpdates.status = 'SUBSTANTIVE_EXAM';
+                    // 90-day amendment window from Path B
+                    const amndDays = JURISDICTION_CONFIG[jurisdiction]?.amendment_period_days || 90;
+                    deadlineUpdates.next_action_date = addDays(effectiveDate, amndDays);
+                    deadlineUpdates.status = 'AMENDMENT_PENDING';
                     break;
                 case 'PUBLISHED': {
-                    const oppDays = jurisdiction === 'ET' ? 60 : 90;
+                    const oppDays = JURISDICTION_CONFIG[jurisdiction]?.opposition_period_days || 60;
                     deadlineUpdates.next_action_date = addDays(effectiveDate, oppDays); // Opposition deadline
                     deadlineUpdates.status = 'PUBLISHED';
                     break;
                 }
                 case 'CERTIFICATE_REQUEST':
-                    deadlineUpdates.next_action_date = addDays(effectiveDate, 30);
+                    const reqDays = JURISDICTION_CONFIG[jurisdiction]?.certificate_request_days || 20;
+                    deadlineUpdates.next_action_date = addDays(effectiveDate, reqDays);
+                    deadlineUpdates.status = 'PUBLISHED'; // Still published until issued
                     break;
                 case 'CERTIFICATE_ISSUED':
                     deadlineUpdates.registration_dt = effectiveDate;
+                    deadlineUpdates.status = 'REGISTERED';
                     if (extraData.certificateNumber) deadlineUpdates.certificate_number = extraData.certificateNumber;
                     break;
                 case 'REGISTERED': {
+                    const renewalYears = JURISDICTION_CONFIG[jurisdiction]?.renewal_years || 7;
                     const renewalDate = new Date(effectiveDate);
-                    renewalDate.setFullYear(renewalDate.getFullYear() + (jurisdiction === 'ET' ? 7 : 10));
+                    renewalDate.setFullYear(renewalDate.getFullYear() + renewalYears);
                     deadlineUpdates.registration_dt = effectiveDate;
                     deadlineUpdates.expiry_date = renewalDate;
                     deadlineUpdates.status = 'REGISTERED';
@@ -408,17 +421,39 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
                     break;
                 }
                 case 'RENEWAL_DUE':
-                    deadlineUpdates.next_action_date = addDays(effectiveDate, 30);
+                    const onTimeDays = JURISDICTION_CONFIG[jurisdiction]?.renewal_on_time_days || 30;
+                    deadlineUpdates.next_action_date = addDays(effectiveDate, onTimeDays);
                     deadlineUpdates.status = 'RENEWAL';
                     break;
-                case 'RENEWAL_ON_TIME':
+                case 'RENEWAL_ON_TIME': {
+                    const renewalYears = JURISDICTION_CONFIG[jurisdiction]?.renewal_years || 7;
+                    const [caseRows] = await connection.execute('SELECT registration_dt FROM trademark_cases WHERE id = ?', [id]);
+                    const regDate = (caseRows as any[])[0]?.registration_dt || new Date();
+                    
+                    const newExpiry = new Date(regDate);
+                    newExpiry.setFullYear(newExpiry.getFullYear() + renewalYears);
+                    
+                    deadlineUpdates.expiry_date = newExpiry;
                     deadlineUpdates.status = 'REGISTERED';
                     break;
-                case 'RENEWAL_PENALTY':
-                    deadlineUpdates.next_action_date = addDays(effectiveDate, 180);
+                }
+                case 'RENEWAL_PENALTY': {
+                    const renewalYears = JURISDICTION_CONFIG[jurisdiction]?.renewal_years || 7;
+                    const penaltyDays = JURISDICTION_CONFIG[jurisdiction]?.renewal_penalty_days || 180;
+                    
+                    const [caseRows] = await connection.execute('SELECT registration_dt FROM trademark_cases WHERE id = ?', [id]);
+                    const regDate = (caseRows as any[])[0]?.registration_dt || new Date();
+                    
+                    const newExpiry = new Date(regDate);
+                    newExpiry.setFullYear(newExpiry.getFullYear() + renewalYears);
+                    
+                    deadlineUpdates.expiry_date = newExpiry;
+                    deadlineUpdates.next_action_date = addDays(effectiveDate, penaltyDays);
+                    deadlineUpdates.status = 'RENEWAL';
                     break;
+                }
                 case 'DEAD_WITHDRAWN':
-                    deadlineUpdates.status = 'EXPIRING';
+                    deadlineUpdates.status = 'WITHDRAWN';
                     break;
             }
 
@@ -559,7 +594,8 @@ router.patch('/:id', authenticateToken, async (req, res) => {
                 if (client.name !== undefined) { clientUpdates.push('name = ?'); clientValues.push(client.name); }
                 if (client.nationality !== undefined) { clientUpdates.push('nationality = ?'); clientValues.push(client.nationality); }
                 if (client.email !== undefined) { clientUpdates.push('email = ?'); clientValues.push(client.email); }
-                if (client.phone !== undefined) { clientUpdates.push('phone = ?'); clientValues.push(client.phone); }
+                if (client.phone !== undefined) { clientUpdates.push('telephone = ?'); clientValues.push(client.phone); }
+                if (client.fax !== undefined) { clientUpdates.push('fax = ?'); clientValues.push(client.fax); }
                 
                 // Special handling for address split
                 if (client.addressStreet !== undefined) { clientUpdates.push('address_street = ?'); clientValues.push(client.addressStreet); }
@@ -583,6 +619,13 @@ router.patch('/:id', authenticateToken, async (req, res) => {
             if (data.colorIndication !== undefined) { caseUpdates.push('color_indication = ?'); caseValues.push(data.colorIndication); }
             if (data.priority !== undefined) { caseUpdates.push('priority = ?'); caseValues.push(data.priority); }
             if (data.filingNumber !== undefined) { caseUpdates.push('filing_number = ?'); caseValues.push(data.filingNumber); }
+            if (data.markDescription !== undefined) { caseUpdates.push('mark_description = ?'); caseValues.push(data.markDescription); }
+            if (data.clientInstructions !== undefined) { caseUpdates.push('client_instructions = ?'); caseValues.push(data.clientInstructions); }
+            if (data.remark !== undefined) { caseUpdates.push('remark = ?'); caseValues.push(data.remark); }
+            if (data.eipaForm !== undefined) { 
+                caseUpdates.push('eipa_form_json = ?'); 
+                caseValues.push(JSON.stringify(data.eipaForm)); 
+            }
 
             // Handle image update
             if (data.mark_image && data.mark_image.startsWith('data:image')) {
@@ -590,7 +633,19 @@ router.patch('/:id', authenticateToken, async (req, res) => {
                 const mimeType = parts[0].match(/:(.*?);/)?.[1];
                 const extension = mimeType?.split('/')[1] || 'png';
                 const base64Data = parts[1];
-                const filename = `mark_${id}_${Date.now()}.${extension}`;
+                
+                // Get case/client info for descriptive naming
+                const [caseInfoRows] = await connection.execute(
+                    'SELECT tc.mark_name, c.name as client_name FROM trademark_cases tc JOIN clients c ON tc.client_id = c.id WHERE tc.id = ?',
+                    [id]
+                );
+                const caseInfo = (caseInfoRows as any[])[0];
+                
+                const safeApplicant = sanitizeFilename(caseInfo?.client_name || 'unknown');
+                const safeDescription = sanitizeFilename(data.markName || caseInfo?.mark_name || 'mark');
+                const filename = `mark_${safeApplicant}_${safeDescription}_${Date.now()}.${extension}`;
+                
+                const relativePath = `/uploads/marks/${filename}`;
                 const filePath = path.join(uploadDir, 'marks', filename);
                 
                 // Ensure directory exists
@@ -600,7 +655,13 @@ router.patch('/:id', authenticateToken, async (req, res) => {
                 
                 fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
                 caseUpdates.push('mark_image = ?');
-                caseValues.push(`/uploads/marks/${filename}`);
+                caseValues.push(relativePath);
+
+                // 3.1. Sync with mark_assets table
+                await connection.execute(
+                    'INSERT INTO mark_assets (id, case_id, type, file_path, created_at) VALUES (?, ?, ?, ?, NOW())',
+                    [crypto.randomUUID(), id, 'LOGO', relativePath]
+                );
             } else if (data.mark_image !== undefined) {
                 // If it's already a path, just update it
                 caseUpdates.push('mark_image = ?');
@@ -627,16 +688,6 @@ router.patch('/:id', authenticateToken, async (req, res) => {
                         [id, classNo, data.goodsServices || data.goods_services || '']
                     );
                 }
-            }
-
-            // 5. Update EIPA Form Payload if provided
-            if (data.eipaForm !== undefined) {
-                await connection.execute(
-                    `INSERT INTO eipa_form_payloads (id, case_id, jurisdiction, form_version, payload_json, updated_at)
-                     VALUES (?, ?, ?, ?, ?, NOW())
-                     ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json), updated_at = NOW()`,
-                    [crypto.randomUUID(), id, 'ET', 'EIPA_FORM_01', JSON.stringify(data.eipaForm)]
-                );
             }
 
             await connection.commit();

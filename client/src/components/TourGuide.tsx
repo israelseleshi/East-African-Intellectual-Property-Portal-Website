@@ -147,7 +147,7 @@ export function TourGuide({ steps, isOpen, onClose, tourName }: TourGuideProps) 
       >
         <div className="bg-white rounded-xl shadow-2xl p-5 max-w-sm min-w-[320px]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-[var(--eai-primary)] uppercase tracking-wider">
+            <span className="text-xs font-bold text-[var(--eai-primary)] tracking-wider">
               Step {currentStep + 1} of {steps.length}
             </span>
             <button 

@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { pool } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { sanitizeFilename } from '../utils/filing.js';
 
 const router = express.Router();
 
@@ -13,7 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Forms upload directory (outside the api folder, at root level)
-const FORMS_UPLOAD_DIR = path.resolve(__dirname, '../../../forms-upload');
+const FORMS_UPLOAD_DIR = path.resolve(__dirname, '../forms-upload');
+console.log('[forms.ts] FORMS_UPLOAD_DIR resolved to:', FORMS_UPLOAD_DIR);
 
 // Ensure upload directory exists
 if (!fs.existsSync(FORMS_UPLOAD_DIR)) {
@@ -122,10 +124,10 @@ router.post('/submit', authenticateToken, async (req, res) => {
                         applicantName,
                         applicantNameAmharic || null,
                         applicantType === 'COMPANY' ? 'COMPANY' : 'INDIVIDUAL',
-                        nationality || 'Ethiopia',
+                        nationality || null,
                         email || '',
                         addressStreet || '',
-                        city || 'Addis Ababa',
+                        city || null,
                         zipCode || '',
                         addressZone || '',
                         wereda || '',
@@ -139,14 +141,15 @@ router.post('/submit', authenticateToken, async (req, res) => {
 
             // 2. Create trademark case
             const caseId = crypto.randomUUID();
-            const filingNumber = `ET/TM/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`;
             
             await connection.execute(
                 `INSERT INTO trademark_cases (
                     id, client_id, jurisdiction, mark_name, mark_type, 
                     color_indication, status, filing_number, priority,
+                    mark_description, client_instructions, remark,
+                    eipa_form_json,
                     flow_stage, user_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                     caseId,
                     clientId,
@@ -154,10 +157,14 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     markName,
                     markType || 'WORD',
                     colorIndication || 'Black & White',
-                    'FILED',
-                    filingNumber,
+                    'DRAFT',
+                    null, // No filing number on intake
                     priority === 'YES' ? 'YES' : 'NO',
-                    'FILED',
+                    markDescription || null,
+                    null, // client_instructions
+                    null, // remark
+                    JSON.stringify(eipaFormData || formData || {}),
+                    'DATA_COLLECTION',
                     userId
                 ]
             );
@@ -176,27 +183,12 @@ router.post('/submit', authenticateToken, async (req, res) => {
             }
 
             const fullPayload = (eipaFormData || formData) as unknown;
-            if (fullPayload) {
-                await connection.execute(
-                    `INSERT INTO eipa_form_payloads (id, case_id, jurisdiction, form_version, payload_json, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-                     ON DUPLICATE KEY UPDATE jurisdiction = VALUES(jurisdiction), form_version = VALUES(form_version), payload_json = VALUES(payload_json), updated_at = NOW()`,
-                    [
-                        crypto.randomUUID(),
-                        caseId,
-                        jurisdiction,
-                        'EIPA_FORM_01',
-                        JSON.stringify(fullPayload)
-                    ]
-                );
-            }
-
-            // 3. Save PDF file (optional)
+            // PDF Data (Base64)
             let pdfPath = null;
             let pdfFilename = null;
             if (pdfBase64) {
                 const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-                pdfFilename = `${filingNumber.replace(/\//g, '_')}_${caseId}.pdf`;
+                pdfFilename = `draft_${caseId}.pdf`;
                 pdfPath = path.join(FORMS_UPLOAD_DIR, pdfFilename);
                 
                 fs.writeFileSync(pdfPath, pdfBuffer);
@@ -218,7 +210,13 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 const base64Data = markImage.replace(/^data:image\/\w+;base64,/, "");
                 const imageBuffer = Buffer.from(base64Data, 'base64');
                 const extension = markImage.split(';')[0].split('/')[1] || 'png';
-                const imageFilename = `mark_${caseId}.${extension}`;
+                
+                // New descriptive naming: mark_[applicant]_[description]_[shortId].[ext]
+                const safeApplicant = sanitizeFilename(applicantName || 'unknown');
+                const safeDescription = sanitizeFilename(markName || 'mark');
+                const shortId = caseId.split('-')[0];
+                const imageFilename = `mark_${safeApplicant}_${safeDescription}_${shortId}.${extension}`;
+                
                 const imagePath = path.join(FORMS_UPLOAD_DIR, imageFilename);
                 
                 fs.writeFileSync(imagePath, imageBuffer);
@@ -248,10 +246,9 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     caseId,
                     userId,
                     'FORM_SUBMITTED',
-                    JSON.stringify({ status: 'DRAFT' }),
+                    JSON.stringify({ status: 'NEW' }),
                     JSON.stringify({ 
-                        status: 'FILED', 
-                        filingNumber,
+                        status: 'DRAFT', 
                         formPath: pdfPath,
                         applicantName,
                         markName,
@@ -260,17 +257,17 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 ]
             );
 
-            // 6. Create deadlines (60 days formal exam for Ethiopia)
-            const formalExamDeadline = new Date();
-            formalExamDeadline.setDate(formalExamDeadline.getDate() + 60);
+            // 6. Create initial deadline (Data Collection / Intake review)
+            const intakeDeadline = new Date();
+            intakeDeadline.setDate(intakeDeadline.getDate() + 7);
             
             await connection.execute(
                 `INSERT INTO deadlines (id, case_id, type, due_date, is_completed, created_at)
-                 VALUES (?, ?, 'FORMAL_EXAM', ?, false, NOW())`,
+                 VALUES (?, ?, 'INTAKE_REVIEW', ?, false, NOW())`,
                 [
                     crypto.randomUUID(),
                     caseId,
-                    formalExamDeadline.toISOString().split('T')[0]
+                    intakeDeadline.toISOString().split('T')[0]
                 ]
             );
 
@@ -278,9 +275,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
 
             res.status(201).json({
                 success: true,
-                message: 'Application submitted successfully',
+                message: 'Application submitted successfully as DRAFT',
                 caseId,
-                filingNumber,
                 clientId,
                 formUrl: pdfFilename ? `/forms-download/${pdfFilename}` : null,
                 pdfPath: pdfPath,
@@ -323,9 +319,25 @@ router.get('/download/:filename', authenticateToken, (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
+        // Detect content type based on extension
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+            '.pdf': 'application/pdf',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+        };
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
+
         // Set headers for download
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', contentType);
+        if (ext === '.pdf') {
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        } else {
+            res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        }
         
         // Stream the file
         const fileStream = fs.createReadStream(filePath);
@@ -346,7 +358,7 @@ router.get('/list/:caseId', authenticateToken, async (req, res) => {
         const { caseId } = req.params;
         
         const [forms] = await pool.execute(
-            `SELECT ma.id, ma.file_name, ma.file_path, ma.file_size, ma.created_at,
+            `SELECT ma.id, ma.file_path, ma.created_at,
                     tc.filing_number, tc.mark_name
              FROM mark_assets ma
              JOIN trademark_cases tc ON ma.case_id = tc.id

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { clientService } from '@/utils/api';
 import { useToast } from '@/components/ui/toast';
+import { CountrySelector } from '@/components/CountrySelector';
 import type { ApplicantType } from '@/shared/database';
 
 interface Client {
@@ -15,6 +16,7 @@ interface Client {
   local_name?: string;
   type: ApplicantType;
   nationality: string;
+  residence_country?: string;
   email: string;
   address_street: string;
   address_zone?: string;
@@ -38,6 +40,7 @@ export default function NewClientPage() {
     local_name: '',
     type: 'INDIVIDUAL' as ApplicantType,
     nationality: '',
+    residence_country: '',
     email: '',
     address_street: '',
     address_zone: '',
@@ -154,11 +157,19 @@ export default function NewClientPage() {
 
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-[var(--eai-text)]">Nationality</Label>
-                <Input
+                <CountrySelector
                   value={formData.nationality}
-                  onChange={(e) => handleChange('nationality', e.target.value)}
-                  placeholder="e.g. Ethiopian"
-                  className="apple-input"
+                  onChange={(val) => handleChange('nationality', val)}
+                  placeholder="Select nationality"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-[var(--eai-text)]">Country of Residence</Label>
+                <CountrySelector
+                  value={formData.residence_country || ''}
+                  onChange={(val) => handleChange('residence_country', val)}
+                  placeholder="Select country"
                 />
               </div>
 

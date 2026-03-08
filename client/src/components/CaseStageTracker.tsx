@@ -8,7 +8,8 @@ import {
   Clock,
   Warning,
   XCircle,
-  Calendar
+  Calendar,
+  Hourglass
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,24 +38,27 @@ interface CaseStageTrackerProps {
     amendment_deadline?: string;
   };
   onStageChange: (newStage: CaseFlowStage, data?: StageChangeData) => void;
+  onDownloadForm?: () => void;
   isEditable?: boolean;
 }
 
 const STAGES: { key: CaseFlowStage; label: string; description: string; icon: typeof FileText; actionLabel?: string }[] = [
-  { key: 'DATA_COLLECTION', label: 'In-take', description: 'Gathering case information', icon: FileText, actionLabel: 'Ready for Filing' },
-  { key: 'READY_TO_FILE', label: 'Ready to File', description: 'Prepared for submission', icon: CheckCircle, actionLabel: 'Record Filing' },
-  { key: 'FILED', label: 'Filed', description: 'Application submitted', icon: FileText, actionLabel: 'Proceed to Exam' },
-  { key: 'FORMAL_EXAM', label: 'Formal Exam', description: 'Checking paperwork', icon: ShieldCheck, actionLabel: 'Pass Formalities' },
-  { key: 'SUBSTANTIVE_EXAM', label: 'Substantive Exam', description: 'Examining uniqueness', icon: ShieldCheck, actionLabel: 'Record Result' },
-  { key: 'PUBLISHED', label: 'Published', description: 'Public notice period', icon: Globe, actionLabel: 'End Opposition' },
-  { key: 'CERTIFICATE_REQUEST', label: 'Certificate Request', description: 'Requesting certificate', icon: Certificate, actionLabel: 'Collect Certificate' },
-  { key: 'CERTIFICATE_ISSUED', label: 'Certificate Issued', description: 'Certificate received', icon: Certificate, actionLabel: 'Finalize Registration' },
-  { key: 'REGISTERED', label: 'Registered', description: 'Mark registered', icon: CheckCircle, actionLabel: 'Schedule Renewal' }
+  { key: 'DATA_COLLECTION', label: 'Data Collection', description: 'Gathering client and mark information', icon: FileText, actionLabel: 'Ready to File' },
+  { key: 'READY_TO_FILE', label: 'Ready to File', description: 'Form complete and reviewed', icon: CheckCircle, actionLabel: 'Record Filing' },
+  { key: 'FILED', label: 'Filed', description: 'Application submitted to registry', icon: FileText, actionLabel: 'Proceed to Exam' },
+  { key: 'FORMAL_EXAM', label: 'Formal Exam', description: 'Paperwork review by registry', icon: ShieldCheck, actionLabel: 'Pass Formalities' },
+  { key: 'SUBSTANTIVE_EXAM', label: 'Substantive Exam', description: 'Uniqueness review (20 days)', icon: ShieldCheck, actionLabel: 'Record Result' },
+  { key: 'PUBLISHED', label: 'Published', description: 'Opposition window (60 days)', icon: Globe, actionLabel: 'End Opposition' },
+  { key: 'CERTIFICATE_REQUEST', label: 'Cert. Request', description: 'Requesting physical certificate (20 days)', icon: Hourglass, actionLabel: 'Issue Certificate' },
+  { key: 'CERTIFICATE_ISSUED', label: 'Cert. Issued', description: 'Certificate received from registry', icon: Certificate, actionLabel: 'Finalize Registration' },
+  { key: 'REGISTERED', label: 'Registered', description: 'Mark officially protected', icon: CheckCircle, actionLabel: 'Start Renewal Watch' },
+  { key: 'RENEWAL_DUE', label: 'Renewal Period', description: '7-year maintenance cycle', icon: Clock, actionLabel: 'Process Renewal' }
 ];
 
 const SPECIAL_ACTIONS: { key: CaseFlowStage; label: string; icon: typeof Warning | typeof Clock | typeof XCircle }[] = [
   { key: 'AMENDMENT_PENDING', label: 'Respond to Office Action', icon: Warning },
-  { key: 'RENEWAL_DUE', label: 'Renew Trademark', icon: Clock },
+  { key: 'RENEWAL_ON_TIME', label: 'Renew On Time', icon: CheckCircle },
+  { key: 'RENEWAL_PENALTY', label: 'Renew with Penalty', icon: Clock },
   { key: 'DEAD_WITHDRAWN', label: 'Withdraw/Abandon Case', icon: XCircle }
 ];
 
@@ -63,6 +67,7 @@ export default function CaseStageTracker({
   jurisdiction,
   deadlines,
   onStageChange,
+  onDownloadForm,
   isEditable = true
 }: CaseStageTrackerProps) {
   const [showModal, setShowModal] = useState(false);
@@ -135,8 +140,8 @@ export default function CaseStageTracker({
         )}
         {/* Current Stage Banner */}
         <div className="bg-[var(--eai-primary)]/10 border border-[var(--eai-primary)]/20 p-4">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--eai-primary)] mb-1">
-            Current Stage
+          <div className="text-[11px] font-bold tracking-wider text-[var(--eai-primary)] mb-1">
+            Current stage
           </div>
           <div className="flex items-center gap-3">
             {(() => {
@@ -173,12 +178,12 @@ export default function CaseStageTracker({
                        <FileText size={20} />
                    </div>
                    <div>
-                       <div className="text-[14px] font-bold">Filing Application Form</div>
-                       <div className="text-[11px] text-[var(--eai-text-secondary)] uppercase font-black">Ready to download & sign</div>
+                       <div className="text-[14px] font-bold">Filing application form</div>
+                       <div className="text-[11px] text-[var(--eai-text-secondary)] font-black">Ready to download & sign</div>
                    </div>
                 </div>
-                <Button 
-                   onClick={() => window.open(`/api/cases/${(STAGES as any).id}/download`, '_blank')} // Mocked, need to check actual download URL
+                <Button
+                   onClick={() => onDownloadForm ? onDownloadForm() : window.open(`/api/cases/${(STAGES as any).id}/download`, '_blank')}
                    className="apple-button-secondary h-8 px-4 text-[11px]"
                 >
                    Download Filled Form
@@ -212,7 +217,7 @@ export default function CaseStageTracker({
                   </div>
 
                   {/* Stage Label */}
-                  <div className={`text-[10px] font-black uppercase tracking-tighter text-center line-clamp-2 ${isCurrent ? 'text-[var(--eai-primary)]' : 'text-[var(--eai-muted)]'}`}>
+                  <div className={`text-[10px] font-black tracking-tighter text-center line-clamp-2 ${isCurrent ? 'text-[var(--eai-primary)]' : 'text-[var(--eai-muted)]'}`}>
                     {stage.label}
                   </div>
 
@@ -283,18 +288,25 @@ export default function CaseStageTracker({
 
         {/* Special Actions */}
         <div className="mt-8 border-t border-[var(--eai-border)] pt-6">
-          <h4 className="text-[12px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] mb-4">Special Actions & Exceptions</h4>
+          <h4 className="text-[12px] font-black tracking-widest text-[var(--eai-text-secondary)] mb-4">Special Actions & Exceptions</h4>
           <div className="flex flex-wrap gap-2">
-             {SPECIAL_ACTIONS.map(action => (
-                <button
-                  key={action.key}
-                  onClick={() => onStageChange(action.key)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--eai-surface)] border border-[var(--eai-border)] text-[12px] font-bold text-[var(--eai-text)] hover:bg-[var(--eai-bg)] transition-colors"
-                >
-                  <action.icon size={16} />
-                  {action.label}
-                </button>
-             ))}
+             {SPECIAL_ACTIONS.map((action, index) => {
+                const colorClasses = [
+                  'bg-[#FF9500]/10 border-[#FF9500]/30 text-[#FF9500] hover:bg-[#FF9500]/20', // Orange for Office Action
+                  'bg-[#34C759]/10 border-[#34C759]/30 text-[#34C759] hover:bg-[#34C759]/20', // Green for Renewal
+                  'bg-[#FF3B30]/10 border-[#FF3B30]/30 text-[#FF3B30] hover:bg-[#FF3B30]/20'  // Red for Withdraw
+                ];
+                return (
+                  <button
+                    key={action.key}
+                    onClick={() => onStageChange(action.key)}
+                    className={`flex items-center gap-2 px-4 py-2 border text-[12px] font-bold transition-colors ${colorClasses[index]}`}
+                  >
+                    <action.icon size={16} />
+                    {action.label}
+                  </button>
+                );
+             })}
           </div>
         </div>
       </CardContent>

@@ -83,7 +83,7 @@ html.dark {
     @apply text-[15px] font-medium leading-relaxed;
   }
   .text-label {
-    @apply text-[13px] font-bold uppercase tracking-tight text-[var(--eai-text-secondary)];
+    @apply text-[13px] font-bold tracking-tight text-[var(--eai-text-secondary)];
   }
   .text-micro {
     @apply text-[11px] font-bold tracking-tight;

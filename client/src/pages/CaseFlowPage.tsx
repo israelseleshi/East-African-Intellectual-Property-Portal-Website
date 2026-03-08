@@ -7,6 +7,8 @@ import { trademarkService } from '@/utils/api';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { CaseNotesTab } from '@/components/CaseNotesTab';
+import { useApi } from '@/hooks/useApi';
+import { fillPdfForm } from '@/utils/pdfUtils';
 import type { Jurisdiction, CaseFlowStage } from '@/shared/database';
 
 interface CaseHistoryEntry {
@@ -44,6 +46,7 @@ export default function CaseFlowPage() {
   const [caseData, setCaseData] = useState<CaseData | null>(null);
   const [currentStage, setCurrentStage] = useState<CaseFlowStage>('DATA_COLLECTION');
   const [isUpdating, setIsUpdating] = useState(false);
+  const api = useApi();
 
   useEffect(() => {
     loadCase();
@@ -90,6 +93,62 @@ export default function CaseFlowPage() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDownloadForm = async () => {
+    if (!id || !caseData) return;
+    try {
+      addToast({
+        title: 'Generating Form',
+        description: 'Preparing your filled PDF...',
+        type: 'info'
+      });
+
+      // 1. Fetch EIPA form data for this case
+      const fullCaseData = await api.get(`/cases/${id}`);
+
+      // 2. Prepare data for filling
+      const fillData = {
+        ...fullCaseData,
+        applicant_name: fullCaseData.client?.name || fullCaseData.client_name,
+        address_street: fullCaseData.client?.addressStreet || fullCaseData.client_address_street,
+        city_name: fullCaseData.client?.city || fullCaseData.client_city,
+        nationality: fullCaseData.client?.nationality || fullCaseData.client_nationality,
+        email: fullCaseData.client?.email || fullCaseData.client_email,
+        mark_description: fullCaseData.mark_name || fullCaseData.markName,
+        filing_number: fullCaseData.filing_number || fullCaseData.filingNumber,
+        registration_no: fullCaseData.registration_no || fullCaseData.registrationNo,
+        jurisdiction: fullCaseData.jurisdiction,
+      };
+
+      // 3. Fill the PDF
+      const pdfUrl = '/application_form.pdf';
+      const pdfBytes = await fillPdfForm(pdfUrl, fillData, true);
+
+      // 4. Download it
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `EIPA_FORM_01_${fillData.applicant_name || 'Trademark'}_${id.substring(0, 8)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      addToast({
+        title: 'Download Successful',
+        description: 'PDF has been generated and downloaded.',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('PDF Fill error:', error);
+      addToast({
+        title: 'Download Failed',
+        description: 'Could not generate the filled form.',
+        type: 'error'
+      });
     }
   };
 
@@ -151,7 +210,7 @@ export default function CaseFlowPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--eai-text-secondary)]">Current Status</div>
+              <div className="text-[11px] font-bold tracking-widest text-[var(--eai-text-secondary)]">Current status</div>
               <div className="text-[18px] font-black text-[var(--eai-primary)]">{currentStage.replace(/_/g, ' ')}</div>
             </div>
           </div>
@@ -164,6 +223,7 @@ export default function CaseFlowPage() {
         jurisdiction={caseData.jurisdiction}
         deadlines={deadlines}
         onStageChange={handleStageChange}
+        onDownloadForm={handleDownloadForm}
         isEditable={true}
       />
 

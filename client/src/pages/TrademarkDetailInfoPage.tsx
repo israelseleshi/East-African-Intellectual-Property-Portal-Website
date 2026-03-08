@@ -14,6 +14,7 @@ import type { Jurisdiction, TrademarkStatus } from '@/shared/database'
 import JurisdictionBadge from '@/components/JurisdictionBadge'
 import StatusPill from '@/components/StatusPill'
 import NiceClassPicker from '@/components/NiceClassPicker'
+import { CaseNotesTab } from '../components/CaseNotesTab'
 import { trademarkService, api } from '@/utils/api'
 import { usePageTitleStore } from '@/store/pageTitleStore'
 
@@ -36,6 +37,7 @@ type TrademarkCaseDetail = {
   priority?: string
   goodsServices?: string
   goods_services?: string
+  mark_description?: string
   niceClasses?: number[]
   niceMappings?: NiceMapping[]
 
@@ -51,6 +53,7 @@ type TrademarkCaseDetail = {
   next_renewal_date?: string
 
   clientInstructions?: string
+  client_instructions?: string
   remark?: string
 
   client?: {
@@ -358,23 +361,33 @@ export default function TrademarkDetailInfoPage() {
                        src={
                          (isEditing && editData.mark_image?.startsWith('data:')) 
                            ? editData.mark_image 
-                           : (tm.mark_image?.startsWith('http') 
-                               ? tm.mark_image 
-                               : `${window.location.origin}${tm.mark_image}`)
+                           : (() => {
+                               const imgPath = tm.mark_image || '';
+                               if (imgPath.startsWith('http')) return imgPath;
+                               if (imgPath.startsWith('data:')) return imgPath;
+                               // Always route through /api/ for Passenger to reach the Node.js backend
+                               const base = import.meta.env.PROD 
+                                 ? window.location.origin 
+                                 : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '');
+                               // If path already starts with /api, use as-is; otherwise prepend /api
+                               const apiPath = imgPath.startsWith('/api') ? imgPath : `/api${imgPath}`;
+                               return `${base}${apiPath}`;
+                             })()
                        } 
                        alt="Mark Logo" 
                        className="max-w-full max-h-full object-contain" 
                        onError={(e) => {
                          const img = e.currentTarget;
-                         if (!img.src.includes('api') && !img.src.startsWith('data:')) {
-                           img.src = `${window.location.origin}/api${tm.mark_image}`;
-                         }
+                         // Avoid infinite retry loops
+                         if (img.dataset.retried) return;
+                         img.dataset.retried = 'true';
+                         console.warn('[Image] Failed to load mark image, path:', tm.mark_image);
                        }}
                      />
                      {isEditing && (
                        <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer">
                          <PencilSimple size={24} className="text-white mb-1" weight="bold" />
-                         <span className="text-[10px] text-white font-bold uppercase tracking-widest">Change Image</span>
+                         <span className="text-[10px] text-white font-bold tracking-widest">Change image</span>
                          <input 
                            type="file" 
                            className="hidden" 
@@ -559,8 +572,8 @@ export default function TrademarkDetailInfoPage() {
               </div>
             </div>
 
-            {eipa && (
-              <div className="space-y-6 pt-4 border-t border-[var(--eai-border)]">
+            {/* Automated Form Detail Sections - Full specification sections */}
+            <div className="space-y-6 pt-4 border-t border-[var(--eai-border)]">
                 <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
                   <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">IV. Mark specification</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -618,7 +631,7 @@ export default function TrademarkDetailInfoPage() {
                       />
                     ) : (
                       <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                        {String(eipaField('mark_description') ?? '—')}
+                        {String(eipaField('mark_description') || tm?.mark_description || '—')}
                       </div>
                     )}
                   </div>
@@ -898,7 +911,6 @@ export default function TrademarkDetailInfoPage() {
                   </div>
                 </div>
               </div>
-            )}
           </CardContent>
         </Card>
 
@@ -1010,7 +1022,7 @@ export default function TrademarkDetailInfoPage() {
                     />
                   ) : (
                     <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                      {tm.clientInstructions || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
+                      {tm.clientInstructions || tm.client_instructions || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
                     </div>
                   )}
                 </div>
@@ -1030,6 +1042,11 @@ export default function TrademarkDetailInfoPage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
+              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)] uppercase">Legal Timeline & Notes</h4>
+              <CaseNotesTab caseId={id!} />
             </div>
           </CardContent>
         </Card>

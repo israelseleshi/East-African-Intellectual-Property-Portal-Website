@@ -30,7 +30,7 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
             >
               <MagnifyingGlass size={18} />
               <span>Search</span>
-              <kbd className="ml-1 rounded-none bg-[var(--eai-bg)] px-1.5 py-0.5 text-[10px] font-bold opacity-50 uppercase border border-[var(--eai-border)]">
+              <kbd className="ml-1 rounded-none bg-[var(--eai-bg)] px-1.5 py-0.5 text-[10px] font-bold opacity-50 border border-[var(--eai-border)]">
                 {hint}+K
               </kbd>
             </button>

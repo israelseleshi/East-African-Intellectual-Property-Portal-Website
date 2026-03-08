@@ -38,7 +38,7 @@ async function generateTablesMd() {
     trademark_cases }|--|| clients : "client_id -> id"\n\`\`\`\n\n`;
 
         for (const tableName of tableNames) {
-            if (tableName === 'notifications' || tableName === 'reports') continue; // Skipped per user request
+            if (tableName === 'notifications' || tableName === 'reports' || tableName === 'eipa_form_payloads') continue; // Skipped per user request
 
             md += `## Table: ${tableName}\n\n### Schema\n\n\`\`\`sql\n`;
             const [createTableRes] = await pool.query(`SHOW CREATE TABLE \`${tableName}\``);

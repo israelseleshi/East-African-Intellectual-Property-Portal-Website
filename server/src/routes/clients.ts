@@ -126,10 +126,41 @@ router.post('/merge', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
     try {
         const d = req.body;
-        const clientId = crypto.randomUUID();
+        
+        const getSafeId = () => {
+          try {
+              return crypto.randomUUID();
+          } catch {
+              return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          }
+        };
+
+        const clientId = getSafeId();
+        // Support both snake_case and camelCase from frontend
+        const addressStreet = d.addressStreet || d.address_street || '';
+        const zipCode = d.zipCode || d.zip_code || '';
+        const localName = d.localName || d.local_name || null;
+        
         await query(
-            'INSERT INTO clients (id, name, local_name, type, nationality, email, address_street, city, zip_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [clientId, d.name, d.localName || d.local_name || null, d.type, d.nationality, d.email || '', d.addressStreet, d.city || '', d.zipCode || '']
+            'INSERT INTO clients (id, name, local_name, type, nationality, residence_country, email, address_street, address_zone, wereda, city, house_no, zip_code, po_box, telephone, fax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                clientId, 
+                d.name, 
+                localName, 
+                d.type, 
+                d.nationality, 
+                d.residence_country || d.residenceCountry || '',
+                d.email || '', 
+                addressStreet,
+                d.address_zone || d.addressZone || '',
+                d.wereda || '',
+                d.city || '',
+                d.house_no || d.houseNo || '',
+                zipCode,
+                d.po_box || d.poBox || '',
+                d.telephone || d.phone || '',
+                d.fax || ''
+            ]
         );
         res.status(201).json({ id: clientId, ...d });
     } catch (error) {
@@ -174,15 +205,39 @@ router.patch('/:id', authenticateToken, async (req, res) => {
             local_name: d.localName || d.local_name,
             type: d.type,
             nationality: d.nationality,
+            residence_country: d.residence_country || d.residenceCountry,
             email: d.email,
             address_street: d.addressStreet || d.address_street,
+            address_zone: d.addressZone || d.address_zone,
+            wereda: d.wereda,
             city: d.city,
-            zip_code: d.zipCode || d.zip_code
+            house_no: d.houseNo || d.house_no,
+            zip_code: d.zipCode || d.zip_code,
+            po_box: d.poBox || d.po_box,
+            telephone: d.telephone || d.phone,
+            fax: d.fax
         };
 
         await pool.execute(
-            'UPDATE clients SET name = ?, local_name = ?, type = ?, nationality = ?, email = ?, address_street = ?, city = ?, zip_code = ? WHERE id = ?',
-            [updates.name, updates.local_name, updates.type, updates.nationality, updates.email, updates.address_street, updates.city, updates.zip_code, id]
+            'UPDATE clients SET name = ?, local_name = ?, type = ?, nationality = ?, residence_country = ?, email = ?, address_street = ?, address_zone = ?, wereda = ?, city = ?, house_no = ?, zip_code = ?, po_box = ?, telephone = ?, fax = ? WHERE id = ?',
+            [
+                updates.name, 
+                updates.local_name, 
+                updates.type, 
+                updates.nationality, 
+                updates.residence_country,
+                updates.email, 
+                updates.address_street, 
+                updates.address_zone,
+                updates.wereda,
+                updates.city,
+                updates.house_no,
+                updates.zip_code,
+                updates.po_box,
+                updates.telephone,
+                updates.fax,
+                id
+            ]
         );
 
         res.json({ id, ...updates });

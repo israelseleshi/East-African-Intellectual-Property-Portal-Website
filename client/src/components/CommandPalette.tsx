@@ -104,7 +104,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
             placeholder="Search trademarks, clients, or jump to page..."
             className="h-14 w-full bg-transparent px-3 text-[17px] font-medium outline-none placeholder:text-[var(--eai-text-secondary)]/50"
           />
-          <div className="flex items-center gap-1 rounded-none border border-[var(--eai-border)] bg-[var(--eai-bg)] px-2 py-1 text-[10px] font-bold text-[var(--eai-text-secondary)] uppercase">
+          <div className="flex items-center gap-1 rounded-none border border-[var(--eai-border)] bg-[var(--eai-bg)] px-2 py-1 text-[10px] font-bold text-[var(--eai-text-secondary)]">
             ESC
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
               {/* Navigation Section */}
               {filteredNav.length > 0 && (
                 <div className="space-y-1">
-                  <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--eai-text-secondary)]">
+                  <div className="px-3 py-2 text-[11px] font-bold tracking-wider text-[var(--eai-text-secondary)]">
                     Navigation & Tools
                   </div>
                   {filteredNav.map((i) => (
@@ -151,7 +151,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
               {/* Clients Section */}
               {filteredClients.length > 0 && (
                 <div className="space-y-1">
-                  <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--eai-text-secondary)]">
+                  <div className="px-3 py-2 text-[11px] font-bold tracking-wider text-[var(--eai-text-secondary)]">
                     Clients
                   </div>
                   {filteredClients.map((client) => (
@@ -186,7 +186,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
               {/* Trademarks Section */}
               {filteredTrademarks.length > 0 && (
                 <div className="space-y-1">
-                  <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--eai-text-secondary)]">
+                  <div className="px-3 py-2 text-[11px] font-bold tracking-wider text-[var(--eai-text-secondary)]">
                     Trademarks
                   </div>
                   {filteredTrademarks.map((tm) => (
@@ -231,7 +231,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold uppercase tracking-tighter italic text-[var(--eai-primary)]">EAIP Pro Search</span>
+            <span className="font-bold tracking-tighter italic text-[var(--eai-primary)]">EAIP Pro Search</span>
           </div>
         </div>
       </div>

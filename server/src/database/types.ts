@@ -30,12 +30,23 @@ export interface CaseRow {
 export interface ClientRow {
   id: string;
   name: string;
+  local_name?: string;
   type: string;
   email?: string;
   nationality?: string;
+  residence_country?: string;
   address_street?: string;
+  address_zone?: string;
+  wereda?: string;
   city?: string;
+  house_no?: string;
   zip_code?: string;
+  po_box?: string;
+  telephone?: string;
+  fax?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  deleted_at?: Date | null;
 }
 
 export type Jurisdiction = 'ER' | 'DJ' | 'SO' | 'SL' | 'KE' | 'TZ' | 'UG' | 'RW' | 'BI' | 'SD' | 'ET';
@@ -43,10 +54,11 @@ export type Jurisdiction = 'ER' | 'DJ' | 'SO' | 'SL' | 'KE' | 'TZ' | 'UG' | 'RW'
 // Complete 10-Stage Case Flow System
 export const CASE_FLOW_STAGES = [
   'DATA_COLLECTION',
-  'READY_TO_FILE', 
+  'READY_TO_FILE',
   'FILED',
   'FORMAL_EXAM',
   'SUBSTANTIVE_EXAM',
+  'AMENDMENT_PENDING',
   'PUBLISHED',
   'CERTIFICATE_REQUEST',
   'CERTIFICATE_ISSUED',
@@ -70,7 +82,8 @@ export const JURISDICTION_CONFIG: Record<string, any> = {
     renewal_years: 7,
     renewal_on_time_days: 30,
     renewal_penalty_days: 180,
-    substantial_exam_flag_days: 180
+    substantial_exam_days: 20,
+    amendment_period_days: 90
   },
   KE: {
     name: 'Kenya',
@@ -80,7 +93,7 @@ export const JURISDICTION_CONFIG: Record<string, any> = {
     renewal_years: 10,
     renewal_on_time_days: 30,
     renewal_penalty_days: 180,
-    substantial_exam_flag_days: 180
+    substantial_exam_days: 120
   },
   ER: { name: 'Eritrea', opposition_period_days: 60, renewal_years: 10 },
   DJ: { name: 'Djibouti', opposition_period_days: 60, renewal_years: 10 },
@@ -101,7 +114,11 @@ export const TRADEMARK_STATUSES = [
   'PUBLISHED', 
   'REGISTERED', 
   'EXPIRING', 
-  'RENEWAL'
+  'RENEWAL',
+  'AMENDMENT_PENDING',
+  'OPPOSED',
+  'ABANDONED',
+  'WITHDRAWN'
 ] as const;
 
 export type TrademarkStatus = (typeof TRADEMARK_STATUSES)[number];
@@ -122,14 +139,20 @@ export function statusToWorkflowStage(status: TrademarkStatus): TrademarkState {
     case 'FORMAL_EXAM':
       return 'FORMAL_EXAM';
     case 'SUBSTANTIVE_EXAM':
+    case 'AMENDMENT_PENDING':
       return 'SUBSTANTIVE_EXAM';
     case 'PUBLISHED':
+    case 'OPPOSED':
       return 'PUBLICATION';
     case 'REGISTERED':
       return 'REGISTRATION';
     case 'EXPIRING':
     case 'RENEWAL':
+    case 'ABANDONED':
+    case 'WITHDRAWN':
       return 'RENEWAL';
+    default:
+      return 'INTAKE';
   }
 }
 

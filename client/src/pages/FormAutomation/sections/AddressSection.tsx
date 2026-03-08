@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
-import { FormSection, FormField } from '../components/FormShared';
+import { FormSection, FormField, CountrySelect } from '../components/FormShared';
+import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData } from '../types';
 
 interface AddressSectionProps {
@@ -72,20 +73,19 @@ export const AddressSection: React.FC<AddressSectionProps> = ({ formData, handle
             placeholder="Enter P.O. Box"
           />
         </FormField>
-        <FormField label="Nationality" className="sm:col-span-1" id="nationality-field">
-          <input
+        <div id="nationality-field">
+          <CountrySelect
+            label="Nationality"
             value={formData.nationality}
-            onChange={(e) => handleInputChange('nationality', e.target.value)}
-            className="apple-input"
-            placeholder="Enter nationality"
+            onChange={(val: string) => handleInputChange('nationality', val)}
+            placeholder="Select nationality"
           />
-        </FormField>
+        </div>
         <FormField label="Country of residence">
-          <input
+          <CountrySelector
             value={formData.residence_country}
-            onChange={(e) => handleInputChange('residence_country', e.target.value)}
-            className="apple-input"
-            placeholder="Enter residence country"
+            onChange={(val) => handleInputChange('residence_country', val)}
+            placeholder="Select residence country"
           />
         </FormField>
       </div>

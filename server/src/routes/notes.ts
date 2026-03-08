@@ -10,7 +10,7 @@ router.get('/case/:caseId', authenticateToken, async (req, res) => {
     try {
         const { caseId } = req.params;
         const [rows] = await pool.execute(
-            `SELECT cn.*, u.name as user_name 
+            `SELECT cn.*, u.full_name as user_name 
              FROM case_notes cn 
              LEFT JOIN users u ON cn.user_id = u.id 
              WHERE cn.case_id = ? AND cn.deleted_at IS NULL 
@@ -18,9 +18,9 @@ router.get('/case/:caseId', authenticateToken, async (req, res) => {
             [caseId]
         );
         res.json(rows);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching case notes:', error);
-        res.status(500).json({ error: 'Failed to fetch case notes' });
+        res.status(500).json({ error: 'Failed to fetch case notes', details: error?.message });
     }
 });
 
@@ -31,7 +31,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         
         // Get main note
         const [noteRows] = await pool.execute(
-            `SELECT cn.*, u.name as user_name 
+            `SELECT cn.*, u.full_name as user_name 
              FROM case_notes cn 
              LEFT JOIN users u ON cn.user_id = u.id 
              WHERE cn.id = ? AND cn.deleted_at IS NULL`,
@@ -46,7 +46,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         
         // Get replies if any
         const [replyRows] = await pool.execute(
-            `SELECT cn.*, u.name as user_name 
+            `SELECT cn.*, u.full_name as user_name 
              FROM case_notes cn 
              LEFT JOIN users u ON cn.user_id = u.id 
              WHERE cn.parent_note_id = ? AND cn.deleted_at IS NULL 

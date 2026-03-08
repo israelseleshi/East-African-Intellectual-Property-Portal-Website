@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Button } from './ui/button';
-import { format, formatDistanceToNow, addDays } from 'date-fns';
+import { addDays, formatDistanceToNow } from 'date-fns';
+import { formatDate } from '@/utils/formatters';
 
 interface Opposition {
   id: string;
@@ -34,7 +35,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
   const [opponentName, setOpponentName] = useState('');
   const [opponentAddress, setOpponentAddress] = useState('');
   const [grounds, setGrounds] = useState('');
-  const [oppositionDate, setOppositionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [oppositionDate, setOppositionDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
       setOpponentName('');
       setOpponentAddress('');
       setGrounds('');
-      setOppositionDate(format(new Date(), 'yyyy-MM-dd'))
+      setOppositionDate(new Date().toISOString().split('T')[0])
       setNotes('');
       setShowForm(false);
 
@@ -83,7 +84,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
     try {
       await api.patch(`/oppositions/${id}/status`, {
         status,
-        responseFiledDate: status === 'RESPONDED' ? format(new Date(), 'yyyy-MM-dd') : undefined
+        responseFiledDate: status === 'RESPONDED' ? new Date().toISOString().split('T')[0] : undefined
       });
       loadOppositions();
     } catch (error) {
@@ -179,7 +180,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
               <strong>Deadline:</strong> Response due {jurisdiction === 'ET' ? '60 days' : jurisdiction === 'KE' ? '60 days' : '60-90 days'} from opposition date
               {oppositionDate && (
                 <span className="ml-1">
-                  ({format(addDays(new Date(oppositionDate), jurisdiction === 'ET' ? 60 : 60), 'MMM d, yyyy')})
+                  ({formatDate(addDays(new Date(oppositionDate), jurisdiction === 'ET' ? 60 : 60))})
                 </span>
               )}
             </p>
@@ -230,12 +231,12 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
               <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                 <div>
                   <span className="text-gray-500">Opposition Date:</span>
-                  <span className="ml-1">{format(new Date(opp.opposition_date), 'MMM d, yyyy')}</span>
+                  <span className="ml-1">{formatDate(opp.opposition_date)}</span>
                 </div>
                 <div className={getDeadlineColor(opp.deadline_date, opp.status)}>
                   <span className="text-gray-500">Response Deadline:</span>
                   <span className="ml-1 font-medium">
-                    {format(new Date(opp.deadline_date), 'MMM d, yyyy')}
+                    {formatDate(opp.deadline_date)}
                     {opp.status === 'PENDING' && (
                       <span className="ml-1 text-xs">
                         ({formatDistanceToNow(new Date(opp.deadline_date), { addSuffix: true })})
@@ -247,7 +248,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
 
               {opp.response_filed_date && (
                 <div className="text-sm text-green-700 mb-3">
-                  ✓ Response filed on {format(new Date(opp.response_filed_date), 'MMM d, yyyy')}
+                  ✓ Response filed on {formatDate(opp.response_filed_date)}
                   {opp.outcome && <span className="ml-2">({opp.outcome})</span>}
                 </div>
               )}

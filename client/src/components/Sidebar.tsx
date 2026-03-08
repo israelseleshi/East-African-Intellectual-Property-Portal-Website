@@ -14,7 +14,7 @@ import {
 const nav = [
   { label: 'Dashboard', to: '/', icon: SquaresFour },
   { label: 'Trademarks', to: '/trademarks', icon: Archive },
-  { label: 'EIPA Forms', to: '/eipa-forms', icon: ShieldCheck },
+  { label: 'EIPA Forms', to: '/eipa-forms/application-form', icon: ShieldCheck },
   { label: 'Clients', to: '/clients', icon: Users },
   { label: 'Deadlines', to: '/deadlines', icon: Clock },
   { label: 'Invoicing', to: '/invoicing', icon: CreditCard },

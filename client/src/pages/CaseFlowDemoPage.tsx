@@ -243,8 +243,8 @@ export default function CaseFlowDemoPage() {
       {/* Legend */}
       <Card className="apple-card bg-[var(--eai-bg)]/50">
         <CardContent className="p-4">
-          <h4 className="text-[12px] font-bold uppercase tracking-wider text-[var(--eai-text-secondary)] mb-3">
-            Stage Legend
+          <h4 className="text-[12px] font-bold tracking-wider text-[var(--eai-text-secondary)] mb-3">
+            Stage legend
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[12px]">
             <div className="flex items-center gap-2">

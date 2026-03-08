@@ -53,7 +53,10 @@ function usePageTitle() {
       case '/deadlines':
         return 'Deadlines'
       case '/eipa-forms':
+      case '/eipa-forms/application-form':
         return 'EIPA Forms'
+      case '/eipa-forms/renewal-form':
+        return 'Renewal Form'
       case '/clients':
         return 'Clients'
       case '/clients/new':

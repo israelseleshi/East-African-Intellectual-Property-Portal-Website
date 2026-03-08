@@ -1,4 +1,5 @@
 import React from 'react';
+import { CountrySelector } from '@/components/CountrySelector';
 
 interface FormSectionProps {
   id?: string;
@@ -62,3 +63,41 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ label, options, va
     </div>
   </div>
 );
+
+export const COUNTRIES = [
+  { name: 'Ethiopia', code: 'ET', flag: '/flags/ethiopia-flag.png' },
+  { name: 'Kenya', code: 'KE', flag: '/flags/kenya-flag.png' },
+  { name: 'Tanzania', code: 'TZ', flag: '/flags/tanzania-flag.webp' },
+  { name: 'Uganda', code: 'UG', flag: '/flags/uganda-flag.png' },
+  { name: 'Rwanda', code: 'RW', flag: '/flags/rwanda-flag.png' },
+  { name: 'Burundi', code: 'BI', flag: '/flags/burundi-flag.png' },
+  { name: 'Djibouti', code: 'DJ', flag: '/flags/djibouti-flag.png' },
+  { name: 'Eritrea', code: 'ER', flag: '/flags/eritrea-flag.png' },
+  { name: 'Somalia', code: 'SO', flag: '/flags/somalia-flag.png' },
+  { name: 'Sudan', code: 'SD', flag: '/flags/sudan-image.png' },
+  { name: 'United Kingdom', code: 'GB', flag: 'https://flagcdn.com/w40/gb.png' },
+  { name: 'United States', code: 'US', flag: 'https://flagcdn.com/w40/us.png' },
+  { name: 'United Arab Emirates', code: 'AE', flag: 'https://flagcdn.com/w40/ae.png' },
+  { name: 'China', code: 'CN', flag: 'https://flagcdn.com/w40/cn.png' },
+  { name: 'India', code: 'IN', flag: 'https://flagcdn.com/w40/in.png' },
+];
+
+interface CountrySelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+}
+
+export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onChange, placeholder = "Select country", label }) => {
+  return (
+    <div className="space-y-1.5 w-full">
+      {label && <label className="text-label text-[var(--eai-text)]">{label}</label>}
+      <CountrySelector 
+        value={value} 
+        onChange={onChange} 
+        placeholder={placeholder}
+      />
+    </div>
+  );
+};

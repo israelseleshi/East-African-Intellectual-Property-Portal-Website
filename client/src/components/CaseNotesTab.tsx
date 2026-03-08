@@ -265,16 +265,16 @@ function NoteItem({ note, onPin, onDelete, onReply, replyingTo, setReplyingTo, r
     <div className={`bg-[var(--eai-surface)] border border-[var(--eai-border)] rounded-xl p-4 shadow-sm transition-all hover:shadow-md ${note.is_pinned ? 'border-amber-400 bg-amber-500/5' : ''} ${isReply ? 'ml-8' : ''}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${NOTE_TYPE_COLORS[note.note_type]}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold tracking-wider border ${NOTE_TYPE_COLORS[note.note_type]}`}>
             {NOTE_TYPE_LABELS[note.note_type]}
           </span>
           {note.is_private && (
-            <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-500 border border-red-500/20">
+            <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold tracking-wider bg-red-500/10 text-red-500 border border-red-500/20">
               Private
             </span>
           )}
           {note.is_pinned && (
-            <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
+            <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
               Pinned
             </span>
           )}

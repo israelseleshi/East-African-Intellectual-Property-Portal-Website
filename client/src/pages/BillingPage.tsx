@@ -240,7 +240,7 @@ export default function BillingPage() {
           </div>
           <div className="text-label text-white/70 relative z-10">Total Revenue</div>
           <div className="text-h1 text-white leading-none mt-1 relative z-10">{formatAmount(stats.totalRevenue)}</div>
-          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10 uppercase">
+          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10">
             <ChartLineUp size={16} weight="bold" />
             <span>Reflecting all generated invoices</span>
           </div>
@@ -254,9 +254,9 @@ export default function BillingPage() {
           </div>
           <div className="text-label text-white/70 relative z-10">Outstanding</div>
           <div className="text-h1 text-white leading-none mt-1 relative z-10">{formatAmount(stats.outstanding)}</div>
-          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10 uppercase">
+          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10">
             <Clock size={16} weight="bold" />
-            <span>{stats.overdueCount} Overdue Invoices</span>
+            <span>{stats.overdueCount} Overdue invoices</span>
           </div>
         </div>
 
@@ -269,9 +269,9 @@ export default function BillingPage() {
           </div>
           <div className="text-label text-white/70 relative z-10">Paid (MTD)</div>
           <div className="text-h1 text-white leading-none mt-1 relative z-10">{formatAmount(stats.paidMtd)}</div>
-          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10 uppercase">
+          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10">
             <span className="bg-white/20 px-2 py-0.5 rounded-full">Active</span>
-            <span>Across {stats.clientCount} Clients</span>
+            <span>Across {stats.clientCount} clients</span>
           </div>
         </div>
       </div>
@@ -361,7 +361,7 @@ export default function BillingPage() {
                     <td className="px-6 py-5">
                       <span className={[
                         "inline-flex h-6 items-center px-2.5 rounded-none text-micro font-black border",
-                        "inline-flex h-6 items-center px-2.5 rounded-none text-micro font-black uppercase border",
+                        "inline-flex h-6 items-center px-2.5 rounded-none text-micro font-black border",
                         tx.status === 'PAID' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : 
                         tx.status === 'OVERDUE' ? "bg-red-500/10 text-red-600 border-red-500/20" :
                         "bg-orange-500/10 text-orange-600 border-orange-500/20"

@@ -328,10 +328,10 @@ export default function DocketPage() {
       // 1. Fetch EIPA form data for this case
       const caseData = await api.get(`/cases/${caseId}`);
       
-      if (!caseData || !caseData.eipaForm) {
+      if (!caseData) {
         addToast({
           title: 'No Data Available',
-          description: 'No form data found for this trademark to fill the PDF.',
+          description: 'No data found for this trademark to fill the PDF.',
           type: 'warning'
         });
         return;
@@ -339,7 +339,7 @@ export default function DocketPage() {
 
       // 2. Prepare data for filling
       const fillData = {
-        ...caseData.eipaForm,
+        ...caseData,
         applicant_name: caseData.client?.name || caseData.client_name,
         address_street: caseData.client?.addressStreet || caseData.client_address_street,
         city_name: caseData.client?.city || caseData.client_city,
@@ -469,7 +469,7 @@ export default function DocketPage() {
              className="apple-button-secondary flex items-center gap-2 text-label h-10 px-4"
            >
              <DownloadSimple size={18} weight="bold" />
-             <span>Export XLSX</span>
+             <span>Export xlsx</span>
            </button>
            <button 
              onClick={() => navigate('/case-intake')}
@@ -498,7 +498,7 @@ export default function DocketPage() {
               onClick={() => setDeleteId(null)}
               className="rounded-xl border-[var(--eai-border)] text-label"
             >
-              CANCEL
+              Cancel
             </Button>
             <Button
               variant="destructive"
@@ -506,7 +506,7 @@ export default function DocketPage() {
               disabled={isDeleting}
               className="rounded-xl bg-red-600 hover:bg-red-700 text-label text-white"
             >
-              {isDeleting ? 'DELETING...' : 'DELETE PERMANENTLY'}
+              {isDeleting ? 'Deleting...' : 'Delete permanently'}
             </Button>
           </DialogFooter>
         </DialogContent>

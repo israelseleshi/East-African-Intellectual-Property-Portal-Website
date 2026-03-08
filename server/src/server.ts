@@ -46,8 +46,10 @@ app.use('/api/uploads', express.static(uploadDir));
 // Serve Mark Images and PDFs
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const FORMS_UPLOAD_DIR = path.resolve(__dirname, '../../forms-upload');
+const FORMS_UPLOAD_DIR = path.resolve(__dirname, '../forms-upload');
+console.log('[BOOT] FORMS_UPLOAD_DIR resolved to:', FORMS_UPLOAD_DIR);
 app.use('/forms-download', express.static(FORMS_UPLOAD_DIR));
+app.use('/api/forms-download', express.static(FORMS_UPLOAD_DIR));
 
 // Route Registration
 const registerRoutes = (prefix: string = '') => {

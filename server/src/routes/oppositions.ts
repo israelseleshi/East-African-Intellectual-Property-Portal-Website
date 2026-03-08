@@ -215,23 +215,55 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
         }
         
-        const updates: Record<string, unknown> = { status, updated_at: 'NOW()' };
-        if (status === 'RESPONDED' && responseFiledDate) {
-            updates.response_filed_date = responseFiledDate;
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const updates: Record<string, unknown> = { status, updated_at: new Date() };
+            if (status === 'RESPONDED' && responseFiledDate) {
+                updates.response_filed_date = responseFiledDate;
+            }
+            if (outcome) {
+                updates.outcome = outcome;
+            }
+            
+            const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+            const values: any[] = [...Object.values(updates), id];
+            
+            await connection.execute(
+                `UPDATE oppositions SET ${fields} WHERE id = ? AND deleted_at IS NULL`,
+                values
+            );
+
+            // AUTO-UPDATE TRADEMARK CASE STATUS ON RESOLUTION
+            if (status === 'RESOLVED') {
+                const [oppRows] = await connection.execute(
+                    'SELECT case_id FROM oppositions WHERE id = ?',
+                    [id]
+                );
+                const caseId = (oppRows as any[])[0]?.case_id;
+
+                if (caseId) {
+                    // If won (default logic for now), move back to ACTIVE/Stage 6
+                    // If outcome is specifically 'LOST', we could move to Stage 11
+                    const finalStatus = outcome === 'LOST' ? 'ABANDONED' : 'PUBLISHED';
+                    const finalStage = outcome === 'LOST' ? 'DEAD_WITHDRAWN' : 'CERTIFICATE_REQUEST';
+
+                    await connection.execute(
+                        'UPDATE trademark_cases SET status = ?, flow_stage = ? WHERE id = ?',
+                        [finalStatus, finalStage, caseId]
+                    );
+                }
+            }
+
+            await connection.commit();
+            res.json({ success: true, status });
+        } catch (e) {
+            await connection.rollback();
+            throw e;
+        } finally {
+            connection.release();
         }
-        if (outcome) {
-            updates.outcome = outcome;
-        }
-        
-        const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-        const values = [...Object.values(updates), id] as any[];
-        
-        await pool.execute(
-            `UPDATE oppositions SET ${fields} WHERE id = ? AND deleted_at IS NULL`,
-            values
-        );
-        
-        res.json({ success: true, status });
     } catch (error) {
         console.error('Error updating opposition status:', error);
         res.status(500).json({ error: 'Failed to update opposition status' });

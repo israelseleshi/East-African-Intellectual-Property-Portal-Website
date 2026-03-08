@@ -143,7 +143,7 @@ export default function LoginPage() {
                     </svg>
                     LOGGING IN...
                   </span>
-                ) : 'LOG IN TO DASHBOARD'}
+                ) : 'Log in to dashboard'}
               </Button>
             </form>
           </CardContent>
@@ -154,8 +154,8 @@ export default function LoginPage() {
                 Sign Up
               </Link>
             </p>
-            <p className="text-[11px] font-bold text-[var(--eai-text-secondary)] uppercase tracking-widest opacity-60">
-              Authorized Legal Access Only
+            <p className="text-[11px] font-bold text-[var(--eai-text-secondary)] tracking-widest opacity-60">
+              Authorized legal access only
             </p>
           </CardFooter>
         </Card>

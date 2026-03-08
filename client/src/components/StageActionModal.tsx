@@ -33,6 +33,8 @@ interface ActionConfig {
         required?: boolean;
         defaultValue?: string;
     }[];
+    allowFileUpload?: boolean;
+    fileType?: string;
 }
 
 const ACTION_CONFIGS: Partial<Record<CaseFlowStage, ActionConfig>> = {
@@ -57,31 +59,37 @@ const ACTION_CONFIGS: Partial<Record<CaseFlowStage, ActionConfig>> = {
     },
     AMENDMENT_PENDING: {
         title: 'Log Office Action Response',
-        description: 'Confirm the date of response to the Office Action.',
+        description: 'Confirm the date of response and upload the submission document.',
         buttonLabel: 'Record Response',
         fields: [
             { key: 'triggerDate', label: 'Response Filing Date', type: 'date', defaultValue: new Date().toISOString().split('T')[0], required: true },
             { key: 'notes', label: 'Response Details', type: 'textarea', placeholder: 'Summary of arguments submitted...' }
-        ]
+        ],
+        allowFileUpload: true,
+        fileType: 'OFFICE_ACTION_RESPONSE'
     },
     CERTIFICATE_REQUEST: {
-        title: 'Issue Certificate',
-        description: 'Provide the official registration certificate details.',
+        title: 'Upload Registration Certificate',
+        description: 'Provide the official registration certificate details and upload the scan.',
         buttonLabel: 'Finalize Registration',
         fields: [
             { key: 'certificateNumber', label: 'Certificate Number', type: 'text', placeholder: 'e.g. REG/ET/00987', required: true },
             { key: 'triggerDate', label: 'Registration Date', type: 'date', defaultValue: new Date().toISOString().split('T')[0], required: true },
             { key: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Any additional details...' }
-        ]
+        ],
+        allowFileUpload: true,
+        fileType: 'REGISTRATION_CERTIFICATE'
     },
-    REGISTERED: {
-        title: 'Schedule Renewal',
-        description: 'Set the initial renewal tracking parameters.',
-        buttonLabel: 'Start Renewal Tracking',
+    RENEWAL_PENALTY: {
+        title: 'Process Penalty Renewal',
+        description: 'Upload proof of surcharge payment for late renewal.',
+        buttonLabel: 'Complete Renewal',
         fields: [
-            { key: 'triggerDate', label: 'Registration Date (Verification)', type: 'date', required: true },
-            { key: 'notes', label: 'Tracking Notes', type: 'textarea', placeholder: 'Initial renewal notes...' }
-        ]
+            { key: 'triggerDate', label: 'Penalty Payment Date', type: 'date', defaultValue: new Date().toISOString().split('T')[0], required: true },
+            { key: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Details about the penalty payment...' }
+        ],
+        allowFileUpload: true,
+        fileType: 'PRIORITY'
     }
 };
 

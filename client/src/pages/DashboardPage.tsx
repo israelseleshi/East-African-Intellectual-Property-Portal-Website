@@ -154,7 +154,7 @@ export default function DashboardPage() {
 
   const statCards = [
     {
-      label: 'Active Trademarks',
+      label: 'Active trademarks',
       value: stats?.activeTrademarks || 0,
       change: (stats?.activeTrademarks ?? 0) > 0 ? `+${stats?.activeTrademarks}` : '--',
       trend: (stats?.activeTrademarks ?? 0) > 0 ? 'up' : 'none',
@@ -163,7 +163,7 @@ export default function DashboardPage() {
       path: '/trademarks'
     },
     {
-      label: 'Pending Actions',
+      label: 'Pending actions',
       value: stats?.pendingDeadlines || 0,
       change: 'Urgent',
       trend: 'none',
@@ -172,7 +172,7 @@ export default function DashboardPage() {
       path: '/deadlines'
     },
     {
-      label: 'Renewal Window',
+      label: 'Renewal window',
       value: stats?.renewalWindow || 0,
       change: 'Next 30d',
       trend: 'none',
@@ -361,7 +361,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className={[
-                  "text-micro px-2 py-0.5 rounded-full uppercase",
+                  "text-micro px-2 py-0.5 rounded-full",
                   stat.change === 'Urgent' ? 'bg-[var(--eai-critical)]/10 text-[var(--eai-critical)]' : 'bg-[var(--eai-success)]/10 text-[var(--eai-success)]'
                 ].join(' ')}>
                   {stat.change}
@@ -403,7 +403,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-body font-bold text-[var(--eai-text)] truncate">{activity.mark_name}</div>
-                    <div className="text-micro text-[var(--eai-text-secondary)] uppercase">
+                    <div className="text-micro text-[var(--eai-text-secondary)]">
                       {activity.action}
                     </div>
                   </div>
@@ -452,7 +452,7 @@ export default function DashboardPage() {
                          deadline.type === 'RENEWAL' ? 'Renewal Due' : 
                          deadline.type === 'RENEWAL_NOTICE' ? 'Renewal Notice' : 'Deadline'}
                       </span>
-                      <span className="text-micro font-black uppercase">
+                      <span className="text-micro font-black">
                         {isOverdue ? `${Math.abs(deadline.days_remaining)}d overdue` : 
                          `${deadline.days_remaining}d left`}
                       </span>

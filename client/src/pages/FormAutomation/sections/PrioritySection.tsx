@@ -1,6 +1,7 @@
 import React from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { FormSection, FormField, CheckboxGroup } from '../components/FormShared';
+import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData } from '../types';
 
 interface PrioritySectionProps {
@@ -22,11 +23,10 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, hand
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label="Priority country">
-          <input
+          <CountrySelector
             value={formData.priority_country}
-            onChange={(e) => handleInputChange('priority_country', e.target.value)}
-            className="apple-input"
-            placeholder="Country of first filing"
+            onChange={(val) => handleInputChange('priority_country', val)}
+            placeholder="Select priority country"
           />
         </FormField>
         <FormField label="Priority application date">

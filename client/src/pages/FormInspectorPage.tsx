@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { trademarkService, clientService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
 import { useApi } from '../hooks/useApi';
@@ -8,7 +8,14 @@ import {
   Download,
   Settings,
   Briefcase,
-  XCircle
+  XCircle,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  FileText,
+  Eye,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Joyride, { Step } from 'react-joyride';
@@ -23,6 +30,7 @@ import { PrioritySection } from './FormAutomation/sections/PrioritySection';
 import { AgentSection } from './FormAutomation/sections/AgentSection';
 import { DisclaimerSection } from './FormAutomation/sections/DisclaimerSection';
 import { ChecklistSection } from './FormAutomation/sections/ChecklistSection';
+import { RenewalSection } from './FormAutomation/sections/RenewalSection';
 import { EipaFormData, Client, FormType } from './FormAutomation/types';
 import { getPdfFields, fillPdfForm } from '../utils/pdfUtils';
 
@@ -35,7 +43,19 @@ export default function FormInspectorPage() {
   const startJurisdictionTour = tourParam === 'jurisdiction';
   const startFeeTour = tourParam === 'fees';
 
-  const [formType, setFormType] = useState<FormType>('APPLICATION');
+  const location = useLocation();
+  const [formType, setFormType] = useState<FormType>(
+    location.pathname.includes('renewal-form') ? 'RENEWAL' : 'APPLICATION'
+  );
+
+  // Sync state with URL if it changes (e.g. browser back/forward)
+  useEffect(() => {
+    const newType = location.pathname.includes('renewal-form') ? 'RENEWAL' : 'APPLICATION';
+    if (newType !== formType) {
+      setFormType(newType);
+    }
+  }, [location.pathname, formType]);
+
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   
@@ -98,6 +118,44 @@ export default function FormInspectorPage() {
     applicant_sign_day_en: '',
     applicant_sign_month_en: '',
     applicant_sign_year_en: '',
+    // Renewal Initial State
+    renewal_auth_app_no: '',
+    renewal_auth_filing_date: '',
+    renewal_auth_receipt_date: '',
+    renewal_auth_approved_by: '',
+    renewal_applicant_name: '',
+    renewal_address_street: '',
+    renewal_address_zone: '',
+    renewal_city_name: '',
+    renewal_state_name: '',
+    renewal_zip_code: '',
+    renewal_wereda: '',
+    renewal_house_no: '',
+    renewal_telephone: '',
+    renewal_email: '',
+    renewal_fax: '',
+    renewal_po_box: '',
+    renewal_nationality: '',
+    renewal_residence_country: '',
+    renewal_chk_female: false,
+    renewal_chk_male: false,
+    renewal_chk_company: false,
+    renewal_agent_name: '',
+    renewal_agent_address: '',
+    renewal_agent_tel: '',
+    renewal_chk_goods: false,
+    renewal_chk_services: false,
+    renewal_chk_collective: false,
+    renewal_mark_logo: '',
+    renewal_app_no: '',
+    renewal_reg_no: '',
+    renewal_reg_date: '',
+    renewal_goods_services: '',
+    renewal_nice_classes: '',
+    renewal_signature: '',
+    renewal_sign_day: '',
+    renewal_sign_month: '',
+    renewal_sign_year: '',
     agent_name: 'East African IP',
     agent_subcity: 'Yeka',
     agent_wereda: '02',
@@ -239,37 +297,85 @@ export default function FormInspectorPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [runTour, setRunTour] = useState(false);
   const [markImageBase64, setMarkImageBase64] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const api = useApi();
 
-  // Live Preview Effect
+  // Live Preview States
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [showPreview, setShowPreview] = useState(true);
+  const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear preview when form type changes to force regeneration
   useEffect(() => {
-    let objectUrl: string | null = null;
+    setPreviewUrl(null);
+    setPreviewError(null);
+    setPreviewLoading(true);
+    // Immediate regeneration when form type changes
+    generatePreview();
+  }, [formType]);
+
+  // Generate live preview
+  const generatePreview = useCallback(async () => {
+    if (!showPreview) return;
     
-    const updatePreview = async () => {
-      try {
-        const pdfFile = '/application_form.pdf';
-        const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, true);
-        const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
+      console.log(`[Preview] Generating for ${pdfFile}, formType=${formType}`);
+      
+      const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, false);
+      
+      if (pdfBytes && pdfBytes.length > 0) {
+        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        console.log(`[Preview] Generated URL: ${url.substring(0, 50)}...`);
         
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-        }
-        
-        objectUrl = URL.createObjectURL(blob);
-        setPreviewUrl(objectUrl);
-      } catch (e) {
-        console.error('Preview update error', e);
+        setPreviewUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      } else {
+        throw new Error('Generated PDF is empty');
+      }
+    } catch (error) {
+      console.error('Preview generation error:', error);
+      setPreviewError(error instanceof Error ? error.message : 'Failed to generate preview');
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [formData, formType, showPreview]);
+
+  // Debounced preview effect for form data changes only (not formType)
+  useEffect(() => {
+    // Skip the first render since formType effect handles initial load
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+    
+    previewTimeoutRef.current = setTimeout(() => {
+      generatePreview();
+    }, 400);
+
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, generatePreview]);
 
-    const timeoutId = setTimeout(updatePreview, 1000); // Debounce preview updates
+  // Cleanup preview URL on unmount
+  useEffect(() => {
     return () => {
-      clearTimeout(timeoutId);
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
     };
-  }, [formData]);
+  }, [previewUrl]);
 
   useEffect(() => {
     async function fetchClients() {
@@ -289,6 +395,7 @@ export default function FormInspectorPage() {
     if (selectedClient) {
       setFormData(prev => ({
         ...prev,
+        // Application fields
         applicant_name: selectedClient.name,
         applicant_name_amharic: selectedClient.local_name || '',
         address_street: selectedClient.address_street || '',
@@ -301,10 +408,28 @@ export default function FormInspectorPage() {
         email: selectedClient.email || '',
         fax: selectedClient.fax || '',
         nationality: selectedClient.nationality || '',
+        residence_country: selectedClient.residence_country || '',
         po_box: selectedClient.po_box || '',
         chk_company: selectedClient.type === 'COMPANY',
         chk_male: selectedClient.type === 'INDIVIDUAL',
-        chk_female: false
+        chk_female: false,
+
+        // Renewal fields
+        renewal_applicant_name: selectedClient.name,
+        renewal_address_street: selectedClient.address_street || '',
+        renewal_address_zone: selectedClient.address_zone || '',
+        renewal_city_name: selectedClient.city || '',
+        renewal_zip_code: selectedClient.zip_code || '',
+        renewal_wereda: selectedClient.wereda || '',
+        renewal_house_no: selectedClient.house_no || '',
+        renewal_telephone: selectedClient.telephone || '',
+        renewal_email: selectedClient.email || '',
+        renewal_fax: selectedClient.fax || '',
+        renewal_nationality: selectedClient.nationality || '',
+        renewal_residence_country: selectedClient.residence_country || '',
+        renewal_chk_company: selectedClient.type === 'COMPANY',
+        renewal_chk_male: selectedClient.type === 'INDIVIDUAL',
+        renewal_chk_female: false,
       }));
     }
   };
@@ -312,7 +437,7 @@ export default function FormInspectorPage() {
   useEffect(() => {
     async function init() {
       try {
-        const pdfFile = '/application_form.pdf';
+        const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
         const fields = await getPdfFields(pdfFile);
         setAvailableFields(fields.map(f => f.name));
       } catch (e) {
@@ -320,7 +445,7 @@ export default function FormInspectorPage() {
       }
     }
     init();
-  }, []);
+  }, [formType]);
 
   const handleInputChange = (field: keyof EipaFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -362,7 +487,7 @@ export default function FormInspectorPage() {
       return;
     }
 
-    if (!formData.mark_description) {
+    if (!formData.mark_description && formType === 'APPLICATION') {
       addToast({ title: 'Validation error', description: 'Mark description is required', type: 'error' });
       return;
     }
@@ -375,47 +500,52 @@ export default function FormInspectorPage() {
       if (formData.type_thre) markType = 'THREE_DIMENSION';
 
       const payload = {
-        // Pass selected existing client ID if user chose from dropdown
         clientId: selectedClientId || undefined,
-
-        applicantName: formData.applicant_name,
+        applicantName: formType === 'RENEWAL' ? formData.renewal_applicant_name : formData.applicant_name,
         applicantNameAmharic: formData.applicant_name_amharic,
-        applicantType: formData.chk_company ? 'COMPANY' : 'INDIVIDUAL',
-        nationality: formData.nationality,
-        email: formData.email,
-        telephone: formData.telephone,
-        addressStreet: formData.address_street,
-        addressZone: formData.address_zone,
-        wereda: formData.wereda,
-        city: formData.city_name,
-        houseNo: formData.house_no,
-        state: formData.state_name,
-        zipCode: formData.zip_code,
-        poBox: formData.po_box,
-        markName: formData.mark_description || formData.applicant_name || 'New trademark application',
+        applicantType: formData.chk_company || formData.renewal_chk_company ? 'COMPANY' : 'INDIVIDUAL',
+        nationality: formType === 'RENEWAL' ? formData.renewal_nationality : formData.nationality,
+        email: formType === 'RENEWAL' ? formData.renewal_email : formData.email,
+        telephone: formType === 'RENEWAL' ? formData.renewal_telephone : formData.telephone,
+        addressStreet: formType === 'RENEWAL' ? formData.renewal_address_street : formData.address_street,
+        addressZone: formType === 'RENEWAL' ? formData.renewal_address_zone : formData.address_zone,
+        wereda: formType === 'RENEWAL' ? formData.renewal_wereda : formData.wereda,
+        city: formType === 'RENEWAL' ? formData.renewal_city_name : formData.city_name,
+        houseNo: formType === 'RENEWAL' ? formData.renewal_house_no : formData.house_no,
+        state: formType === 'RENEWAL' ? formData.renewal_state_name : formData.state_name,
+        zipCode: formType === 'RENEWAL' ? formData.renewal_zip_code : formData.zip_code,
+        poBox: formType === 'RENEWAL' ? formData.renewal_po_box : formData.po_box,
+        markName: (formType === 'RENEWAL' ? formData.renewal_goods_services : formData.mark_description) || formData.applicant_name || 'New trademark application',
         markType,
-        markDescription: formData.mark_description,
+        markDescription: formType === 'RENEWAL' ? formData.renewal_goods_services : formData.mark_description,
         colorIndication: formData.mark_color_indication || 'Black & White',
         priority: formData.priority_country ? 'YES' : 'NO',
         priorityCountry: formData.priority_country,
         markImage: markImageBase64,
-        registrationNo: formData.registration_no,
-        registrationDate: formData.registration_date,
-        applicationNo: formData.application_no,
-        formType: 'APPLICATION',
-        formVersion: 'EIPA_FORM_01',
-        niceClasses: niceClasses.map((c: number) => ({ classNo: c, description: formData.goods_services_list })),
+        registrationNo: formType === 'RENEWAL' ? formData.renewal_reg_no : formData.registration_no,
+        registrationDate: formType === 'RENEWAL' ? formData.renewal_reg_date : formData.registration_date,
+        applicationNo: formType === 'RENEWAL' ? formData.renewal_app_no : formData.application_no,
+        formType: formType,
+        formVersion: formType === 'RENEWAL' ? 'EIPA_FORM_06' : 'EIPA_FORM_01',
+        niceClasses: niceClasses.map((c: number) => ({ classNo: c, description: formType === 'RENEWAL' ? formData.renewal_goods_services : formData.goods_services_list })),
         jurisdiction: 'ET',
         eipaFormData: {
           ...formData,
           nice_classes_selected: niceClasses,
-          nice_classes_mapped: niceClasses.map((c: number) => ({ classNo: c, description: formData.goods_services_list }))
+          nice_classes_mapped: niceClasses.map((c: number) => ({ classNo: c, description: formType === 'RENEWAL' ? formData.renewal_goods_services : formData.goods_services_list }))
         }
       };
 
       const response = await api.post('/forms/submit', payload);
-      addToast({ title: 'Success', description: `Application submitted! Filing number: ${response.filingNumber}`, type: 'success' });
-      navigate(`/trademarks/${response.caseId}`);
+      addToast({ 
+        title: 'Success', 
+        description: `${formType === 'RENEWAL' ? 'Renewal' : 'Application'} submitted! Filing number: ${response.filingNumber}`, 
+        type: 'success' 
+      });
+      // Small delay for the user (and Cypress) to see the success message
+      setTimeout(() => {
+        navigate(`/trademarks/${response.caseId}`);
+      }, 1500);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string; details?: string } } };
       addToast({ title: 'Submission failed', description: err?.response?.data?.error || err?.response?.data?.details || 'Failed to submit application.', type: 'error' });
@@ -426,13 +556,14 @@ export default function FormInspectorPage() {
 
   const handleDownload = async () => {
     try {
-      const pdfFile = '/application_form.pdf';
+      const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
       const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, true);
-      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `EIPA_Application_Form_${formData.applicant_name || 'Draft'}.pdf`;
+      const fileName = formType === 'RENEWAL' ? 'Renewal_Form' : 'EIPA_Application_Form';
+      link.download = `${fileName}_${formData.applicant_name || 'Draft'}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -473,10 +604,40 @@ export default function FormInspectorPage() {
           buttonSkip: { fontSize: '13px', fontWeight: 'bold' }
         }}
       />
+      {/* Tabs moved above the title */}
+      <div className="flex gap-2 p-1 bg-secondary/50 rounded-lg w-fit mb-6">
+        <Link
+          to="/eipa-forms/application-form"
+          className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
+            formType === 'APPLICATION'
+              ? 'bg-background shadow-md text-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/30'
+          }`}
+        >
+          Application Form
+        </Link>
+        <Link
+          to="/eipa-forms/renewal-form"
+          className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
+            formType === 'RENEWAL'
+              ? 'bg-background shadow-md text-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/30'
+          }`}
+        >
+          Renewal Form
+        </Link>
+      </div>
+
       <header className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 shrink-0 mb-8">
         <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <h1 className="text-h1 text-[var(--eai-text)]">Form Automation</h1>
-          <p className="text-body text-[var(--eai-text-secondary)]">Generate and preview EIPA trademark application forms live.</p>
+          <h1 className="text-h1 text-[var(--eai-text)]">
+            {formType === 'RENEWAL' ? 'Trademark Renewal' : 'Trademark Application'}
+          </h1>
+          <p className="text-body text-[var(--eai-text-secondary)]">
+            {formType === 'RENEWAL' 
+              ? 'Generate EIPA trademark renewal forms.' 
+              : 'Generate EIPA trademark application forms.'}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
           <button
@@ -485,12 +646,12 @@ export default function FormInspectorPage() {
             className="flex items-center gap-2 text-label text-[var(--eai-text-secondary)] hover:text-[var(--eai-primary)] transition-colors px-3 py-2"
           >
             <Settings size={18} />
-            <span className="hidden sm:inline lowercase first-letter:uppercase">{showFields ? 'Hide tags' : 'Inspect tags'}</span>
+            <span className="hidden sm:inline">{showFields ? 'Hide tags' : 'Inspect tags'}</span>
           </button>
           <button
             id="download-pdf-button"
             onClick={handleDownload}
-            className="apple-button-secondary flex items-center gap-2 text-label lowercase first-letter:uppercase"
+            className="apple-button-secondary flex items-center gap-2 text-label"
           >
             <Download size={18} />
             <span>Download PDF</span>
@@ -500,67 +661,181 @@ export default function FormInspectorPage() {
             id="submit-button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="apple-button-primary flex items-center gap-2 shadow-lg shadow-[var(--eai-primary)]/20 text-label text-white lowercase first-letter:uppercase"
+            className="apple-button-primary flex items-center gap-2 shadow-lg shadow-[var(--eai-primary)]/20 text-label text-white first-letter:uppercase"
           >
             {isSubmitting ? <RefreshCcw size={18} className="animate-spin" /> : <Briefcase size={18} />}
-            <span>{isSubmitting ? 'Submitting...' : 'Submit application'}</span>
+            <span>{isSubmitting ? 'Submitting...' : (formType === 'RENEWAL' ? 'Submit renewal' : 'Submit application')}</span>
           </button>
         </div>
       </header>
 
       <div className="flex-1 min-h-0 flex gap-6">
         {/* Left Side: Form Controls */}
-        <div className="flex-1 flex flex-col space-y-6 overflow-y-auto pr-4 custom-scrollbar pb-12" id="form-controls-section">
-          <ApplicantSection 
-            formData={formData} 
-            handleInputChange={handleInputChange} 
-            clients={clients} 
-            selectedClientId={selectedClientId} 
-            handleClientSelect={handleClientSelect} 
-          />
-          <AddressSection formData={formData} handleInputChange={handleInputChange} />
-          <AgentSection formData={formData} handleInputChange={handleInputChange} />
-          <ContactSection formData={formData} handleInputChange={handleInputChange} />
-          <MarkSpecificationSection 
-            formData={formData} 
-            handleInputChange={handleInputChange} 
-            markImageBase64={markImageBase64} 
-            handleImageUpload={handleImageUpload} 
-            removeImage={removeImage} 
-            fileInputRef={fileInputRef} 
-          />
-          <NiceClassificationSection 
-            formData={formData} 
-            handleInputChange={handleInputChange} 
-            niceClasses={niceClasses} 
-            setNiceClasses={setNiceClasses} 
-          />
-          <DisclaimerSection formData={formData} handleInputChange={handleInputChange} />
-          <PrioritySection formData={formData} handleInputChange={handleInputChange} />
-          <ChecklistSection formData={formData} handleInputChange={handleInputChange} />
+        <div className="flex-1 flex flex-col space-y-6 overflow-y-auto pr-4 custom-scrollbar pb-12 max-w-2xl" id="form-controls-section">
+
+          <div className="space-y-6">
+            {formType === 'APPLICATION' ? (
+              <>
+                <ApplicantSection 
+                  formData={formData} 
+                  handleInputChange={handleInputChange} 
+                  clients={clients}
+                  selectedClientId={selectedClientId}
+                  handleClientSelect={handleClientSelect}
+                />
+                <AddressSection formData={formData} handleInputChange={handleInputChange} />
+                <ContactSection formData={formData} handleInputChange={handleInputChange} />
+                <MarkSpecificationSection 
+                  formData={formData} 
+                  handleInputChange={handleInputChange} 
+                  markImageBase64={markImageBase64}
+                  handleImageUpload={handleImageUpload}
+                  removeImage={removeImage}
+                  fileInputRef={fileInputRef}
+                />
+                <NiceClassificationSection 
+                  formData={formData} 
+                  handleInputChange={handleInputChange}
+                  niceClasses={niceClasses}
+                  setNiceClasses={setNiceClasses}
+                />
+                <PrioritySection formData={formData} handleInputChange={handleInputChange} />
+                <DisclaimerSection formData={formData} handleInputChange={handleInputChange} />
+                <AgentSection formData={formData} handleInputChange={handleInputChange} />
+                <ChecklistSection formData={formData} handleInputChange={handleInputChange} />
+              </>
+            ) : (
+              <RenewalSection 
+                formData={formData} 
+                handleInputChange={handleInputChange} 
+                clients={clients}
+                selectedClientId={selectedClientId}
+                handleClientSelect={handleClientSelect}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Right Side: Live Preview */}
-        <div className="hidden lg:flex flex-1 flex-col border border-[var(--eai-border)] rounded-3xl bg-[var(--eai-surface)] overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-[var(--eai-border)] flex items-center justify-between">
-            <h3 className="text-h3">Live Preview</h3>
-            <span className="text-micro text-[var(--eai-text-secondary)] bg-[var(--eai-bg)] px-2 py-1 rounded-full border border-[var(--eai-border)]">
-              EIPA FORM 01
-            </span>
+        {/* Right Side: Premium PDF Live Preview */}
+        <div className="w-[45%] min-w-[400px] flex flex-col bg-[var(--eai-surface)] rounded-2xl border border-[var(--eai-border)] overflow-hidden shadow-lg">
+          {/* Preview Header with Controls */}
+          <div className="flex items-center justify-between px-4 py-3 bg-[var(--eai-bg)] border-b border-[var(--eai-border)]">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-[var(--eai-primary)]" />
+              <span className="text-sm font-medium text-[var(--eai-text)]">
+                {formType === 'RENEWAL' ? 'Renewal Form' : 'Application Form'} Preview
+              </span>
+              {previewLoading && (
+                <Loader2 size={14} className="animate-spin text-[var(--eai-primary)] ml-2" />
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setZoom(prev => Math.max(0.5, prev - 0.1))}
+                className="p-2 rounded-lg hover:bg-[var(--eai-surface)] text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)] transition-colors"
+                title="Zoom Out"
+              >
+                <ZoomOut size={16} />
+              </button>
+              <span className="text-xs font-medium text-[var(--eai-text-secondary)] w-12 text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={() => setZoom(prev => Math.min(2, prev + 0.1))}
+                className="p-2 rounded-lg hover:bg-[var(--eai-surface)] text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)] transition-colors"
+                title="Zoom In"
+              >
+                <ZoomIn size={16} />
+              </button>
+              <div className="w-px h-5 bg-[var(--eai-border)] mx-2" />
+              <button
+                onClick={() => generatePreview()}
+                className="p-2 rounded-lg hover:bg-[var(--eai-surface)] text-[var(--eai-text-secondary)] hover:text-[var(--eai-primary)] transition-colors"
+                title="Refresh Preview"
+              >
+                <RotateCw size={16} />
+              </button>
+              <button
+                onClick={() => setShowPreview(prev => !prev)}
+                className="p-2 rounded-lg hover:bg-[var(--eai-surface)] text-[var(--eai-text-secondary)] hover:text-[var(--eai-primary)] transition-colors"
+                title={showPreview ? 'Hide Preview' : 'Show Preview'}
+              >
+                <Eye size={16} />
+              </button>
+            </div>
           </div>
-          <div className="flex-1 bg-zinc-100 p-4">
-            {previewUrl ? (
-              <iframe 
-                src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                className="w-full h-full rounded-xl border border-[var(--eai-border)] shadow-md"
-                title="Application Form Preview"
-              />
+
+          {/* PDF Preview Area */}
+          <div className="flex-1 bg-[var(--eai-bg)] relative overflow-hidden">
+            {showPreview ? (
+              previewError ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-red-500 p-6">
+                  <AlertCircle size={40} className="mb-4 opacity-70" />
+                  <p className="text-sm font-medium">Preview generation failed</p>
+                  <p className="text-xs mt-2 opacity-70 text-center max-w-xs">{previewError}</p>
+                  <button
+                    onClick={() => generatePreview()}
+                    className="mt-4 px-4 py-2 bg-[var(--eai-surface)] hover:bg-[var(--eai-border)] rounded-lg text-sm transition-colors flex items-center gap-2"
+                  >
+                    <RotateCw size={14} />
+                    Retry
+                  </button>
+                </div>
+              ) : previewUrl ? (
+                <div 
+                  className="w-full h-full flex items-center justify-center p-4 overflow-auto"
+                  style={{
+                    transform: `scale(${zoom})`,
+                    transformOrigin: 'center top',
+                    transition: 'transform 0.2s ease-out'
+                  }}
+                >
+                  <iframe
+                    src={`${previewUrl}#toolbar=1&navpanes=0`}
+                    className="w-full h-full min-h-[600px] bg-white rounded-lg shadow-sm"
+                    style={{ minWidth: '100%' }}
+                    title="PDF Preview"
+                  />
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--eai-text-secondary)]">
+                  {previewLoading ? (
+                    <>
+                      <Loader2 size={40} className="animate-spin mb-4 text-[var(--eai-primary)]" />
+                      <p className="text-sm">Generating preview...</p>
+                      <p className="text-xs mt-2 opacity-50">{formType === 'RENEWAL' ? 'Loading renewal form...' : 'Loading application form...'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileText size={48} className="mb-4 opacity-30" />
+                      <p className="text-sm">Preview will appear here</p>
+                      <p className="text-xs mt-2 opacity-50">Fill out the form to see live preview</p>
+                    </>
+                  )}
+                </div>
+              )
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-[var(--eai-text-secondary)] gap-4">
-                <RefreshCcw size={32} className="animate-spin text-[var(--eai-primary)]" />
-                <p className="text-label">Generating preview...</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--eai-text-secondary)]">
+                <Eye size={40} className="mb-4 opacity-30" />
+                <p className="text-sm">Preview hidden</p>
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="mt-4 px-4 py-2 bg-[var(--eai-surface)] hover:bg-[var(--eai-border)] rounded-lg text-sm transition-colors"
+                >
+                  Show Preview
+                </button>
               </div>
             )}
+          </div>
+
+          {/* Preview Footer */}
+          <div className="px-4 py-2 bg-[var(--eai-bg)] border-t border-[var(--eai-border)] flex items-center justify-between">
+            <span className="text-xs text-[var(--eai-text-secondary)]">
+              Auto-updates when you type
+            </span>
+            <span className="text-xs text-[var(--eai-text-secondary)]">
+              {formType === 'RENEWAL' ? 'EIPA Form 06' : 'EIPA Form 01'}
+            </span>
           </div>
         </div>
       </div>
@@ -583,7 +858,7 @@ export default function FormInspectorPage() {
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar p-2">
-              {availableFields.map(field => (
+              {Array.from(new Set(availableFields)).map(field => (
                 <div key={field} className="px-3 py-2 bg-[var(--eai-bg)] rounded-xl border border-[var(--eai-border)] text-micro font-mono truncate hover:border-[var(--eai-primary)] transition-colors cursor-help" title={field}>
                   {field}
                 </div>

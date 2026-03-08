@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { clientService } from '@/utils/api';
 import { usePageTitleStore } from '@/store/pageTitleStore';
 import { useToast } from '@/components/ui/toast';
+import { CountrySelector } from '@/components/CountrySelector';
 
 import StatusPill from '@/components/StatusPill';
 import JurisdictionBadge from '@/components/JurisdictionBadge';
@@ -38,6 +39,7 @@ interface Client {
   po_box?: string;
   telephone?: string;
   fax?: string;
+  residence_country?: string;
   created_at: string;
   trademarks?: AssociatedTrademark[];
 }
@@ -146,7 +148,7 @@ export default function ClientDetailPage() {
             </h1>
             {!isEditing && (
               <div className="mt-1">
-                <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none uppercase">
+                <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
                   {CLIENT_TYPE_LABELS[client.type]}
                 </span>
               </div>
@@ -272,13 +274,25 @@ export default function ClientDetailPage() {
                 <div className="space-y-1.5">
                   <Label className="text-micro text-[var(--eai-text-secondary)]">Nationality</Label>
                   {isEditing ? (
-                    <Input
+                    <CountrySelector
                       value={formData.nationality || ''}
-                      onChange={(e) => handleChange('nationality', e.target.value)}
-                      className="apple-input"
+                      onChange={(val) => handleChange('nationality', val)}
+                      placeholder="Select nationality"
                     />
                   ) : (
                     <div className="text-body font-medium text-[var(--eai-text)]">{client.nationality || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Country of residence</Label>
+                  {isEditing ? (
+                    <CountrySelector
+                      value={formData.residence_country || ''}
+                      onChange={(val) => handleChange('residence_country', val)}
+                      placeholder="Select country"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.residence_country || '—'}</div>
                   )}
                 </div>
                 <div className="space-y-1.5">
@@ -347,6 +361,7 @@ export default function ClientDetailPage() {
                     <Input
                       value={formData.city || ''}
                       onChange={(e) => handleChange('city', e.target.value)}
+                      placeholder="City"
                       className="apple-input"
                     />
                   ) : (

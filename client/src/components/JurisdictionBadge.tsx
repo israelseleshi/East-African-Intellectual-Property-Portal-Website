@@ -24,7 +24,7 @@ export default function JurisdictionBadge({ jurisdiction }: Props) {
   
   return (
     <span className={[
-      "inline-flex h-6 items-center gap-1.5 rounded-none border px-2 text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm",
+      "inline-flex h-6 items-center gap-1.5 rounded-full border px-2 text-[11px] font-bold tracking-wider transition-all shadow-sm",
       isET 
         ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
         : "bg-blue-500/10 text-blue-600 border-blue-500/20"

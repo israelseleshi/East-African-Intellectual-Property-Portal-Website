@@ -522,7 +522,7 @@ export default function ClientsPage() {
                       <h3 className="text-h3 truncate group-hover:text-[var(--eai-primary)] transition-colors">
                         {client.name}
                       </h3>
-                      <span className="text-micro px-2 py-0.5 mt-2 inline-block bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] rounded-full font-bold uppercase">
+                      <span className="text-micro px-2 py-0.5 mt-2 inline-block bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] rounded-full font-bold">
                         {CLIENT_TYPE_LABELS[client.type]}
                       </span>
                     </div>
@@ -597,7 +597,7 @@ export default function ClientsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-5">
-                          <span className="text-micro px-2 py-0.5 bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] rounded-full font-bold uppercase">
+                          <span className="text-micro px-2 py-0.5 bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] rounded-full font-bold">
                             {CLIENT_TYPE_LABELS[client.type]}
                           </span>
                         </td>

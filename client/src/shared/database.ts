@@ -31,7 +31,7 @@ interface JurisdictionConfig {
   renewal_years: number;
   renewal_on_time_days: number;
   renewal_penalty_days: number;
-  substantial_exam_flag_days: number;
+  substantial_exam_days: number;
   amendment_period_days?: number;
 }
 
@@ -44,7 +44,7 @@ export const JURISDICTION_CONFIG: Record<string, JurisdictionConfig> = {
     renewal_years: 7,
     renewal_on_time_days: 30,
     renewal_penalty_days: 180,
-    substantial_exam_flag_days: 180,
+    substantial_exam_days: 20,
     amendment_period_days: 90
   },
   KE: {
@@ -55,43 +55,43 @@ export const JURISDICTION_CONFIG: Record<string, JurisdictionConfig> = {
     renewal_years: 10,
     renewal_on_time_days: 30,
     renewal_penalty_days: 180,
-    substantial_exam_flag_days: 180
+    substantial_exam_days: 120
   },
   ER: { name: 'Eritrea', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   DJ: { name: 'Djibouti', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   SO: { name: 'Somalia', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   SL: { name: 'Somaliland', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   TZ: { name: 'Tanzania', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   UG: { name: 'Uganda', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   RW: { name: 'Rwanda', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   BI: { name: 'Burundi', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   },
   SD: { name: 'Sudan', opposition_period_days: 60, renewal_years: 10,
     certificate_request_days: 20, certificate_issuance_days: 30, renewal_on_time_days: 30,
-    renewal_penalty_days: 180, substantial_exam_flag_days: 180
+    renewal_penalty_days: 180, substantial_exam_days: 120
   }
 } as const;
 
@@ -103,7 +103,11 @@ export const TRADEMARK_STATUSES = [
   'PUBLISHED',
   'REGISTERED',
   'EXPIRING',
-  'RENEWAL'
+  'RENEWAL',
+  'AMENDMENT_PENDING',
+  'OPPOSED',
+  'ABANDONED',
+  'WITHDRAWN'
 ] as const;
 
 export type TrademarkStatus = (typeof TRADEMARK_STATUSES)[number];
@@ -124,14 +128,20 @@ export function statusToWorkflowStage(status: TrademarkStatus): TrademarkState {
     case 'FORMAL_EXAM':
       return 'FORMAL_EXAM';
     case 'SUBSTANTIVE_EXAM':
+    case 'AMENDMENT_PENDING':
       return 'SUBSTANTIVE_EXAM';
     case 'PUBLISHED':
+    case 'OPPOSED':
       return 'PUBLICATION';
     case 'REGISTERED':
       return 'REGISTRATION';
     case 'EXPIRING':
     case 'RENEWAL':
+    case 'ABANDONED':
+    case 'WITHDRAWN':
       return 'RENEWAL';
+    default:
+      return 'INTAKE';
   }
 }
 

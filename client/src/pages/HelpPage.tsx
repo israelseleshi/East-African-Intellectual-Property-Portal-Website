@@ -143,7 +143,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3 text-sm">Dashboard</h3>
                         <p className="text-label text-xs normal-case font-medium line-clamp-2">Practice dashboard overview.</p>
-                        <button onClick={() => navigate('/?tour=true')} className="apple-button-primary text-micro w-full uppercase text-xs py-2">Start Tour</button>
+                        <button onClick={() => navigate('/?tour=true')} className="apple-button-primary text-micro w-full text-xs py-2">Start tour</button>
                     </div>
 
                     {/* Clients Tour */}
@@ -153,7 +153,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3 text-sm">Clients</h3>
                         <p className="text-label text-xs normal-case font-medium line-clamp-2">Client database management.</p>
-                        <button onClick={() => navigate('/clients?tour=true')} className="apple-button-primary text-micro w-full uppercase text-xs py-2">Start Tour</button>
+                        <button onClick={() => navigate('/clients?tour=true')} className="apple-button-primary text-micro w-full text-xs py-2">Start tour</button>
                     </div>
 
                     {/* Forms Tour */}
@@ -163,7 +163,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3 text-sm">Forms</h3>
                         <p className="text-label text-xs normal-case font-medium line-clamp-2">Automated EIPA form filler.</p>
-                        <button onClick={() => navigate('/eipa-forms?tour=true')} className="apple-button-primary text-micro w-full uppercase text-xs py-2">Start Tour</button>
+                        <button onClick={() => navigate('/eipa-forms?tour=true')} className="apple-button-primary text-micro w-full text-xs py-2">Start tour</button>
                     </div>
 
                     {/* Billing Tour */}
@@ -173,7 +173,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3 text-sm">Billing</h3>
                         <p className="text-label text-xs normal-case font-medium line-clamp-2">Invoices and fees guide.</p>
-                        <button onClick={() => navigate('/invoicing?tour=true')} className="apple-button-primary text-micro w-full uppercase text-xs py-2">Start Tour</button>
+                        <button onClick={() => navigate('/invoicing?tour=true')} className="apple-button-primary text-micro w-full text-xs py-2">Start tour</button>
                     </div>
 
                     {/* Trademarks Tour */}
@@ -183,7 +183,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3 text-sm">Trademarks</h3>
                         <p className="text-label text-xs normal-case font-medium line-clamp-2">Docket and case management.</p>
-                        <button onClick={() => navigate('/trademarks?tour=true')} className="apple-button-primary text-micro w-full uppercase text-xs py-2">Start Tour</button>
+                        <button onClick={() => navigate('/trademarks?tour=true')} className="apple-button-primary text-micro w-full text-xs py-2">Start tour</button>
                     </div>
                 </div>
             </div>
@@ -251,7 +251,7 @@ export default function HelpPage() {
                         </div>
                         <h3 className="text-h3">Email Us</h3>
                         <p className="text-label normal-case font-medium">Direct email support for legal queries.</p>
-                        <button className="apple-button-secondary text-micro w-full uppercase whitespace-nowrap overflow-hidden text-ellipsis">support@eai.com</button>
+                        <button className="apple-button-secondary text-micro w-full whitespace-nowrap overflow-hidden text-ellipsis">support@eai.com</button>
                     </div>
                 </div>
             </div>
@@ -267,9 +267,7 @@ export default function HelpPage() {
                         return (
                             <div key={catIdx} className="space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-lg bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] flex items-center justify-center">
-                                        <Icon size={20} weight="duotone" />
-                                    </div>
+                                    <Icon size={20} weight="duotone" />
                                     <h3 className="text-h3 text-[var(--eai-text)]">{category.name}</h3>
                                     <span className="text-sm text-[var(--eai-text-secondary)] bg-[var(--eai-bg)] px-2 py-1 rounded-full">
                                         {category.questions.length} questions

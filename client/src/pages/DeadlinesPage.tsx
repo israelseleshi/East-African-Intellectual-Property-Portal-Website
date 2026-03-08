@@ -70,8 +70,14 @@ const JurisdictionFlag = ({ code, className = "h-4 w-6" }: { code: string, class
 export default function DeadlinesPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState('ALL')
-  const [deadlines, setDeadlines] = useState<Array<{ id?: string; due_date?: string; type?: string; priority?: string; case_id?: string; mark?: string; jurisdiction?: string }>>([])
+  const [trademarkFilter, setTrademarkFilter] = useState('ALL')
+  const [clientFilter, setClientFilter] = useState('ALL')
+  const [deadlines, setDeadlines] = useState<Array<{ id?: string; due_date?: string; type?: string; priority?: string; case_id?: string; mark?: string; jurisdiction?: string; client?: string }>>([])
   const [loading, setLoading] = useState(true)
+
+  // Extract unique trademarks and clients from deadlines
+  const uniqueTrademarks = Array.from(new Set(deadlines.map(d => d.mark).filter(Boolean))).sort()
+  const uniqueClients = Array.from(new Set(deadlines.map(d => d.client).filter(Boolean))).sort()
 
   useEffect(() => {
     async function fetchDeadlines() {
@@ -79,11 +85,12 @@ export default function DeadlinesPage() {
         const cases = await trademarkService.getCases()
 
         // Flatten deadlines from all cases
-        const allDeadlines = cases.flatMap((c: { deadlines?: Array<{ id?: string; due_date?: string; type?: string; priority?: string }>; mark_name?: string; markName?: string; jurisdiction?: string }) =>
+        const allDeadlines = cases.flatMap((c: { deadlines?: Array<{ id?: string; due_date?: string; type?: string; priority?: string }>; mark_name?: string; markName?: string; jurisdiction?: string; client_name?: string }) =>
           (c.deadlines || []).map((d: { id?: string; due_date?: string; type?: string; priority?: string }) => ({
             ...d,
             mark: c.mark_name || c.markName,
-            jurisdiction: c.jurisdiction
+            jurisdiction: c.jurisdiction,
+            client: c.client_name
           }))
         )
         setDeadlines(allDeadlines)
@@ -96,9 +103,12 @@ export default function DeadlinesPage() {
     fetchDeadlines()
   }, [])
 
-  const filteredDeadlines = filter === 'ALL'
-    ? deadlines
-    : deadlines.filter(d => d.jurisdiction === filter)
+  const filteredDeadlines = deadlines.filter(d => {
+    const matchesJurisdiction = filter === 'ALL' || d.jurisdiction === filter
+    const matchesTrademark = trademarkFilter === 'ALL' || d.mark === trademarkFilter
+    const matchesClient = clientFilter === 'ALL' || d.client === clientFilter
+    return matchesJurisdiction && matchesTrademark && matchesClient
+  })
 
   if (loading) {
     return (
@@ -163,13 +173,14 @@ export default function DeadlinesPage() {
           <h1 className="text-[34px] font-bold tracking-tight text-[var(--eai-text)]">Statutory Deadlines</h1>
           <p className="text-[17px] text-[var(--eai-text-secondary)] font-medium">Critical tracking for statutory oppositions and renewals.</p>
         </div>
-        <div id="jurisdiction-filter">
+        <div id="jurisdiction-filter" className="flex flex-wrap items-center gap-2">
+          {/* Jurisdiction Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-10 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
                 <Funnel size={18} className="text-[var(--eai-text-secondary)] mr-1" />
                 <JurisdictionFlag code={filter} className="h-3.5 w-5" />
-                <span className="text-[13px] font-bold ml-1 uppercase">{JURISDICTION_NAMES[filter]}</span>
+                <span className="text-[13px] font-bold ml-1">{JURISDICTION_NAMES[filter]}</span>
                 <CaretDown size={14} className="text-[var(--eai-text-secondary)] ml-1" />
               </button>
             </DropdownMenuTrigger>
@@ -183,6 +194,60 @@ export default function DeadlinesPage() {
                 >
                   <JurisdictionFlag code={code} className="h-3.5 w-5" />
                   <span className={filter === code ? 'text-white' : 'text-[var(--eai-text)]'}>{name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Trademark Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-10 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
+                <span className="text-[13px] font-bold">{trademarkFilter === 'ALL' ? 'All Trademarks' : trademarkFilter}</span>
+                <CaretDown size={14} className="text-[var(--eai-text-secondary)] ml-1" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl max-h-[300px] overflow-y-auto">
+              <DropdownMenuItem
+                onClick={() => setTrademarkFilter('ALL')}
+                className={`px-4 py-2.5 text-[13px] font-medium cursor-pointer ${trademarkFilter === 'ALL' ? 'bg-[var(--eai-primary)] text-white' : 'hover:bg-[var(--eai-bg)] text-[var(--eai-text)]'}`}
+              >
+                All Trademarks
+              </DropdownMenuItem>
+              {uniqueTrademarks.map((trademark) => (
+                <DropdownMenuItem
+                  key={trademark}
+                  onClick={() => setTrademarkFilter(trademark || 'ALL')}
+                  className={`px-4 py-2.5 text-[13px] font-medium cursor-pointer truncate ${trademarkFilter === trademark ? 'bg-[var(--eai-primary)] text-white' : 'hover:bg-[var(--eai-bg)] text-[var(--eai-text)]'}`}
+                >
+                  {trademark}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Client Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-10 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
+                <span className="text-[13px] font-bold">{clientFilter === 'ALL' ? 'All Clients' : clientFilter}</span>
+                <CaretDown size={14} className="text-[var(--eai-text-secondary)] ml-1" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl max-h-[300px] overflow-y-auto">
+              <DropdownMenuItem
+                onClick={() => setClientFilter('ALL')}
+                className={`px-4 py-2.5 text-[13px] font-medium cursor-pointer ${clientFilter === 'ALL' ? 'bg-[var(--eai-primary)] text-white' : 'hover:bg-[var(--eai-bg)] text-[var(--eai-text)]'}`}
+              >
+                All Clients
+              </DropdownMenuItem>
+              {uniqueClients.map((client) => (
+                <DropdownMenuItem
+                  key={client}
+                  onClick={() => setClientFilter(client || 'ALL')}
+                  className={`px-4 py-2.5 text-[13px] font-medium cursor-pointer truncate ${clientFilter === client ? 'bg-[var(--eai-primary)] text-white' : 'hover:bg-[var(--eai-bg)] text-[var(--eai-text)]'}`}
+                >
+                  {client}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -264,7 +329,7 @@ export default function DeadlinesPage() {
             </h3>
             <div className="grid grid-cols-7 gap-1 text-center text-[12px]">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                <div key={day} className="font-bold text-[var(--eai-text-secondary)] py-2 uppercase">{day}</div>
+                <div key={day} className="font-bold text-[var(--eai-text-secondary)] py-2">{day}</div>
               ))}
               {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
                 <div
