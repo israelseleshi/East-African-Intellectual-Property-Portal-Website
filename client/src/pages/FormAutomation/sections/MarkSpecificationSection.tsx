@@ -6,20 +6,33 @@ import { EipaFormData } from '../types';
 interface MarkSpecificationSectionProps {
   formData: EipaFormData;
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
-  markImageBase64: string | null;
-  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  removeImage: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  markImage: string | null;
+  onImageChange: (base64: string | null) => void;
 }
 
 export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> = ({
   formData,
   handleInputChange,
-  markImageBase64,
-  handleImageUpload,
-  removeImage,
-  fileInputRef,
+  markImage,
+  onImageChange,
 }) => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onImageChange(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    onImageChange(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
   const markTypeOptions = [
     { id: 'chk_goods', label: 'Goods mark' },
     { id: 'chk_services', label: 'Service mark' },
@@ -68,10 +81,10 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
               accept="image/*"
               className="hidden"
             />
-            {markImageBase64 ? (
+            {markImage ? (
               <div className="relative w-full h-full p-4">
                 <img 
-                  src={markImageBase64} 
+                  src={markImage} 
                   alt="Mark preview" 
                   className="w-full h-full object-contain"
                 />

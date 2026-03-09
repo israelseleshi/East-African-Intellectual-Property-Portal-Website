@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
+    "moduleResolution": "Node",
     "jsx": "react-jsx",
     "lib": [
       "ES2022",

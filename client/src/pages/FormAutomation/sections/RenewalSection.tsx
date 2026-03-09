@@ -1,5 +1,5 @@
-import React from 'react';
-import { FileText, User, MapPin, Phone, Briefcase, CheckSquare, Image as ImageIcon, Hash, List, PenTool, Database, ChevronDown } from 'lucide-react';
+import React, { useRef } from 'react';
+import { FileText, User, MapPin, Phone, Briefcase, CheckSquare, Image as ImageIcon, Hash, List, PenTool, Database, ChevronDown, Upload, XCircle } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData, Client } from '../types';
@@ -16,6 +16,8 @@ interface RenewalSectionProps {
   clients: Client[];
   selectedClientId: string;
   handleClientSelect: (clientId: string) => void;
+  markImage: string | null;
+  onImageChange: (base64: string | null) => void;
 }
 
 export const RenewalSection: React.FC<RenewalSectionProps> = ({
@@ -24,7 +26,29 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
   clients,
   selectedClientId,
   handleClientSelect,
+  markImage,
+  onImageChange,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        onImageChange(base64);
+        handleInputChange('renewal_mark_logo', base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    onImageChange(null);
+    handleInputChange('renewal_mark_logo', '');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
   const quickLoadTrigger = (
     <div id="quick-client-select-renewal">
       <DropdownMenu>
@@ -343,14 +367,50 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
 
       {/* IV. Mark Representation */}
       <FormSection title="IV. Representation of Mark" icon={ImageIcon}>
-        <FormField label="Mark Logo / Image">
-          <input
-            value={formData.renewal_mark_logo || ''}
-            onChange={(e) => handleInputChange('renewal_mark_logo', e.target.value)}
-            className="apple-input"
-            placeholder="Logo image URL or base64"
-          />
-        </FormField>
+        <div className="space-y-3">
+          <label className="text-label text-[var(--eai-text)]">Mark Logo / Image</label>
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="relative aspect-video w-full rounded-2xl border-2 border-dashed border-[var(--eai-border)] bg-[var(--eai-bg)]/30 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-[var(--eai-primary)] hover:bg-[var(--eai-bg)] transition-all"
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            {markImage ? (
+              <div className="relative w-full h-full p-4">
+                <img 
+                  src={markImage} 
+                  alt="Mark preview" 
+                  className="w-full h-full object-contain"
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImage();
+                  }}
+                  className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-[var(--eai-critical)] hover:scale-110 transition-transform"
+                >
+                  <XCircle size={24} fill="currentColor" className="text-white" />
+                  <XCircle size={24} className="absolute inset-0" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="h-12 w-12 rounded-full bg-[var(--eai-bg)] flex items-center justify-center text-[var(--eai-text-secondary)] group-hover:text-[var(--eai-primary)] transition-colors">
+                  <Upload size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-body font-bold text-[var(--eai-text)]">Click to upload mark image</p>
+                  <p className="text-micro text-[var(--eai-text-secondary)]">PNG, JPG, SVG up to 2MB</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </FormSection>
 
       {/* V. Case Details */}

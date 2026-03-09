@@ -7,13 +7,36 @@ build
 .vite
 coverage
 
+# Database and Schema files
+*.sql
+tables.md
+database_data.sql
+database_schema.sql
+database_dump.sql
+
+# Internal Documentation
+docs/
+README.md
+
 # Deployment and Temporary files
 deploy_tmp/
 delete-this/
 forms-upload/
 *.zip
 *.log
-database_dump.sql
+*.temp
+passenger_log_tmp.txt
+api-htaccess.txt
+debug_pdf.js
+npm
+$null
+server/.env
+server/.env.production
+server/package.json.production
+server/.htaccess-domain-api-subfolder
+server/server-dist.js
+server/test-db.js
+server/backend.zip
 
 # IDE and System
 .vscode/

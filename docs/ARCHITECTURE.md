@@ -6,9 +6,9 @@ A senior developer's guide to the internal workings of the TPMS platform.
 
 ## 🏛 System Components
 
-TPMS is a monorepo-style project partitioned into `apps/api` and `apps/web`.
+TPMS is a project partitioned into `server/` (API) and `client/` (Web).
 
-### 1. Frontend Architecture (`apps/web`)
+### 1. Frontend Architecture (`client/`)
 -   **Routing**: `react-router-dom` v6 with `ProtectedRoute` guards for authentication.
 -   **State Management**: `zustand` for high-performance, lightweight auth state.
 -   **Data Fetching**: Centralized `api.ts` utilizing `axios` interceptors for automatic JWT handling.
@@ -18,7 +18,7 @@ TPMS is a monorepo-style project partitioned into `apps/api` and `apps/web`.
     -   `framer-motion` for micro-animations and smooth transitions.
 -   **PDF Engine**: `pdf-lib` integration in `pdfUtils.ts` for real-time form manipulation.
 
-### 2. Backend Architecture (`apps/api`)
+### 2. Backend Architecture (`server/`)
 -   **Execution Engine**: Node.js with Express and ESM (ES Modules).
 -   **Database Layer**: `mysql2/promise` with connection pooling to handle high-concurrency requests.
 -   **Security Architecture**:
@@ -51,7 +51,7 @@ The schema is built for relational integrity and auditability.
 
 ## 📅 The Smart Deadline Engine
 
-The system's intelligence resides in `apps/api/src/utils/deadlines.ts`.
+The system's intelligence resides in `server/src/utils/deadlines.ts`.
 
 ```typescript
 export async function recalculateDeadlines(caseId: string, status: string, caseData: any) {

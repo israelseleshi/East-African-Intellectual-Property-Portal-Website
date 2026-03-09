@@ -7,15 +7,15 @@ import NiceClassPicker from '../../../components/NiceClassPicker';
 interface NiceClassificationSectionProps {
   formData: EipaFormData;
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
-  niceClasses: number[];
-  setNiceClasses: (classes: number[]) => void;
+  selectedClasses: number[];
+  onClassesChange: (classes: number[]) => void;
 }
 
 export const NiceClassificationSection: React.FC<NiceClassificationSectionProps> = ({
   formData,
   handleInputChange,
-  niceClasses,
-  setNiceClasses,
+  selectedClasses,
+  onClassesChange,
 }) => {
   return (
     <FormSection
@@ -25,8 +25,8 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
       <div className="space-y-6">
         <div id="nice-classification">
           <NiceClassPicker
-            selectedClasses={niceClasses}
-            onChange={setNiceClasses}
+            selectedClasses={selectedClasses}
+            onChange={onClassesChange}
           />
         </div>
 

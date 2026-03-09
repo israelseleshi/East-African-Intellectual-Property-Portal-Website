@@ -293,7 +293,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation', 'mark_language_requiring_translation\t'], data.mark_language_requiring_translation);
     await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
     await fillField(['mark_color_indication'], data.mark_color_indication);
-    await fillField(['mark_logo_placeholder', 'mark_logo', 'logo_placeholder', 'image_field', 'graphical_representation', 'Text Field', 'image_field_1'], data.mark_image);
+    await fillField(['mark_logo_placeholder', 'mark_logo', 'logo_placeholder', 'image_field', 'graphical_representation', 'Text Field', 'image_field_1', 'mark_image'], data.mark_image);
     await fillField(['goods_services_list'], data.goods_services_list);
 
     // 6. Disclaimer & Priority (Section V & VI)
