@@ -1,27 +1,52 @@
 # deploy.ps1 - One-Click Deployment for TPMS
-# Usage: ./scripts/deploy.ps1
+# Usage:
+#   ./scripts/deploy.ps1
+#   ./scripts/deploy.ps1 -SkipInstall
+#   ./scripts/deploy.ps1 -SkipInstall -SkipBuild
 
-$USER = "falolega"
-$HOST_NAME = "eastafricanip.com"
-$SSH_PORT = "7822"
-$REMOTE_FRONTEND_DIR = "eastafricanip.com"
-$REMOTE_BACKEND_DIR = "eastafricanip.com/api"
+param(
+  [switch]$SkipInstall,
+  [switch]$SkipBuild
+)
+
+$USER = if ($env:TPMS_SSH_USER) { $env:TPMS_SSH_USER } else { "falolega" }
+$HOST_NAME = if ($env:TPMS_SSH_HOST) { $env:TPMS_SSH_HOST } else { "eastafricanip.com" }
+$SSH_PORT = if ($env:TPMS_SSH_PORT) { $env:TPMS_SSH_PORT } else { "7822" }
+$REMOTE_FRONTEND_DIR = if ($env:TPMS_REMOTE_FRONTEND_DIR) { $env:TPMS_REMOTE_FRONTEND_DIR } else { "eastafricanip.com" }
+$REMOTE_BACKEND_DIR = if ($env:TPMS_REMOTE_BACKEND_DIR) { $env:TPMS_REMOTE_BACKEND_DIR } else { "eastafricanip.com/api" }
+
+$defaultKey = Join-Path $env:USERPROFILE ".ssh\\id_ed25519"
+$fallbackKey = Join-Path $env:USERPROFILE ".ssh\\id_tpms"
+$SSH_KEY = if ($env:TPMS_SSH_KEY) {
+  $env:TPMS_SSH_KEY
+} elseif (Test-Path $defaultKey) {
+  $defaultKey
+} else {
+  $fallbackKey
+}
+
+if (-not (Test-Path $SSH_KEY)) {
+  throw "SSH key not found at '$SSH_KEY'. Set TPMS_SSH_KEY or place key in $defaultKey"
+}
 
 Write-Host "Starting TPMS Deployment to $HOST_NAME..."
 
-# 1. Build Client
-Write-Host "Building Frontend..."
-Set-Location client
-npm install --legacy-peer-deps
-npm run build
-Set-Location ..
+# 1. Build Client + Server
+if (-not $SkipBuild) {
+  Write-Host "Building Frontend..."
+  Set-Location client
+  if (-not $SkipInstall) { npm install --legacy-peer-deps }
+  npm run build
+  Set-Location ..
 
-# 2. Build Server
-Write-Host "Building Backend..."
-Set-Location server
-npm install --legacy-peer-deps
-npm run build
-Set-Location ..
+  Write-Host "Building Backend..."
+  Set-Location server
+  if (-not $SkipInstall) { npm install --legacy-peer-deps }
+  npm run build
+  Set-Location ..
+} else {
+  Write-Host "SkipBuild enabled: using existing client/dist and server/dist"
+}
 
 # 3. Create Update Packages
 Write-Host "Creating deployment packages..."
@@ -46,15 +71,14 @@ Compress-Archive -Path "deploy_tmp/frontend/*" -DestinationPath "deploy_tmp/fron
 Compress-Archive -Path "deploy_tmp/backend/*" -DestinationPath "deploy_tmp/backend.zip" -Force
 
 # 4. Upload to Server
-Write-Host "Uploading to server using SSH key..."
-$SSH_KEY = "C:\Users\El-Hadar-06\.ssh\id_ed25519_pavillion"
-scp -i $SSH_KEY -P $SSH_PORT -o StrictHostKeyChecking=no deploy_tmp/frontend.zip ${USER}@${HOST_NAME}:/home/${USER}/${REMOTE_FRONTEND_DIR}/
-scp -i $SSH_KEY -P $SSH_PORT -o StrictHostKeyChecking=no deploy_tmp/backend.zip ${USER}@${HOST_NAME}:/home/${USER}/${REMOTE_BACKEND_DIR}/
+Write-Host "Uploading to server using SSH key: $SSH_KEY"
+scp -i $SSH_KEY -P $SSH_PORT -o BatchMode=yes -o ConnectTimeout=12 -o StrictHostKeyChecking=no deploy_tmp/frontend.zip ${USER}@${HOST_NAME}:/home/${USER}/${REMOTE_FRONTEND_DIR}/
+scp -i $SSH_KEY -P $SSH_PORT -o BatchMode=yes -o ConnectTimeout=12 -o StrictHostKeyChecking=no deploy_tmp/backend.zip ${USER}@${HOST_NAME}:/home/${USER}/${REMOTE_BACKEND_DIR}/
 
 # 5. Extract and Restart on Server
 Write-Host "Extracting files and restarting application on server..."
 $REMOTE_COMMAND = "cd /home/$USER/$REMOTE_FRONTEND_DIR && echo '--- Extracting Frontend ---' && unzip -o frontend.zip; echo 'Frontend extracted.'; rm frontend.zip && cd /home/$USER/$REMOTE_BACKEND_DIR && echo '--- Extracting Backend ---' && if [ -d 'uploads' ]; then rm -rf ../uploads_backup && mv uploads ../uploads_backup; fi && if [ -d 'forms-upload' ]; then rm -rf ../forms-upload_backup && mv forms-upload ../forms-upload_backup; fi && echo 'Extracting backend.zip...' && unzip -o backend.zip; echo 'Backend extracted.' && if [ -d '../uploads_backup' ]; then rm -rf uploads && mv ../uploads_backup uploads; fi && if [ -d '../forms-upload_backup' ]; then rm -rf forms-upload && mv ../forms-upload_backup forms-upload; fi && rm -f backend.zip && echo '--- Restarting Node.js ---' && mkdir -p tmp && touch tmp/restart.txt && echo '--- Server Tasks Done ---'"
-ssh -i $SSH_KEY -p $SSH_PORT -o StrictHostKeyChecking=no ${USER}@${HOST_NAME} $REMOTE_COMMAND
+ssh -i $SSH_KEY -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=12 -o StrictHostKeyChecking=no ${USER}@${HOST_NAME} $REMOTE_COMMAND
 
 Write-Host "Deployment Complete! Please clear your browser cache and refresh."
 
