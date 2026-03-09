@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, FileText, Info, PencilSimple, X, ClockCounterClockwise, DownloadSimple } from '@phosphor-icons/react'
+import { ArrowLeft, Check, FileText, Info, PencilSimple, X, ClockCounterClockwise, DownloadSimple, ListChecks, ClockAfternoon } from '@phosphor-icons/react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -10,13 +10,20 @@ import { useToast } from '@/components/ui/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Jurisdiction, TrademarkStatus } from '@/shared/database'
-
 import JurisdictionBadge from '@/components/JurisdictionBadge'
 import StatusPill from '@/components/StatusPill'
 import NiceClassPicker from '@/components/NiceClassPicker'
 import { CaseNotesTab } from '../components/CaseNotesTab'
 import { trademarkService, api } from '@/utils/api'
 import { usePageTitleStore } from '@/store/pageTitleStore'
+
+type CaseDeadline = {
+  id: string
+  case_id: string
+  type: string
+  due_date: string
+  status: 'PENDING' | 'COMPLETED' | 'MISSED' | 'SUPERSEDED'
+}
 
 type NiceMapping = { id: string; classNo: number; description?: string }
 
@@ -40,7 +47,6 @@ type TrademarkCaseDetail = {
   mark_description?: string
   niceClasses?: number[]
   niceMappings?: NiceMapping[]
-
   applicationDate?: string
   application_date?: string
   publicationDate?: string
@@ -51,11 +57,10 @@ type TrademarkCaseDetail = {
   expiry_date?: string
   nextRenewalDate?: string
   next_renewal_date?: string
-
+  next_action_date?: string
   clientInstructions?: string
   client_instructions?: string
   remark?: string
-
   client?: {
     name?: string
     addressStreet?: string
@@ -65,7 +70,8 @@ type TrademarkCaseDetail = {
     email?: string
     phone?: string
   }
-
+  deadlines?: CaseDeadline[]
+  history?: any[]
   eipaForm?: Record<string, unknown> | null
 }
 
@@ -84,25 +90,51 @@ export default function TrademarkDetailInfoPage() {
   const [tm, setTm] = useState<TrademarkCaseDetail | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<Partial<TrademarkCaseDetail>>({})
+  const [markImageFailed, setMarkImageFailed] = useState(false)
+  const [markImageCandidateIndex, setMarkImageCandidateIndex] = useState(0)
   const setOverrideTitle = usePageTitleStore((state) => state.setOverrideTitle)
   const clearOverride = usePageTitleStore((state) => state.clearOverride)
 
+  const [showDeadlineHistory, setShowDeadlineHistory] = useState(false)
+
   useEffect(() => {
+    let active = true
+    if (!id) {
+      setLoading(false)
+      return () => {
+        active = false
+      }
+    }
+
+    setLoading(true)
+
     const load = async () => {
-      if (!id) return
       try {
         const data = await trademarkService.getCase(id)
+        if (!active) return
         setTm(data)
         setEditData(data)
+        setMarkImageFailed(false)
         setOverrideTitle(data.markName || data.mark_name || 'Trademark')
+      } catch (error) {
+        if (!active) return
+        console.error('Failed to load trademark detail:', error)
+        setTm(null)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
 
     load()
+
+    return () => {
+      active = false
+    }
+  }, [id, setOverrideTitle])
+
+  useEffect(() => {
     return () => clearOverride()
-  }, [id, clearOverride, setOverrideTitle])
+  }, [clearOverride])
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -210,6 +242,56 @@ export default function TrademarkDetailInfoPage() {
     return v
   }
 
+  const resolveMarkImageUrl = (rawPath?: string) => {
+    if (!rawPath) return ''
+    if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
+
+    const devApiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '')
+    const origin = import.meta.env.PROD ? window.location.origin : devApiBase
+    const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+
+    if (path.startsWith('/api/')) return `${origin}${path}`
+    if (path.startsWith('/uploads/')) return `${origin}/api${path}`
+    if (path.startsWith('/forms-download/')) return `${origin}/api${path}`
+
+    // Some legacy rows store only a filename.
+    const filename = path.replace(/^\//, '')
+    return `${origin}/api/forms-download/${filename}`
+  }
+
+  const markImageCandidates = useMemo(() => {
+    if (isEditing && editData.mark_image?.startsWith('data:')) return [editData.mark_image]
+
+    const primary = resolveMarkImageUrl(tm?.mark_image)
+    if (!primary) return []
+
+    const candidates = [primary]
+    if (!import.meta.env.PROD) {
+      // Local DB may point to files that only exist on production host.
+      const remote = primary
+        .replace(/^http:\/\/localhost:\d+/i, 'https://eastafricanip.com')
+        .replace(/^http:\/\/127\.0\.0\.1:\d+/i, 'https://eastafricanip.com')
+      if (remote !== primary) {
+        // Prefer production-hosted asset first in dev to avoid local 404 noise.
+        if (primary.includes('/forms-download/')) {
+          // Avoid retrying localhost for forms-download assets in dev:
+          // local environments typically do not mirror production file storage.
+          return [remote]
+        }
+        candidates.push(remote)
+      }
+    }
+
+    return Array.from(new Set(candidates))
+  }, [isEditing, editData.mark_image, tm?.mark_image])
+
+  const markImageSrc = markImageCandidates[markImageCandidateIndex] || ''
+
+  useEffect(() => {
+    setMarkImageFailed(false)
+    setMarkImageCandidateIndex(0)
+  }, [markImageCandidates.join('|')])
+
   if (loading) {
     return (
       <div className="w-full space-y-8">
@@ -234,7 +316,7 @@ export default function TrademarkDetailInfoPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
           {[1, 2].map((i) => (
-            <Card key={i} className="apple-card border-none shadow-lg">
+            <Card key={`skeleton-card-${i}`} className="apple-card border-none shadow-lg">
               <CardHeader className="border-b border-[var(--eai-border)]">
                 <Skeleton className="h-6 w-48" />
               </CardHeader>
@@ -243,7 +325,7 @@ export default function TrademarkDetailInfoPage() {
                   <Skeleton className="h-4 w-32 mx-auto" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[1, 2, 3, 4, 5, 6].map((j) => (
-                      <div key={j} className="space-y-2">
+                      <div key={`skeleton-field-${i}-${j}`} className="space-y-2">
                         <Skeleton className="h-3 w-16" />
                         <Skeleton className="h-5 w-full" />
                       </div>
@@ -357,33 +439,25 @@ export default function TrademarkDetailInfoPage() {
               {tm.mark_image && (
                 <div className="flex justify-center mb-6">
                   <div className="w-48 h-48 border border-[var(--eai-border)] rounded-xl overflow-hidden flex items-center justify-center p-2 shadow-sm group/image relative">
-                     <img 
-                       src={
-                         (isEditing && editData.mark_image?.startsWith('data:')) 
-                           ? editData.mark_image 
-                           : (() => {
-                               const imgPath = tm.mark_image || '';
-                               if (imgPath.startsWith('http')) return imgPath;
-                               if (imgPath.startsWith('data:')) return imgPath;
-                               // Always route through /api/ for Passenger to reach the Node.js backend
-                               const base = import.meta.env.PROD 
-                                 ? window.location.origin 
-                                 : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '');
-                               // If path already starts with /api, use as-is; otherwise prepend /api
-                               const apiPath = imgPath.startsWith('/api') ? imgPath : `/api${imgPath}`;
-                               return `${base}${apiPath}`;
-                             })()
-                       } 
-                       alt="Mark Logo" 
-                       className="max-w-full max-h-full object-contain" 
-                       onError={(e) => {
-                         const img = e.currentTarget;
-                         // Avoid infinite retry loops
-                         if (img.dataset.retried) return;
-                         img.dataset.retried = 'true';
-                         console.warn('[Image] Failed to load mark image, path:', tm.mark_image);
-                       }}
-                     />
+                    {!markImageFailed ? (
+                      <img
+                        src={markImageSrc}
+                        alt="Mark Logo"
+                        className="max-w-full max-h-full object-contain"
+                        onError={() => {
+                          if (markImageCandidateIndex < markImageCandidates.length - 1) {
+                            setMarkImageCandidateIndex((idx) => idx + 1)
+                            return
+                          }
+                          setMarkImageFailed(true)
+                          console.warn('[Image] Failed to load mark image, path:', tm.mark_image)
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-micro text-[var(--eai-text-secondary)]">
+                        Mark logo unavailable
+                      </div>
+                    )}
                      {isEditing && (
                        <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer">
                          <PencilSimple size={24} className="text-white mb-1" weight="bold" />
@@ -532,6 +606,66 @@ export default function TrademarkDetailInfoPage() {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            </div>
+
+            {/* Deadlines Section */}
+            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--eai-border)]">
+                <h4 className="text-h3 text-[var(--eai-text-secondary)] font-bold tracking-tight flex items-center gap-2">
+                  <ListChecks size={18} weight="bold" className="text-[var(--eai-primary)]" />
+                  Deadlines & Milestones
+                </h4>
+                <button 
+                  onClick={() => setShowDeadlineHistory(!showDeadlineHistory)}
+                  className="flex items-center gap-1.5 text-micro font-black text-[var(--eai-primary)] hover:opacity-70 transition-opacity"
+                >
+                  <ClockAfternoon size={14} weight="bold" />
+                  {showDeadlineHistory ? 'Show Active Only' : 'Show History'}
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {tm.deadlines && tm.deadlines.length > 0 ? (
+                  tm.deadlines
+                    .filter(d => showDeadlineHistory || (d.status === 'PENDING'))
+                    .map((d) => (
+                      <div
+                        key={d.id}
+                        className={`flex items-center justify-between rounded-xl border p-3 transition-all ${
+                          d.status === 'SUPERSEDED'
+                            ? 'border-slate-500/20 bg-slate-500/10 opacity-70'
+                            : d.status === 'COMPLETED'
+                              ? 'border-emerald-500/20 bg-emerald-500/10'
+                              : 'border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-sm'
+                        }`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-[11px] font-black tracking-tight ${
+                            d.status === 'SUPERSEDED' ? 'text-slate-400' : 'text-[var(--eai-primary)]'
+                          }`}>
+                            {d.type.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-body font-bold text-[var(--eai-text)]">
+                            {safeDate(d.due_date)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-micro px-2 py-0.5 font-black border ${
+                            d.status === 'PENDING' ? 'border-orange-500/20 bg-orange-500/10 text-orange-400' :
+                            d.status === 'SUPERSEDED' ? 'border-slate-500/20 bg-slate-500/10 text-slate-300' :
+                            'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {d.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-4 text-[var(--eai-text-secondary)] opacity-50 italic text-body">
+                    No deadlines recorded for this case.
+                  </div>
                 )}
               </div>
             </div>

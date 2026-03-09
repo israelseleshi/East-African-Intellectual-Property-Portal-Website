@@ -106,6 +106,69 @@ function markLabel(t: { markName?: string; mark_name?: string }) {
   return t.markName || t.mark_name || '—'
 }
 
+function resolveMarkImageUrl(rawPath?: string) {
+  if (!rawPath) return ''
+  if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
+
+  const devApiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '')
+  const origin = import.meta.env.PROD ? window.location.origin : devApiBase
+  const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+
+  if (path.startsWith('/api/')) return `${origin}${path}`
+  if (path.startsWith('/uploads/')) return `${origin}/api${path}`
+  if (path.startsWith('/forms-download/')) return `${origin}/api${path}`
+
+  const filename = path.replace(/^\//, '')
+  return `${origin}/api/forms-download/${filename}`
+}
+
+function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: string }) {
+  const [candidateIndex, setCandidateIndex] = useState(0)
+  const [failed, setFailed] = useState(false)
+
+  const candidates = useMemo(() => {
+    const primary = resolveMarkImageUrl(markImage)
+    if (!primary) return []
+
+    const list = [primary]
+    if (!import.meta.env.PROD) {
+      const remote = primary
+        .replace(/^http:\/\/localhost:\d+/i, 'https://eastafricanip.com')
+        .replace(/^http:\/\/127\.0\.0\.1:\d+/i, 'https://eastafricanip.com')
+      if (remote !== primary) list.push(remote)
+    }
+    return Array.from(new Set(list))
+  }, [markImage])
+
+  useEffect(() => {
+    setCandidateIndex(0)
+    setFailed(false)
+  }, [markImage, candidates.join('|')])
+
+  const current = candidates[candidateIndex]
+
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] shadow-sm group-hover:text-[var(--eai-primary)] transition-colors">
+      {!failed && current ? (
+        <img
+          src={current}
+          alt={`${label} logo`}
+          className="h-full w-full object-cover"
+          onError={() => {
+            if (candidateIndex < candidates.length - 1) {
+              setCandidateIndex((idx) => idx + 1)
+            } else {
+              setFailed(true)
+            }
+          }}
+        />
+      ) : (
+        <FileText size={24} weight="duotone" />
+      )}
+    </div>
+  )
+}
+
 const JURISDICTION_IMAGE_FLAGS: Record<string, string> = {
   ET: '/flags/ethiopia-flag.png',
   KE: '/flags/kenya-flag.png',
@@ -135,7 +198,7 @@ export default function DocketPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const startTourFromUrl = searchParams.get('tour') === 'true'
 
-  const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_date?: string; filingDate?: string; filing_number?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string }>>([])
+  const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_date?: string; filingDate?: string; filing_number?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string }>>([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction | 'ALL'>('ALL')
@@ -386,24 +449,80 @@ export default function DocketPage() {
       const exportData = sortedRows.map(c => ({
         'Mark Name': c.markName || c.mark_name || '—',
         'Filing Number': c.filing_number || c.filingNumber || 'PENDING',
-        'Jurisdiction': JURISDICTION_NAMES[c.jurisdiction || 'ET'],
-        'Status': STATUS_NAMES[c.status || 'DRAFT'],
+        'Jurisdiction': JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction,
+        'Status': STATUS_NAMES[c.status || 'DRAFT'] || c.status,
         'Client': c.client_name || c.client?.name || '—',
+        'Client Type': c.client_type || c.client?.type || '—',
+        'Mark Type': c.markType || 'WORD',
+        'Color Indication': c.colorIndication || 'B&W',
         'Application Date': c.filing_date || c.filingDate || '—',
+        'Publication Date': (c as any).publication_date || (c as any).publicationDate || '—',
         'Registration Date': c.registration_dt || c.registrationDt || '—',
+        'Expiry Date': (c as any).expiry_date || (c as any).expiryDate || '—',
         'Next Action Date': c.next_action_date || c.nextActionDate || '—',
-        'Color': c.colorIndication || 'B&W',
-        'Type': c.markType || 'WORD'
+        'Priority': c.priority || 'NO',
+        'Nice Classes': (c as any).nice_classes || (c as any).niceClasses?.join(', ') || '—',
+        'Goods & Services': (c as any).goods_services || (c as any).goodsServices || '—',
+        'Client Instructions': (c as any).client_instructions || (c as any).clientInstructions || '—',
+        'Remarks': (c as any).remark || '—',
+        'Created At': c.created_at || '—',
+        'Updated At': c.updated_at || '—'
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      // Professional Styling (Column Widths)
+      const wscols = [
+        { wch: 35 }, // Mark Name
+        { wch: 22 }, // Filing Number
+        { wch: 18 }, // Jurisdiction
+        { wch: 18 }, // Status
+        { wch: 30 }, // Client
+        { wch: 18 }, // Client Type
+        { wch: 18 }, // Mark Type
+        { wch: 22 }, // Color
+        { wch: 20 }, // App Date
+        { wch: 20 }, // Pub Date
+        { wch: 20 }, // Reg Date
+        { wch: 20 }, // Exp Date
+        { wch: 20 }, // Next Action
+        { wch: 12 }, // Priority
+        { wch: 18 }, // Classes
+        { wch: 60 }, // Goods/Services
+        { wch: 45 }, // Instructions
+        { wch: 45 }, // Remarks
+        { wch: 22 }, // Created
+        { wch: 22 }  // Updated
+      ];
+      ws['!cols'] = wscols;
+
+      // Add modern styling to headers
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:T1');
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + '1';
+        if (!ws[address]) continue;
+        ws[address].s = {
+          fill: { fgColor: { rgb: "0F2652" } }, // Dark Blue (EAI Primary)
+          font: { color: { rgb: "FFFFFF" }, bold: true, sz: 12, name: 'Segoe UI' },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: 'thin', color: { rgb: "000000" } },
+            bottom: { style: 'thin', color: { rgb: "000000" } },
+            left: { style: 'thin', color: { rgb: "000000" } },
+            right: { style: 'thin', color: { rgb: "000000" } }
+          }
+        };
+      }
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Trademarks');
-      XLSX.writeFile(wb, `TM_Docket_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `EIPA_TPMS_Docket_${dateStr}.xlsx`);
 
       addToast({
         title: 'Export Successful',
-        description: 'Docket data has been exported to Excel.',
+        description: 'Comprehensive docket data exported with professional formatting.',
         type: 'success'
       });
     } catch (error) {
@@ -737,11 +856,6 @@ export default function DocketPage() {
                     </div>
                   </th>
                   <th 
-                    className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center"
-                  >
-                    Nice Class
-                  </th>
-                  <th 
                     className="px-6 py-4 text-[13px] font-bold text-[var(--eai-text-secondary)] text-center cursor-pointer hover:text-[var(--eai-primary)] transition-colors group/th"
                     onClick={() => handleSort('region')}
                   >
@@ -789,17 +903,10 @@ export default function DocketPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] shadow-sm group-hover:text-[var(--eai-primary)] transition-colors">
-                          <FileText size={24} weight="duotone" />
-                        </div>
+                        <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
                         <div className="min-w-0">
                           <div className="text-body font-bold text-[var(--eai-text)] leading-tight truncate">
                             {markLabel(t)}
-                          </div>
-                          <div className="text-micro text-[var(--eai-text-secondary)] mt-1 flex flex-wrap gap-x-2">
-                            <span>{t.markType || '—'}</span>
-                            <span className="opacity-30">•</span>
-                            <span>{t.colorIndication || 'B&W'}</span>
                           </div>
                         </div>
                       </div>
@@ -808,17 +915,6 @@ export default function DocketPage() {
                     <td className="px-6 py-4 text-center">
                       <span className="text-micro font-bold truncate inline-block max-w-[150px]">{t.client_name || t.client?.name || '—'}</span>
                     </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex flex-wrap justify-center gap-1">
-                        {(t as any).niceClasses?.length ? (t as any).niceClasses.map((c: number) => (
-                          <span key={c} className="text-[10px] w-5 h-5 flex items-center justify-center border border-[var(--eai-border)] bg-[var(--eai-bg)] rounded-sm font-black text-[var(--eai-text)]">
-                            {c}
-                          </span>
-                        )) : '—'}
-                      </div>
-                    </td>
-
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center">
                         <JurisdictionBadge jurisdiction={(t.jurisdiction || 'ET') as Jurisdiction} />
@@ -926,3 +1022,6 @@ export default function DocketPage() {
     </div>
   )
 }
+
+
+
