@@ -31,8 +31,8 @@ import StatusPill from '../components/StatusPill'
 import { trademarkService } from '../utils/api'
 import { fillPdfForm } from '../utils/pdfUtils'
 import { useToast } from '../components/ui/toast'
-import { useApi } from '../hooks/useApi'
 import { Card } from "@/components/ui/card"
+import { casesApi } from '@/api/cases'
 
 import {
   Dialog,
@@ -194,7 +194,6 @@ const JurisdictionFlag = ({ code, className = "h-4 w-6" }: { code: string, class
 export default function DocketPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
-  const api = useApi();
   const [searchParams, setSearchParams] = useSearchParams()
   const startTourFromUrl = searchParams.get('tour') === 'true'
 
@@ -389,7 +388,7 @@ export default function DocketPage() {
       const caseId = t.id;
       
       // 1. Fetch EIPA form data for this case
-      const caseData = await api.get(`/cases/${caseId}`);
+      const caseData = await casesApi.getById(caseId);
       
       if (!caseData) {
         addToast({

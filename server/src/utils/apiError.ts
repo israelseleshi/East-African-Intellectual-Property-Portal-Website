@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { logger } from './logger.js';
 
 interface ApiErrorPayload {
   code: string;
@@ -21,5 +22,7 @@ export const sendApiError = (
 };
 
 export const logRouteError = (req: Request, scope: string, error: unknown) => {
-  console.error(`[${req.requestId}] ${scope}`, error);
+  logger.error(`[${req.requestId}] ${scope}`, {
+    error: error instanceof Error ? error.message : String(error)
+  });
 };

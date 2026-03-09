@@ -35,7 +35,7 @@ const createInvoicePayloadSchema = z.object({
 });
 
 // Record a new payment
-router.post('/payments', authenticateToken, async (req: any, res) => {
+router.post('/payments', authenticateToken, async (req, res) => {
     try {
         const parsed = paymentPayloadSchema.safeParse(req.body);
         if (!parsed.success) {

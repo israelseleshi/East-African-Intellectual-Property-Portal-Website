@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "postinstall": "echo Skipping husky in this environment",
     "start": "node dist/server.js",
+    "sync:tables": "node generate_tables.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint src --ext .ts,.js --fix"

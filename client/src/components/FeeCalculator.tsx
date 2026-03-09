@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
 import { formatCurrency } from '../utils/formatters';
+import { financialsApi } from '@/api/financials';
 
 interface Fee {
   id: string;
@@ -51,7 +51,6 @@ export function FeeCalculator({ caseId, jurisdiction, currentStage }: FeeCalcula
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
-  const api = useApi();
 
   useEffect(() => {
     if (caseId) {
@@ -63,7 +62,7 @@ export function FeeCalculator({ caseId, jurisdiction, currentStage }: FeeCalcula
 
   const loadCaseFees = async () => {
     try {
-      const data = await api.get(`/fees/case/${caseId}`);
+      const data = await financialsApi.listFeesByCase(caseId);
       setFeesByStage(data.fees_by_stage || {});
       setTotalAmount(data.total_amount || 0);
       // Expand current stage by default
@@ -79,7 +78,7 @@ export function FeeCalculator({ caseId, jurisdiction, currentStage }: FeeCalcula
 
   const loadStageFees = async (j: string, s: string) => {
     try {
-      const data = await api.get(`/fees/calculate/${j}/${s}`);
+      const data = await financialsApi.calculateFees(j, s);
       setFeesByStage({ [s]: data.fees || [] });
       setTotalAmount(data.total_amount || 0);
       setExpandedStages(new Set([s]));

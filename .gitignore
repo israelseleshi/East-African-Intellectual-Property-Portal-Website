@@ -9,6 +9,8 @@ coverage
 forms/forms/node_modules/
 pnpm-lock.yaml
 backups/
+archive/
+reports/*.pdf
 
 # Database policy
 tables.md

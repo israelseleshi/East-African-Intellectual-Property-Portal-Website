@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useApi } from '../hooks/useApi';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { notesApi } from '@/api/notes';
 
 interface Note {
   id: string;
@@ -47,11 +47,10 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [loading, setLoading] = useState(true);
-  const api = useApi();
 
   const loadNotes = useCallback(async () => {
     try {
-      const data = await api.get(`/notes/case/${caseId}`);
+      const data = await notesApi.listByCase(caseId);
       // Organize into threads
       const threadedNotes = organizeThreads(data);
       setNotes(threadedNotes);
@@ -60,7 +59,7 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
     } finally {
       setLoading(false);
     }
-  }, [caseId, api]);
+  }, [caseId]);
 
   useEffect(() => {
     loadNotes();
@@ -99,7 +98,7 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
     if (!newNote.trim()) return;
 
     try {
-      await api.post('/notes', {
+      await notesApi.create({
         caseId,
         content: newNote,
         noteType,
@@ -118,9 +117,7 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
     if (!replyContent.trim()) return;
 
     try {
-      await api.post(`/notes/${parentNoteId}/reply`, {
-        content: replyContent
-      });
+      await notesApi.reply(parentNoteId, replyContent);
       setReplyContent('');
       setReplyingTo(null);
       loadNotes();
@@ -131,7 +128,7 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
 
   const handlePin = async (noteId: string, pinned: boolean) => {
     try {
-      await api.patch(`/notes/${noteId}/pin`, { pinned });
+      await notesApi.setPinned(noteId, pinned);
       loadNotes();
     } catch (error) {
       console.error('Failed to pin note:', error);
@@ -142,7 +139,7 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
     if (!confirm('Are you sure you want to delete this note?')) return;
 
     try {
-      await api.delete(`/notes/${noteId}`);
+      await notesApi.remove(noteId);
       loadNotes();
     } catch (error) {
       console.error('Failed to delete note:', error);

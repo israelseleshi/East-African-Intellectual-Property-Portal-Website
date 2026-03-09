@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
 import { Button } from './ui/button';
 import { addDays, formatDistanceToNow } from 'date-fns';
 import { formatDate } from '@/utils/formatters';
+import { oppositionsApi } from '@/api/oppositions';
 
 interface Opposition {
   id: string;
@@ -29,7 +29,6 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
   const [oppositions, setOppositions] = useState<Opposition[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const api = useApi();
 
   // Form state
   const [opponentName, setOpponentName] = useState('');
@@ -44,7 +43,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
 
   const loadOppositions = async () => {
     try {
-      const data = await api.get(`/oppositions/case/${caseId}`);
+      const data = await oppositionsApi.listByCase(caseId);
       setOppositions(data);
     } catch (error) {
       console.error('Failed to load oppositions:', error);
@@ -57,7 +56,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
     e.preventDefault();
 
     try {
-      await api.post('/oppositions', {
+      await oppositionsApi.create({
         caseId,
         opponentName,
         opponentAddress,
@@ -82,7 +81,7 @@ export function OppositionSection({ caseId, jurisdiction }: OppositionSectionPro
 
   const handleUpdateStatus = async (id: string, status: Opposition['status']) => {
     try {
-      await api.patch(`/oppositions/${id}/status`, {
+      await oppositionsApi.updateStatus(id, {
         status,
         responseFiledDate: status === 'RESPONDED' ? new Date().toISOString().split('T')[0] : undefined
       });

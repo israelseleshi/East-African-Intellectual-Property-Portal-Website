@@ -3,9 +3,11 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { z } from 'zod';
 import { pool } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { sanitizeFilename } from '../utils/filing.js';
+import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
 
@@ -23,6 +25,52 @@ if (!fs.existsSync(FORMS_UPLOAD_DIR)) {
     console.log('Created forms-upload directory:', FORMS_UPLOAD_DIR);
 }
 
+const submitSchema = z.object({
+    clientId: z.string().optional(),
+    applicantName: z.string().optional(),
+    applicantNameAmharic: z.string().optional(),
+    applicantType: z.string().optional(),
+    nationality: z.string().optional(),
+    email: z.string().optional(),
+    telephone: z.string().optional(),
+    addressStreet: z.string().optional(),
+    addressZone: z.string().optional(),
+    wereda: z.string().optional(),
+    city: z.string().optional(),
+    houseNo: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
+    poBox: z.string().optional(),
+    fax: z.string().optional(),
+    markName: z.string().optional(),
+    markType: z.string().optional(),
+    markDescription: z.string().optional(),
+    colorIndication: z.string().optional(),
+    priority: z.string().optional(),
+    priorityCountry: z.string().optional(),
+    niceClasses: z.array(z.union([
+        z.coerce.number().int().positive(),
+        z.object({
+            classNo: z.coerce.number().int().positive(),
+            description: z.string().optional()
+        })
+    ])).optional(),
+    markImage: z.string().optional(),
+    pdfBase64: z.string().optional(),
+    jurisdiction: z.string().optional()
+    ,
+    eipaFormData: z.record(z.unknown()).optional(),
+    formData: z.record(z.unknown()).optional()
+}).passthrough();
+
+const filenameParamSchema = z.object({
+    filename: z.string().min(1)
+});
+
+const caseIdParamSchema = z.object({
+    caseId: z.string().min(1)
+});
+
 /**
  * POST /api/forms/submit
  * Submit EIPA form with PDF upload
@@ -30,6 +78,16 @@ if (!fs.existsSync(FORMS_UPLOAD_DIR)) {
  */
 router.post('/submit', authenticateToken, async (req, res) => {
     try {
+        const parsed = submitSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_FORM_SUBMIT_PAYLOAD',
+                message: 'Invalid form submission payload',
+                details: parsed.error.flatten()
+            });
+        }
+
+        const data = parsed.data;
         const {
             // Pre-existing client ID (if user selected from dropdown)
             clientId: existingClientId,
@@ -74,20 +132,22 @@ router.post('/submit', authenticateToken, async (req, res) => {
             // Full EIPA Form payload (optional)
             eipaFormData,
             formData
-        } = req.body;
+        } = data;
 
         const userId = (req as unknown as { user: { id: string } }).user.id || null;
 
         // Validate required fields
         if (!existingClientId && !applicantName) {
-            return res.status(400).json({ 
-                error: 'Missing required fields',
+            return sendApiError(req, res, 400, {
+                code: 'MISSING_APPLICANT',
+                message: 'Missing required fields',
                 details: 'Either select an existing client or provide an applicant name'
             });
         }
         if (!markName) {
-            return res.status(400).json({ 
-                error: 'Missing required fields',
+            return sendApiError(req, res, 400, {
+                code: 'MISSING_MARK_NAME',
+                message: 'Missing required fields',
                 details: 'Mark name (description) is required'
             });
         }
@@ -171,9 +231,13 @@ router.post('/submit', authenticateToken, async (req, res) => {
 
             // 2.5 Save Nice Classes and mappings
             if (niceClasses && Array.isArray(niceClasses)) {
+                const formDataRecord = formData as Record<string, unknown> | undefined;
+                const eipaFormRecord = eipaFormData as Record<string, unknown> | undefined;
                 for (const nc of niceClasses) {
                     const classNo = typeof nc === 'object' ? nc.classNo : nc;
-                    const description = typeof nc === 'object' ? nc.description : (formData?.goods_services_list || eipaFormData?.goods_services_list || '');
+                    const description = typeof nc === 'object'
+                        ? (nc.description || '')
+                        : String(formDataRecord?.goods_services_list || eipaFormRecord?.goods_services_list || '');
                     
                     await connection.execute(
                         'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
@@ -182,7 +246,6 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 }
             }
 
-            const fullPayload = (eipaFormData || formData) as unknown;
             // PDF Data (Base64)
             let pdfPath = null;
             let pdfFilename = null;
@@ -291,9 +354,10 @@ router.post('/submit', authenticateToken, async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Form submission error:', error);
-        res.status(500).json({ 
-            error: 'Failed to submit form',
+        logRouteError(req, 'forms.submit', error);
+        sendApiError(req, res, 500, {
+            code: 'FORM_SUBMIT_FAILED',
+            message: 'Failed to submit form',
             details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
@@ -305,18 +369,32 @@ router.post('/submit', authenticateToken, async (req, res) => {
  */
 router.get('/download/:filename', authenticateToken, (req, res) => {
     try {
-        const { filename } = req.params;
+        const parsed = filenameParamSchema.safeParse(req.params);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_FILENAME',
+                message: 'Invalid filename',
+                details: parsed.error.flatten()
+            });
+        }
+        const { filename } = parsed.data;
         
         // Security: Prevent directory traversal
         if (filename.includes('..') || filename.includes('/')) {
-            return res.status(400).json({ error: 'Invalid filename' });
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_FILENAME',
+                message: 'Invalid filename'
+            });
         }
 
         const filePath = path.join(FORMS_UPLOAD_DIR, filename);
         
         // Check if file exists
         if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ error: 'File not found' });
+            return sendApiError(req, res, 404, {
+                code: 'FILE_NOT_FOUND',
+                message: 'File not found'
+            });
         }
 
         // Detect content type based on extension
@@ -344,8 +422,11 @@ router.get('/download/:filename', authenticateToken, (req, res) => {
         fileStream.pipe(res);
 
     } catch (error) {
-        console.error('Download error:', error);
-        res.status(500).json({ error: 'Failed to download file' });
+        logRouteError(req, 'forms.download', error);
+        sendApiError(req, res, 500, {
+            code: 'FORM_DOWNLOAD_FAILED',
+            message: 'Failed to download file'
+        });
     }
 });
 
@@ -355,7 +436,15 @@ router.get('/download/:filename', authenticateToken, (req, res) => {
  */
 router.get('/list/:caseId', authenticateToken, async (req, res) => {
     try {
-        const { caseId } = req.params;
+        const parsed = caseIdParamSchema.safeParse(req.params);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_CASE_ID',
+                message: 'Invalid case id',
+                details: parsed.error.flatten()
+            });
+        }
+        const { caseId } = parsed.data;
         
         const [forms] = await pool.execute(
             `SELECT ma.id, ma.file_path, ma.created_at,
@@ -370,8 +459,11 @@ router.get('/list/:caseId', authenticateToken, async (req, res) => {
         res.json(forms);
 
     } catch (error) {
-        console.error('List forms error:', error);
-        res.status(500).json({ error: 'Failed to list forms' });
+        logRouteError(req, 'forms.list', error);
+        sendApiError(req, res, 500, {
+            code: 'FORMS_LIST_FAILED',
+            message: 'Failed to list forms'
+        });
     }
 });
 

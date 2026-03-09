@@ -1,323 +1,426 @@
-import express from 'express';
 import crypto from 'crypto';
+import express from 'express';
+import { z } from 'zod';
 import { pool } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
 
-// Get all oppositions (with optional filters)
+const oppositionIdParamSchema = z.object({ id: z.string().min(1) });
+const caseIdParamSchema = z.object({ caseId: z.string().min(1) });
+
+const listQuerySchema = z.object({
+  status: z.string().optional(),
+  caseId: z.string().optional(),
+  pending: z.enum(['true', 'false']).optional()
+});
+
+const createOppositionSchema = z.object({
+  caseId: z.string().min(1),
+  opponentName: z.string().min(1),
+  opponentAddress: z.string().optional(),
+  opponentRepresentative: z.string().optional(),
+  grounds: z.string().min(1),
+  oppositionDate: z.string().optional(),
+  deadlineDate: z.string().optional(),
+  notes: z.string().optional()
+});
+
+const updateOppositionSchema = z.object({
+  opponent_name: z.string().optional(),
+  opponent_address: z.string().optional(),
+  opponent_representative: z.string().optional(),
+  grounds: z.string().optional(),
+  opposition_date: z.string().optional(),
+  deadline_date: z.string().optional(),
+  status: z.string().optional(),
+  response_filed_date: z.string().optional(),
+  response_document_path: z.string().optional(),
+  outcome: z.string().optional(),
+  notes: z.string().optional()
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'No valid fields to update'
+});
+
+const updateOppositionStatusSchema = z.object({
+  status: z.enum(['PENDING', 'RESPONDED', 'WITHDRAWN', 'RESOLVED']),
+  responseFiledDate: z.string().optional(),
+  outcome: z.string().optional()
+});
+
+const deleteQuerySchema = z.object({
+  permanent: z.enum(['true', 'false']).optional()
+});
+
+const pendingQuerySchema = z.object({
+  days: z.coerce.number().int().positive().max(365).optional()
+});
+
 router.get('/', authenticateToken, async (req, res) => {
-    try {
-        const { status, caseId, pending } = req.query;
-        
-        let sql = `
-            SELECT o.*, tc.mark_name, c.name as client_name, tc.jurisdiction
-            FROM oppositions o
-            JOIN trademark_cases tc ON o.case_id = tc.id
-            JOIN clients c ON tc.client_id = c.id
-            WHERE o.deleted_at IS NULL
-        `;
-        const params: any[] = [];
-        
-        if (status) {
-            sql += ' AND o.status = ?';
-            params.push(status);
-        }
-        
-        if (caseId) {
-            sql += ' AND o.case_id = ?';
-            params.push(caseId);
-        }
-        
-        if (pending === 'true') {
-            sql += ' AND o.status = "PENDING" AND o.deadline_date >= CURDATE()';
-        }
-        
-        sql += ' ORDER BY o.deadline_date ASC';
-        
-        const [rows] = await pool.execute(sql, params);
-        res.json(rows);
-    } catch (error) {
-        console.error('Error fetching oppositions:', error);
-        res.status(500).json({ error: 'Failed to fetch oppositions' });
+  try {
+    const parsed = listQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITIONS_QUERY',
+        message: 'Invalid oppositions query',
+        details: parsed.error.flatten()
+      });
     }
+
+    let sql = `
+      SELECT o.*, tc.mark_name, c.name as client_name, tc.jurisdiction
+      FROM oppositions o
+      JOIN trademark_cases tc ON o.case_id = tc.id
+      JOIN clients c ON tc.client_id = c.id
+      WHERE o.deleted_at IS NULL
+    `;
+    const params: string[] = [];
+
+    if (parsed.data.status) {
+      sql += ' AND o.status = ?';
+      params.push(parsed.data.status);
+    }
+
+    if (parsed.data.caseId) {
+      sql += ' AND o.case_id = ?';
+      params.push(parsed.data.caseId);
+    }
+
+    if (parsed.data.pending === 'true') {
+      sql += ' AND o.status = "PENDING" AND o.deadline_date >= CURDATE()';
+    }
+
+    sql += ' ORDER BY o.deadline_date ASC';
+    const [rows] = await pool.execute(sql, params);
+    res.json(rows);
+  } catch (error) {
+    logRouteError(req, 'oppositions.list', error);
+    sendApiError(req, res, 500, {
+      code: 'OPPOSITIONS_FETCH_FAILED',
+      message: 'Failed to fetch oppositions'
+    });
+  }
 });
 
-// Get oppositions for a specific case
 router.get('/case/:caseId', authenticateToken, async (req, res) => {
-    try {
-        const { caseId } = req.params;
-        
-        const [rows] = await pool.execute(
-            `SELECT o.*, tc.mark_name 
-             FROM oppositions o
-             JOIN trademark_cases tc ON o.case_id = tc.id
-             WHERE o.case_id = ? AND o.deleted_at IS NULL
-             ORDER BY o.created_at DESC`,
-            [caseId]
-        );
-        
-        res.json(rows);
-    } catch (error) {
-        console.error('Error fetching case oppositions:', error);
-        res.status(500).json({ error: 'Failed to fetch oppositions' });
+  try {
+    const parsed = caseIdParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_CASE_ID',
+        message: 'Invalid case id',
+        details: parsed.error.flatten()
+      });
     }
+
+    const [rows] = await pool.execute(
+      `SELECT o.*, tc.mark_name
+       FROM oppositions o
+       JOIN trademark_cases tc ON o.case_id = tc.id
+       WHERE o.case_id = ? AND o.deleted_at IS NULL
+       ORDER BY o.created_at DESC`,
+      [parsed.data.caseId]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    logRouteError(req, 'oppositions.listByCase', error);
+    sendApiError(req, res, 500, {
+      code: 'CASE_OPPOSITIONS_FETCH_FAILED',
+      message: 'Failed to fetch oppositions'
+    });
+  }
 });
 
-// Get single opposition
 router.get('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        const [rows] = await pool.execute(
-            `SELECT o.*, tc.mark_name, c.name as client_name, tc.jurisdiction
-             FROM oppositions o
-             JOIN trademark_cases tc ON o.case_id = tc.id
-             JOIN clients c ON tc.client_id = c.id
-             WHERE o.id = ? AND o.deleted_at IS NULL`,
-            [String(id)] as any[]
-        ) as [any, any];
-        
-        if ((rows as unknown[]).length === 0) {
-            return res.status(404).json({ error: 'Opposition not found' });
-        }
-        
-        res.json((rows as unknown[])[0]);
-    } catch (error) {
-        console.error('Error fetching opposition:', error);
-        res.status(500).json({ error: 'Failed to fetch opposition' });
+  try {
+    const parsed = oppositionIdParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_ID',
+        message: 'Invalid opposition id',
+        details: parsed.error.flatten()
+      });
     }
+
+    const [rows] = await pool.execute(
+      `SELECT o.*, tc.mark_name, c.name as client_name, tc.jurisdiction
+       FROM oppositions o
+       JOIN trademark_cases tc ON o.case_id = tc.id
+       JOIN clients c ON tc.client_id = c.id
+       WHERE o.id = ? AND o.deleted_at IS NULL`,
+      [parsed.data.id]
+    );
+
+    if ((rows as unknown[]).length === 0) {
+      return sendApiError(req, res, 404, {
+        code: 'OPPOSITION_NOT_FOUND',
+        message: 'Opposition not found'
+      });
+    }
+
+    res.json((rows as unknown[])[0]);
+  } catch (error) {
+    logRouteError(req, 'oppositions.getById', error);
+    sendApiError(req, res, 500, {
+      code: 'OPPOSITION_FETCH_FAILED',
+      message: 'Failed to fetch opposition'
+    });
+  }
 });
 
-// Create new opposition
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', authenticateToken, async (req: any, res) => {
-    try {
-        const {
-            caseId,
-            opponentName,
-            opponentAddress,
-            opponentRepresentative,
-            grounds,
-            oppositionDate,
-            deadlineDate,
-            notes
-        } = req.body;
-        
-        if (!caseId || !opponentName || !grounds) {
-            return res.status(400).json({ error: 'caseId, opponentName, and grounds are required' });
-        }
-        
-        // Calculate deadline if not provided (based on jurisdiction)
-        let calculatedDeadline = deadlineDate;
-        if (!calculatedDeadline && oppositionDate) {
-            const [jurisdictionRows] = await pool.execute(
-                `SELECT j.opposition_period_days 
-                 FROM trademark_cases tc
-                 JOIN jurisdictions j ON tc.jurisdiction = j.code
-                 WHERE tc.id = ?`,
-                [caseId]
-            );
-            
-            if ((jurisdictionRows as unknown[]).length > 0) {
-                const days = ((jurisdictionRows as unknown[])[0] as { opposition_period_days: number }).opposition_period_days || 60;
-                const oppDate = new Date(oppositionDate);
-                oppDate.setDate(oppDate.getDate() + days);
-                calculatedDeadline = oppDate.toISOString().split('T')[0];
-            }
-        }
-        
-        const id = crypto.randomUUID();
-        const userId = req.user.id;
-        
-        await pool.execute(
-            `INSERT INTO oppositions (id, case_id, opponent_name, opponent_address, 
-             opponent_representative, grounds, opposition_date, deadline_date, notes, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, caseId, opponentName, opponentAddress || null, opponentRepresentative || null,
-             grounds, oppositionDate || new Date(), calculatedDeadline || null, notes || null, userId]
-        );
-        
-        // Create deadline reminder for the opposition response
-        if (calculatedDeadline) {
-            await pool.execute(
-                `INSERT INTO deadlines (id, case_id, due_date, type, description)
-                 VALUES (?, ?, ?, 'OPPOSITION_RESPONSE', ?)`,
-                [crypto.randomUUID(), caseId, calculatedDeadline, 
-                 `Response deadline for opposition by ${opponentName}`]
-            );
-        }
-        
-        res.status(201).json({ 
-            id, 
-            caseId, 
-            opponentName, 
-            grounds, 
-            oppositionDate, 
-            deadlineDate: calculatedDeadline,
-            status: 'PENDING'
-        });
-    } catch (error) {
-        console.error('Error creating opposition:', error);
-        res.status(500).json({ error: 'Failed to create opposition' });
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const parsed = createOppositionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_PAYLOAD',
+        message: 'Invalid opposition payload',
+        details: parsed.error.flatten()
+      });
     }
+
+    let calculatedDeadline = parsed.data.deadlineDate;
+    if (!calculatedDeadline && parsed.data.oppositionDate) {
+      const [jurisdictionRows] = await pool.execute(
+        `SELECT j.opposition_period_days
+         FROM trademark_cases tc
+         JOIN jurisdictions j ON tc.jurisdiction = j.code
+         WHERE tc.id = ?`,
+        [parsed.data.caseId]
+      );
+
+      if ((jurisdictionRows as unknown[]).length > 0) {
+        const days = ((jurisdictionRows as Array<{ opposition_period_days: number }>)[0]).opposition_period_days || 60;
+        const oppDate = new Date(parsed.data.oppositionDate);
+        oppDate.setDate(oppDate.getDate() + days);
+        calculatedDeadline = oppDate.toISOString().split('T')[0];
+      }
+    }
+
+    const id = crypto.randomUUID();
+    await pool.execute(
+      `INSERT INTO oppositions (id, case_id, opponent_name, opponent_address,
+       opponent_representative, grounds, opposition_date, deadline_date, notes, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        parsed.data.caseId,
+        parsed.data.opponentName,
+        parsed.data.opponentAddress || null,
+        parsed.data.opponentRepresentative || null,
+        parsed.data.grounds,
+        parsed.data.oppositionDate || new Date(),
+        calculatedDeadline || null,
+        parsed.data.notes || null,
+        req.user?.id ?? null
+      ]
+    );
+
+    if (calculatedDeadline) {
+      await pool.execute(
+        `INSERT INTO deadlines (id, case_id, due_date, type, description)
+         VALUES (?, ?, ?, 'OPPOSITION_RESPONSE', ?)`,
+        [crypto.randomUUID(), parsed.data.caseId, calculatedDeadline, `Response deadline for opposition by ${parsed.data.opponentName}`]
+      );
+    }
+
+    res.status(201).json({
+      id,
+      caseId: parsed.data.caseId,
+      opponentName: parsed.data.opponentName,
+      grounds: parsed.data.grounds,
+      oppositionDate: parsed.data.oppositionDate,
+      deadlineDate: calculatedDeadline,
+      status: 'PENDING'
+    });
+  } catch (error) {
+    logRouteError(req, 'oppositions.create', error);
+    sendApiError(req, res, 500, {
+      code: 'OPPOSITION_CREATE_FAILED',
+      message: 'Failed to create opposition'
+    });
+  }
 });
 
-// Update opposition
 router.patch('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updates = req.body;
-        
-        const allowedFields = [
-            'opponent_name', 'opponent_address', 'opponent_representative', 
-            'grounds', 'opposition_date', 'deadline_date', 'status', 
-            'response_filed_date', 'response_document_path', 'outcome', 'notes'
-        ];
-        
-        const fields: string[] = [];
-        const values: any[] = [];
-        
-        for (const key of allowedFields) {
-            if (updates[key] !== undefined) {
-                fields.push(`${key} = ?`);
-                values.push(updates[key]);
-            }
-        }
-        
-        if (fields.length === 0) {
-            return res.status(400).json({ error: 'No valid fields to update' });
-        }
-        
-        fields.push('updated_at = NOW()');
-        values.push(id);
-        
-        await pool.execute(
-            `UPDATE oppositions SET ${fields.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
-            values
-        );
-        
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Error updating opposition:', error);
-        res.status(500).json({ error: 'Failed to update opposition' });
+  try {
+    const parsedParams = oppositionIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_ID',
+        message: 'Invalid opposition id',
+        details: parsedParams.error.flatten()
+      });
     }
+
+    const parsedBody = updateOppositionSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_UPDATE_PAYLOAD',
+        message: 'Invalid opposition update payload',
+        details: parsedBody.error.flatten()
+      });
+    }
+
+    const fields = Object.keys(parsedBody.data).map((k) => `${k} = ?`).join(', ');
+    const values = Object.values(parsedBody.data);
+    values.push(parsedParams.data.id);
+
+    await pool.execute(
+      `UPDATE oppositions SET ${fields}, updated_at = NOW() WHERE id = ? AND deleted_at IS NULL`,
+      values
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    logRouteError(req, 'oppositions.update', error);
+    sendApiError(req, res, 500, {
+      code: 'OPPOSITION_UPDATE_FAILED',
+      message: 'Failed to update opposition'
+    });
+  }
 });
 
-// Update opposition status
 router.patch('/:id/status', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status, responseFiledDate, outcome } = req.body;
-        
-        const validStatuses = ['PENDING', 'RESPONDED', 'WITHDRAWN', 'RESOLVED'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
-        }
-        
-        const connection = await pool.getConnection();
-        try {
-            await connection.beginTransaction();
-
-            const updates: Record<string, unknown> = { status, updated_at: new Date() };
-            if (status === 'RESPONDED' && responseFiledDate) {
-                updates.response_filed_date = responseFiledDate;
-            }
-            if (outcome) {
-                updates.outcome = outcome;
-            }
-            
-            const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-            const values: any[] = [...Object.values(updates), id];
-            
-            await connection.execute(
-                `UPDATE oppositions SET ${fields} WHERE id = ? AND deleted_at IS NULL`,
-                values
-            );
-
-            // AUTO-UPDATE TRADEMARK CASE STATUS ON RESOLUTION
-            if (status === 'RESOLVED') {
-                const [oppRows] = await connection.execute(
-                    'SELECT case_id FROM oppositions WHERE id = ?',
-                    [id]
-                );
-                const caseId = (oppRows as any[])[0]?.case_id;
-
-                if (caseId) {
-                    // If won (default logic for now), move back to ACTIVE/Stage 6
-                    // If outcome is specifically 'LOST', we could move to Stage 11
-                    const finalStatus = outcome === 'LOST' ? 'ABANDONED' : 'PUBLISHED';
-                    const finalStage = outcome === 'LOST' ? 'DEAD_WITHDRAWN' : 'CERTIFICATE_REQUEST';
-
-                    await connection.execute(
-                        'UPDATE trademark_cases SET status = ?, flow_stage = ? WHERE id = ?',
-                        [finalStatus, finalStage, caseId]
-                    );
-                }
-            }
-
-            await connection.commit();
-            res.json({ success: true, status });
-        } catch (e) {
-            await connection.rollback();
-            throw e;
-        } finally {
-            connection.release();
-        }
-    } catch (error) {
-        console.error('Error updating opposition status:', error);
-        res.status(500).json({ error: 'Failed to update opposition status' });
+  try {
+    const parsedParams = oppositionIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_ID',
+        message: 'Invalid opposition id',
+        details: parsedParams.error.flatten()
+      });
     }
+
+    const parsedBody = updateOppositionStatusSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_STATUS_PAYLOAD',
+        message: 'Invalid opposition status payload',
+        details: parsedBody.error.flatten()
+      });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const updates: Record<string, string | Date> = {
+        status: parsedBody.data.status,
+        updated_at: new Date()
+      };
+      if (parsedBody.data.status === 'RESPONDED' && parsedBody.data.responseFiledDate) {
+        updates.response_filed_date = parsedBody.data.responseFiledDate;
+      }
+      if (parsedBody.data.outcome) {
+        updates.outcome = parsedBody.data.outcome;
+      }
+
+      const fields = Object.keys(updates).map((k) => `${k} = ?`).join(', ');
+      const values = Object.values(updates);
+      values.push(parsedParams.data.id);
+      await connection.execute(`UPDATE oppositions SET ${fields} WHERE id = ? AND deleted_at IS NULL`, values);
+
+      if (parsedBody.data.status === 'RESOLVED') {
+        const [oppRows] = await connection.execute('SELECT case_id FROM oppositions WHERE id = ?', [parsedParams.data.id]);
+        const caseId = (oppRows as Array<{ case_id?: string }>)[0]?.case_id;
+
+        if (caseId) {
+          const finalStatus = parsedBody.data.outcome === 'LOST' ? 'ABANDONED' : 'PUBLISHED';
+          const finalStage = parsedBody.data.outcome === 'LOST' ? 'DEAD_WITHDRAWN' : 'CERTIFICATE_REQUEST';
+          await connection.execute('UPDATE trademark_cases SET status = ?, flow_stage = ? WHERE id = ?', [finalStatus, finalStage, caseId]);
+        }
+      }
+
+      await connection.commit();
+      res.json({ success: true, status: parsedBody.data.status });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    logRouteError(req, 'oppositions.updateStatus', error);
+    sendApiError(req, res, 500, {
+      code: 'OPPOSITION_STATUS_UPDATE_FAILED',
+      message: 'Failed to update opposition status'
+    });
+  }
 });
 
-// Soft delete opposition
 router.delete('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const permanent = req.query.permanent === 'true';
-        
-        if (permanent) {
-            await pool.execute('DELETE FROM oppositions WHERE id = ?', [id]);
-        } else {
-            await pool.execute(
-                'UPDATE oppositions SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
-                [id]
-            );
-        }
-        
-        res.json({ 
-            success: true, 
-            message: permanent ? 'Opposition permanently deleted' : 'Opposition moved to trash' 
-        });
-    } catch (error) {
-        console.error('Error deleting opposition:', error);
-        res.status(500).json({ error: 'Failed to delete opposition' });
+  try {
+    const parsedParams = oppositionIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_ID',
+        message: 'Invalid opposition id',
+        details: parsedParams.error.flatten()
+      });
     }
+
+    const parsedQuery = deleteQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_DELETE_QUERY',
+        message: 'Invalid opposition delete query',
+        details: parsedQuery.error.flatten()
+      });
+    }
+
+    const permanent = parsedQuery.data.permanent === 'true';
+    if (permanent) {
+      await pool.execute('DELETE FROM oppositions WHERE id = ?', [parsedParams.data.id]);
+    } else {
+      await pool.execute('UPDATE oppositions SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL', [parsedParams.data.id]);
+    }
+
+    res.json({ success: true, message: permanent ? 'Opposition permanently deleted' : 'Opposition moved to trash' });
+  } catch (error) {
+    logRouteError(req, 'oppositions.delete', error);
+    sendApiError(req, res, 500, {
+      code: 'OPPOSITION_DELETE_FAILED',
+      message: 'Failed to delete opposition'
+    });
+  }
 });
 
-// Get pending oppositions with approaching deadlines (dashboard widget)
 router.get('/dashboard/pending', authenticateToken, async (req, res) => {
-    try {
-        const { days = 30 } = req.query;
-        
-        const [rows] = await pool.execute(
-            `SELECT o.*, tc.mark_name, c.name as client_name, 
-                    DATEDIFF(o.deadline_date, CURDATE()) as days_remaining
-             FROM oppositions o
-             JOIN trademark_cases tc ON o.case_id = tc.id
-             JOIN clients c ON tc.client_id = c.id
-             WHERE o.status = 'PENDING' 
-             AND o.deleted_at IS NULL
-             AND o.deadline_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
-             ORDER BY o.deadline_date ASC`,
-            [Number(days)]
-        );
-        
-        res.json(rows);
-    } catch (error) {
-        console.error('Error fetching pending oppositions:', error);
-        res.status(500).json({ error: 'Failed to fetch pending oppositions' });
+  try {
+    const parsed = pendingQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_OPPOSITION_PENDING_QUERY',
+        message: 'Invalid pending oppositions query',
+        details: parsed.error.flatten()
+      });
     }
+
+    const days = parsed.data.days ?? 30;
+    const [rows] = await pool.execute(
+      `SELECT o.*, tc.mark_name, c.name as client_name,
+              DATEDIFF(o.deadline_date, CURDATE()) as days_remaining
+       FROM oppositions o
+       JOIN trademark_cases tc ON o.case_id = tc.id
+       JOIN clients c ON tc.client_id = c.id
+       WHERE o.status = 'PENDING'
+       AND o.deleted_at IS NULL
+       AND o.deadline_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+       ORDER BY o.deadline_date ASC`,
+      [days]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    logRouteError(req, 'oppositions.pending', error);
+    sendApiError(req, res, 500, {
+      code: 'PENDING_OPPOSITIONS_FETCH_FAILED',
+      message: 'Failed to fetch pending oppositions'
+    });
+  }
 });
 
 export default router;

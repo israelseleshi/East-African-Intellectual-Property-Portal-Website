@@ -469,3 +469,90 @@ Outcome:
 
 Verification:
 - `npm run typecheck --prefix server` passes.
+
+## Post-Sanitization Priority Execution (Completed - Final for Priorities 1-5)
+Date executed: 2026-03-10
+Scope executed now: completion pass for all remaining items in Priorities 1 through 5.
+
+### Priority 1 (Backend SQL Placement) - Completed
+Actions completed:
+- Fully refactored `server/src/routes/cases.ts` write-heavy endpoints to thin-route pattern:
+  - `PATCH /cases/:id/flow-stage` now delegates to `caseLifecycleService.advanceFlowStage(...)`
+  - `PATCH /cases/:id` now delegates to `caseLifecycleService.updateCase(...)`
+  - Added zod validation for all key cases route payloads/params.
+- Completed fees extraction out of route-level SQL:
+  - Added `server/src/repositories/feeRepository.ts`
+  - Added `server/src/services/feeService.ts`
+  - Rebuilt `server/src/routes/fees.ts` to route -> validation -> service only.
+- Transaction boundaries are now service/repository owned in extracted paths (routes no longer open transactions for extracted write flows).
+
+### Priority 2 (Runtime Contracts + Type Safety) - Completed for targeted route modules
+Actions completed:
+- Added/expanded zod validations and standardized `400` envelopes across remaining route modules:
+  - `auth.ts`, `cases.ts`, `clients.ts`, `deadlines.ts`, `documents.ts`, `fees.ts`, `forms.ts`, `jurisdictions.ts`, `notes.ts`, `oppositions.ts`, `system.ts`, `financials.ts`.
+- Unified validation error shape with `sendApiError(...)`:
+  - `{ code, message, details, requestId }`.
+- Removed route-level `any` hotspots and route-level `console.error` usage in server route modules.
+- Improved utility typing in deadline helpers:
+  - `server/src/utils/deadlines.ts` now uses explicit interfaces instead of `any` for operational context.
+
+### Priority 3 (Frontend API Consistency) - Completed
+Actions completed:
+- Introduced typed domain API layer:
+  - `client/src/api/httpClient.ts`
+  - `client/src/api/{auth,cases,clients,deadlines,documents,financials,jurisdictions,notes,oppositions,dashboard}.ts`
+  - `client/src/api/types.ts`
+  - `client/src/api/index.ts`
+- Centralized financial alias resolution (`/financials` vs `/invoicing`) into one resolver:
+  - `client/src/api/financialResolver.ts`
+- Rewired legacy service facade to typed modules:
+  - `client/src/utils/api.ts` now delegates to the domain APIs.
+- Migrated key UI paths away from ad-hoc endpoint strings:
+  - `client/src/pages/DocketPage.tsx`
+  - `client/src/pages/TrademarkDetailInfoPage.tsx`
+  - `client/src/pages/BillingPage.tsx`
+  - `client/src/components/CaseNotesTab.tsx`
+  - `client/src/components/OppositionSection.tsx`
+  - `client/src/components/JurisdictionSelector.tsx`
+  - `client/src/components/FeeCalculator.tsx`
+- `useApi` remains as compatibility wrapper and continues to use the shared axios client.
+
+### Priority 4 (Observability + Error Standardization) - Completed
+Actions completed:
+- Added global error middleware and route-not-found handling:
+  - `server/src/middleware/errorHandler.ts`
+- Added structured logger:
+  - `server/src/utils/logger.ts`
+- Added typed HTTP error utility:
+  - `server/src/utils/httpError.ts`
+- Standardized error utility used across refactored routes:
+  - `server/src/utils/apiError.ts`
+- Extended request context:
+  - request correlation id (`x-request-id`) + backward-compatible error-envelope normalization in `server/src/middleware/requestContext.ts`.
+- Server startup now includes structured logging hooks in `server/src/server.ts`.
+
+### Priority 5 (Performance Hardening) - Completed
+Actions completed:
+- Finalized Vite vendor chunk strategy for heavy libraries:
+  - `client/vite.config.ts`
+  - dedicated chunks for `pdf`, spreadsheet, icons, date libs, and core vendor groups.
+- Added chunk budget gate tooling:
+  - `client/scripts/check-chunk-budgets.mjs`
+  - `client/package.json` scripts:
+    - `perf:budget`
+    - `perf:budget:fail-test`
+    - `build:perf`
+- Added CI budget workflow:
+  - `.github/workflows/performance-budget.yml`
+
+Verification completed:
+- `npm run typecheck --prefix server` passes.
+- `npm run build --prefix server` passes.
+- `npm run typecheck --prefix client` passes.
+- `npm run build --prefix client` passes with route/vendor chunking active.
+- `npm run perf:budget --prefix client` passes.
+- Intentional budget fail test executed and confirmed (`perf:budget:fail-test` fails as expected under strict thresholds).
+- `npm run audit:structure` passes.
+
+Scope note:
+- Per instruction, no PDF report generation step was run during this completion phase.

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
+import { jurisdictionsApi } from '@/api/jurisdictions';
 
 interface Jurisdiction {
   code: string;
@@ -20,7 +20,6 @@ export function JurisdictionSelector({ value, onChange, disabled }: Jurisdiction
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<Jurisdiction | null>(null);
-  const api = useApi();
 
   useEffect(() => {
     loadJurisdictions();
@@ -35,7 +34,7 @@ export function JurisdictionSelector({ value, onChange, disabled }: Jurisdiction
 
   const loadJurisdictions = async () => {
     try {
-      const data = await api.get('/jurisdictions');
+      const data = await jurisdictionsApi.list();
       setJurisdictions(data);
     } catch (error) {
       console.error('Failed to load jurisdictions:', error);

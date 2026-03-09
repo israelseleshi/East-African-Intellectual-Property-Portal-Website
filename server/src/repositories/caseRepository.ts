@@ -221,5 +221,156 @@ export const caseRepository = {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [crypto.randomUUID(), payload.invoiceId, payload.caseId, payload.description, payload.category, payload.amount]
     );
+  },
+
+  async updateCaseFields(
+    connection: PoolConnection,
+    caseId: string,
+    updates: Record<string, unknown>
+  ): Promise<void> {
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return;
+    const setClause = keys.map((k) => `${k} = ?`).join(', ');
+    const values: Array<string | number | boolean | null> = keys.map((k) => {
+      const value = updates[k];
+      const normalized = value instanceof Date ? value.toISOString().split('T')[0] : value;
+      if (normalized === undefined) return null;
+      if (
+        typeof normalized === 'string' ||
+        typeof normalized === 'number' ||
+        typeof normalized === 'boolean' ||
+        normalized === null
+      ) {
+        return normalized;
+      }
+      return JSON.stringify(normalized);
+    });
+    values.push(caseId);
+    await connection.execute(`UPDATE trademark_cases SET ${setClause} WHERE id = ?`, values);
+  },
+
+  async findCaseRegistrationDate(connection: PoolConnection, caseId: string): Promise<Date | null> {
+    const [rows] = await connection.execute('SELECT registration_dt FROM trademark_cases WHERE id = ?', [caseId]);
+    const data = (rows as Array<RowDataPacket & { registration_dt?: Date | string | null }>)[0];
+    if (!data?.registration_dt) return null;
+    return new Date(data.registration_dt);
+  },
+
+  async supersedePendingDeadlines(connection: PoolConnection, caseId: string): Promise<void> {
+    await connection.execute(
+      'UPDATE deadlines SET status = "SUPERSEDED" WHERE case_id = ? AND status = "PENDING"',
+      [caseId]
+    );
+  },
+
+  async insertDeadline(
+    connection: PoolConnection,
+    payload: { caseId: string; dueDate: Date | string; type: string; status?: string }
+  ): Promise<void> {
+    const dueDate = payload.dueDate instanceof Date
+      ? payload.dueDate.toISOString().split('T')[0]
+      : payload.dueDate;
+    await connection.execute(
+      'INSERT INTO deadlines (id, case_id, due_date, type, status) VALUES (?, ?, ?, ?, ?)',
+      [crypto.randomUUID(), payload.caseId, dueDate, payload.type, payload.status || 'PENDING']
+    );
+  },
+
+  async insertCaseNote(
+    connection: PoolConnection,
+    payload: { caseId: string; userId: string | null; content: string; noteType?: string; isPrivate?: boolean }
+  ): Promise<void> {
+    await connection.execute(
+      `INSERT INTO case_notes (id, case_id, user_id, note_type, content, is_private)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        crypto.randomUUID(),
+        payload.caseId,
+        payload.userId,
+        payload.noteType || 'INTERNAL',
+        payload.content,
+        payload.isPrivate ?? true
+      ]
+    );
+  },
+
+  async findCaseClientId(connection: PoolConnection, caseId: string): Promise<string | null> {
+    const [rows] = await connection.execute('SELECT client_id FROM trademark_cases WHERE id = ?', [caseId]);
+    const data = (rows as Array<RowDataPacket & { client_id: string }>)[0];
+    return data?.client_id ?? null;
+  },
+
+  async findCaseMarkAndClientName(
+    connection: PoolConnection,
+    caseId: string
+  ): Promise<{ mark_name: string | null; client_name: string | null }> {
+    const [rows] = await connection.execute(
+      `SELECT tc.mark_name, c.name as client_name
+       FROM trademark_cases tc
+       JOIN clients c ON tc.client_id = c.id
+       WHERE tc.id = ?`,
+      [caseId]
+    );
+    const row = (rows as Array<RowDataPacket & { mark_name?: string | null; client_name?: string | null }>)[0];
+    return {
+      mark_name: row?.mark_name ?? null,
+      client_name: row?.client_name ?? null
+    };
+  },
+
+  async updateClientFields(
+    connection: PoolConnection,
+    clientId: string,
+    updates: Record<string, unknown>
+  ): Promise<void> {
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return;
+    const setClause = keys.map((k) => `${k} = ?`).join(', ');
+    const values: Array<string | number | boolean | null> = keys.map((k) => {
+      const value = updates[k];
+      if (value === undefined) return null;
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        value === null
+      ) {
+        return value;
+      }
+      if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+      }
+      return JSON.stringify(value);
+    });
+    values.push(clientId);
+    await connection.execute(
+      `UPDATE clients SET ${setClause}, updated_at = NOW() WHERE id = ?`,
+      values
+    );
+  },
+
+  async replaceNiceClassMappings(
+    connection: PoolConnection,
+    caseId: string,
+    classNumbers: number[],
+    description: string
+  ): Promise<void> {
+    await connection.execute('DELETE FROM nice_class_mappings WHERE case_id = ?', [caseId]);
+    for (const classNo of classNumbers) {
+      await connection.execute(
+        'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
+        [caseId, classNo, description]
+      );
+    }
+  },
+
+  async insertMarkAsset(
+    connection: PoolConnection,
+    payload: { caseId: string; type: string; filePath: string }
+  ): Promise<void> {
+    await connection.execute(
+      'INSERT INTO mark_assets (id, case_id, type, file_path, created_at) VALUES (?, ?, ?, ?, NOW())',
+      [crypto.randomUUID(), payload.caseId, payload.type, payload.filePath]
+    );
   }
 };

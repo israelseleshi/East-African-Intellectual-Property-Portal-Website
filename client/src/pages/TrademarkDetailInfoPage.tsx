@@ -14,7 +14,8 @@ import JurisdictionBadge from '@/components/JurisdictionBadge'
 import StatusPill from '@/components/StatusPill'
 import NiceClassPicker from '@/components/NiceClassPicker'
 import { CaseNotesTab } from '../components/CaseNotesTab'
-import { trademarkService, api } from '@/utils/api'
+import { trademarkService } from '@/utils/api'
+import { casesApi } from '@/api/cases'
 import { usePageTitleStore } from '@/store/pageTitleStore'
 
 type CaseDeadline = {
@@ -177,7 +178,7 @@ export default function TrademarkDetailInfoPage() {
         mark_image: editData.mark_image
       };
 
-      await api.patch(`/cases/${id}`, payload);
+      await casesApi.updateCase(id!, payload);
       
       const updatedData = await trademarkService.getCase(id!);
       setTm(updatedData);

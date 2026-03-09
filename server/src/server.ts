@@ -21,9 +21,22 @@ import feesRoutes from './routes/fees.js';
 import formsRoutes from './routes/forms.js';
 import { pool } from './database/db.js';
 import { attachRequestContext } from './middleware/requestContext.js';
+import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { logger } from './utils/logger.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+const nativeConsoleError = console.error.bind(console);
+const nativeConsoleWarn = console.warn.bind(console);
+console.error = (...args: unknown[]) => {
+  logger.error('console-error', { args });
+  nativeConsoleError(...args);
+};
+console.warn = (...args: unknown[]) => {
+  logger.warn('console-warn', { args });
+  nativeConsoleWarn(...args);
+};
 
 // Middleware
 app.use(cors({
@@ -60,7 +73,7 @@ const formsUploadCandidates = [
 
 const FORMS_UPLOAD_DIR = formsUploadCandidates.find((dir) => fs.existsSync(dir)) || formsUploadCandidates[0];
 const MARKS_UPLOAD_DIR = path.resolve(uploadDir, 'marks');
-console.log('[BOOT] FORMS_UPLOAD_DIR resolved to:', FORMS_UPLOAD_DIR);
+logger.info('boot-forms-upload-dir', { formsUploadDir: FORMS_UPLOAD_DIR });
 app.use('/forms-download', express.static(FORMS_UPLOAD_DIR));
 app.use('/api/forms-download', express.static(FORMS_UPLOAD_DIR));
 
@@ -158,7 +171,12 @@ app.get('/api/db-check', async (req, res) => {
   }
 });
 
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
+
 app.listen(port, () => {
-  console.log(`TPMS API running on port ${port}`);
-  console.log(`Uploads directory: ${uploadDir}`);
+  logger.info('server-started', {
+    port: Number(port),
+    uploadsDirectory: uploadDir
+  });
 });

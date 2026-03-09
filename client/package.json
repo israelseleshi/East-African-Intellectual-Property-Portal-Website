@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:perf": "npm run build && npm run perf:budget",
     "postinstall": "echo Skipping husky in this environment",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "perf:budget": "node ./scripts/check-chunk-budgets.mjs",
+    "perf:budget:fail-test": "node ./scripts/check-chunk-budgets.mjs --max-chunk-kb=100 --max-total-js-kb=200",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
     "test": "cypress run",

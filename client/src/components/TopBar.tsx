@@ -16,21 +16,22 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
 
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/70 backdrop-blur-md">
-      <div className="flex h-14 items-center justify-between px-4">
+      <div className="flex h-14 items-center justify-between px-2 sm:px-3 md:px-4">
         <div className="min-w-0">
-          <div className="truncate text-[24px] font-bold tracking-tight text-[var(--eai-text)]">{title}</div>
+          <div className="truncate text-[18px] sm:text-[20px] md:text-[24px] font-bold tracking-tight text-[var(--eai-text)]">{title}</div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               type="button"
               onClick={onOpenCommand}
-              className="flex h-10 items-center gap-2 rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 text-[13px] font-medium transition-all hover:bg-[var(--eai-bg)]"
+              className="flex h-9 sm:h-10 items-center gap-1 sm:gap-2 rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] px-2 sm:px-3 text-[12px] sm:text-[13px] font-medium transition-all hover:bg-[var(--eai-bg)]"
             >
-              <MagnifyingGlass size={18} />
-              <span>Search</span>
-              <kbd className="ml-1 rounded-none bg-[var(--eai-bg)] px-1.5 py-0.5 text-[10px] font-bold opacity-50 border border-[var(--eai-border)]">
+              <MagnifyingGlass size={16} className="sm:hidden" />
+              <MagnifyingGlass size={18} className="hidden sm:block" />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="ml-1 hidden md:inline-block rounded-none bg-[var(--eai-bg)] px-1.5 py-0.5 text-[10px] font-bold opacity-50 border border-[var(--eai-border)]">
                 {hint}+K
               </kbd>
             </button>
@@ -38,7 +39,7 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
             <button
               type="button"
               onClick={onToggleTheme}
-              className="flex h-10 w-10 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] transition-all hover:bg-[var(--eai-bg)] shadow-sm"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] transition-all hover:bg-[var(--eai-bg)] shadow-sm"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
@@ -49,7 +50,7 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
             </button>
           </div>
 
-          <div className="h-8 w-px bg-[var(--eai-border)]" />
+          <div className="h-8 w-px bg-[var(--eai-border)] hidden sm:block" />
 
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">

@@ -86,8 +86,18 @@ async function main() {
   }
 
   const pdfBytes = await pdfDoc.save()
-  fs.writeFileSync(pdfPath, pdfBytes)
-  console.log(pdfPath)
+  try {
+    fs.writeFileSync(pdfPath, pdfBytes)
+    console.log(pdfPath)
+  } catch (err) {
+    if (err && err.code === 'EBUSY') {
+      const fallback = path.join(__dirname, `TPMS_Improvement_Areas_2026-03-09_${Date.now()}.pdf`)
+      fs.writeFileSync(fallback, pdfBytes)
+      console.log(fallback)
+      return
+    }
+    throw err
+  }
 }
 
 main().catch((e) => {

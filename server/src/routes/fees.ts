@@ -1,297 +1,301 @@
 import express from 'express';
-import crypto from 'crypto';
-import { pool } from '../database/db.js';
+import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth.js';
+import { feeService } from '../services/feeService.js';
+import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
 
-// Get all fee schedules (with filters)
+const listFeeQuerySchema = z.object({
+  jurisdiction: z.string().optional(),
+  stage: z.string().optional(),
+  category: z.string().optional(),
+  active: z.enum(['true', 'false']).optional()
+});
+
+const calculateParamsSchema = z.object({
+  jurisdiction: z.string().min(1),
+  stage: z.string().min(1)
+});
+
+const caseIdParamsSchema = z.object({
+  caseId: z.string().min(1)
+});
+
+const createFeeSchema = z.object({
+  jurisdiction: z.string().min(1),
+  stage: z.string().min(1),
+  category: z.string().min(1),
+  amount: z.coerce.number().nonnegative(),
+  currency: z.string().optional(),
+  effectiveDate: z.string().optional(),
+  expiryDate: z.string().nullable().optional(),
+  description: z.string().nullable().optional()
+});
+
+const updateFeeParamsSchema = z.object({
+  id: z.string().min(1)
+});
+
+const updateFeeBodySchema = z.object({
+  amount: z.coerce.number().nonnegative().optional(),
+  currency: z.string().optional(),
+  description: z.string().optional(),
+  is_active: z.boolean().optional(),
+  expiry_date: z.string().nullable().optional()
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'No valid fields to update'
+});
+
+const deleteFeeQuerySchema = z.object({
+  permanent: z.enum(['true', 'false']).optional()
+});
+
+const compareParamsSchema = z.object({
+  stage: z.string().min(1)
+});
+
+const compareQuerySchema = z.object({
+  category: z.string().optional()
+});
+
 router.get('/', authenticateToken, async (req, res) => {
-    try {
-        const { jurisdiction, stage, category, active } = req.query;
-        
-        let sql = `
-            SELECT fs.*, j.name as jurisdiction_name, u.name as created_by_name
-            FROM fee_schedules fs
-            LEFT JOIN jurisdictions j ON fs.jurisdiction = j.code
-            LEFT JOIN users u ON fs.created_by = u.id
-            WHERE fs.deleted_at IS NULL
-        `;
-        const params: any[] = [];
-        
-        if (jurisdiction) {
-            sql += ' AND fs.jurisdiction = ?';
-            params.push(jurisdiction);
-        }
-        
-        if (stage) {
-            sql += ' AND fs.stage = ?';
-            params.push(stage);
-        }
-        
-        if (category) {
-            sql += ' AND fs.category = ?';
-            params.push(category);
-        }
-        
-        if (active === 'true') {
-            sql += ' AND fs.is_active = TRUE AND (fs.expiry_date IS NULL OR fs.expiry_date >= CURDATE())';
-        }
-        
-        sql += ' ORDER BY fs.jurisdiction, fs.stage, fs.category, fs.effective_date DESC';
-        
-        const [rows] = await pool.execute(sql, params);
-        res.json(rows);
-    } catch (error) {
-        console.error('Error fetching fee schedules:', error);
-        res.status(500).json({ error: 'Failed to fetch fee schedules' });
+  try {
+    const parsed = listFeeQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_QUERY',
+        message: 'Invalid fee query',
+        details: parsed.error.flatten()
+      });
     }
+
+    const rows = await feeService.listFeeSchedules({
+      jurisdiction: parsed.data.jurisdiction,
+      stage: parsed.data.stage,
+      category: parsed.data.category,
+      active: parsed.data.active === 'true'
+    });
+
+    res.json(rows);
+  } catch (error) {
+    logRouteError(req, 'fees.list', error);
+    sendApiError(req, res, 500, {
+      code: 'FEE_SCHEDULES_FETCH_FAILED',
+      message: 'Failed to fetch fee schedules'
+    });
+  }
 });
 
-// Get fees for specific jurisdiction and stage
 router.get('/calculate/:jurisdiction/:stage', authenticateToken, async (req, res) => {
-    try {
-        const { jurisdiction, stage } = req.params;
-        
-        const [rows] = await pool.execute(
-            `SELECT * FROM fee_schedules 
-             WHERE jurisdiction = ? AND stage = ? AND is_active = TRUE 
-             AND deleted_at IS NULL
-             AND (expiry_date IS NULL OR expiry_date >= CURDATE())
-             ORDER BY category`,
-            [jurisdiction, stage]
-        ) as [unknown[], unknown[]];
-        
-        if (rows.length === 0) {
-            return res.status(404).json({ 
-                error: 'No fees found for this jurisdiction and stage',
-                jurisdiction,
-                stage
-            });
-        }
-        
-        const fees = rows as Array<{ amount: number; currency: string }>;
-        const totalAmount = fees.reduce((sum, fee) => sum + Number(fee.amount), 0);
-        
-        res.json({
-            jurisdiction,
-            stage,
-            fees,
-            total_amount: totalAmount,
-            currency: (fees as Array<{ currency: string }>)[0]?.currency || 'USD'
-        });
-    } catch (error) {
-        console.error('Error calculating fees:', error);
-        res.status(500).json({ error: 'Failed to calculate fees' });
+  try {
+    const parsed = calculateParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_CALC_PARAMS',
+        message: 'Invalid fee calculation parameters',
+        details: parsed.error.flatten()
+      });
     }
+
+    const result = await feeService.calculateFees(parsed.data.jurisdiction, parsed.data.stage);
+    if (!result) {
+      return sendApiError(req, res, 404, {
+        code: 'FEE_NOT_FOUND',
+        message: 'No fees found for this jurisdiction and stage',
+        details: parsed.data
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    logRouteError(req, 'fees.calculate', error);
+    sendApiError(req, res, 500, {
+      code: 'FEE_CALCULATION_FAILED',
+      message: 'Failed to calculate fees'
+    });
+  }
 });
 
-// Calculate total fees for a case (all stages up to current)
 router.get('/case/:caseId', authenticateToken, async (req, res) => {
-    try {
-        const { caseId } = req.params;
-        
-        // Get case details
-        const [caseRows] = await pool.execute(
-            'SELECT jurisdiction, status, flow_stage FROM trademark_cases WHERE id = ? AND deleted_at IS NULL',
-            [caseId]
-        ) as [unknown[], unknown[]];
-        
-        if (caseRows.length === 0) {
-            return res.status(404).json({ error: 'Case not found' });
-        }
-        
-        const caseData = caseRows[0] as Record<string, unknown>;
-        const jurisdiction = caseData.jurisdiction as string;
-        
-        // Define stage order for calculation
-        const stageOrder = [
-            'DRAFT', 'DATA_COLLECTION', 'READY_TO_FILE', 'FILED', 
-            'FORMAL_EXAM', 'SUBSTANTIVE_EXAM', 'AMENDMENT_PENDING',
-            'PUBLISHED', 'CERTIFICATE_REQUEST', 'CERTIFICATE_ISSUED',
-            'REGISTERED', 'RENEWAL_DUE', 'RENEWAL_ON_TIME', 'RENEWAL_PENALTY'
-        ];
-        
-        const currentStageIndex = stageOrder.indexOf(caseData.flow_stage as string);
-        const stagesToBill = stageOrder.slice(0, currentStageIndex + 1);
-        
-        // Get fees for all applicable stages
-        const feesByStage: Record<string, unknown[]> = {};
-        let totalAmount = 0;
-        
-        for (const stage of stagesToBill) {
-            const [feeRows] = await pool.execute(
-                `SELECT * FROM fee_schedules 
-                 WHERE jurisdiction = ? AND stage = ? AND is_active = TRUE 
-                 AND deleted_at IS NULL
-                 AND (expiry_date IS NULL OR expiry_date >= CURDATE())`,
-                [jurisdiction, stage]
-            ) as [unknown[], unknown[]];
-            
-            if (feeRows.length > 0) {
-                feesByStage[stage] = feeRows;
-                totalAmount += (feeRows as Array<{ amount: string }>).reduce((sum, fee) => sum + parseFloat(fee.amount), 0);
-            }
-        }
-        
-        res.json({
-            case_id: caseId,
-            jurisdiction,
-            current_stage: caseData.flow_stage as string,
-            stages_billed: stagesToBill,
-            fees_by_stage: feesByStage,
-            total_amount: totalAmount,
-            currency: 'USD'
-        });
-    } catch (error) {
-        console.error('Error calculating case fees:', error);
-        res.status(500).json({ error: 'Failed to calculate case fees' });
+  try {
+    const parsed = caseIdParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_CASE_ID',
+        message: 'Invalid case id',
+        details: parsed.error.flatten()
+      });
     }
+
+    const result = await feeService.calculateCaseFees(parsed.data.caseId);
+    if (!result) {
+      return sendApiError(req, res, 404, {
+        code: 'CASE_NOT_FOUND',
+        message: 'Case not found'
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    logRouteError(req, 'fees.calculateCaseFees', error);
+    sendApiError(req, res, 500, {
+      code: 'CASE_FEE_CALCULATION_FAILED',
+      message: 'Failed to calculate case fees'
+    });
+  }
 });
 
-// Create new fee schedule (admin only)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post('/', authenticateToken, async (req: any, res) => {
-    try {
-        const {
-            jurisdiction,
-            stage,
-            category,
-            amount,
-            currency,
-            effectiveDate,
-            expiryDate,
-            description
-        } = req.body;
-        
-        if (!jurisdiction || !stage || !category || amount === undefined) {
-            return res.status(400).json({ 
-                error: 'jurisdiction, stage, category, and amount are required' 
-            });
-        }
-        
-        const id = crypto.randomUUID();
-        const userId = req.user.id;
-        
-        await pool.execute(
-            `INSERT INTO fee_schedules (id, jurisdiction, stage, category, amount, currency, 
-             effective_date, expiry_date, description, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, jurisdiction, stage, category, amount, currency || 'USD', 
-             effectiveDate || new Date(), expiryDate || null, description || null, userId]
-        );
-        
-        res.status(201).json({ 
-            id, 
-            jurisdiction, 
-            stage, 
-            category, 
-            amount, 
-            currency: currency || 'USD',
-            effectiveDate: effectiveDate || new Date()
-        });
-    } catch (error: unknown) {
-        console.error('Error creating fee schedule:', error);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((error as any).code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({ 
-                error: 'Fee schedule already exists for this jurisdiction, stage, category, and effective date' 
-            });
-        }
-        res.status(500).json({ error: 'Failed to create fee schedule' });
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const parsed = createFeeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_CREATE_PAYLOAD',
+        message: 'Invalid fee schedule payload',
+        details: parsed.error.flatten()
+      });
     }
+
+    const result = await feeService.createFeeSchedule({
+      jurisdiction: parsed.data.jurisdiction,
+      stage: parsed.data.stage,
+      category: parsed.data.category,
+      amount: parsed.data.amount,
+      currency: parsed.data.currency || 'USD',
+      effectiveDate: parsed.data.effectiveDate || new Date(),
+      expiryDate: parsed.data.expiryDate ?? null,
+      description: parsed.data.description ?? null,
+      createdBy: req.user?.id ?? null
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    const typedError = error as { code?: string };
+    if (typedError.code === 'ER_DUP_ENTRY') {
+      return sendApiError(req, res, 409, {
+        code: 'FEE_SCHEDULE_DUPLICATE',
+        message: 'Fee schedule already exists for this jurisdiction, stage, category, and effective date'
+      });
+    }
+
+    logRouteError(req, 'fees.create', error);
+    sendApiError(req, res, 500, {
+      code: 'FEE_CREATE_FAILED',
+      message: 'Failed to create fee schedule'
+    });
+  }
 });
 
-// Update fee schedule
 router.patch('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updates = req.body;
-        
-        const allowedFields = [
-            'amount', 'currency', 'description', 'is_active', 'expiry_date'
-        ];
-        
-        const fields: string[] = [];
-        const values: any[] = [];
-        
-        for (const key of allowedFields) {
-            if (updates[key] !== undefined) {
-                fields.push(`${key} = ?`);
-                values.push(updates[key]);
-            }
-        }
-        
-        if (fields.length === 0) {
-            return res.status(400).json({ error: 'No valid fields to update' });
-        }
-        
-        fields.push('updated_at = NOW()');
-        values.push(id);
-        
-        await pool.execute(
-            `UPDATE fee_schedules SET ${fields.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
-            values
-        );
-        
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Error updating fee schedule:', error);
-        res.status(500).json({ error: 'Failed to update fee schedule' });
+  try {
+    const parsedParams = updateFeeParamsSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_ID',
+        message: 'Invalid fee schedule id',
+        details: parsedParams.error.flatten()
+      });
     }
+
+    const parsedBody = updateFeeBodySchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_UPDATE_PAYLOAD',
+        message: 'Invalid fee update payload',
+        details: parsedBody.error.flatten()
+      });
+    }
+
+    const updated = await feeService.updateFeeSchedule(parsedParams.data.id, parsedBody.data);
+    if (!updated) {
+      return sendApiError(req, res, 404, {
+        code: 'FEE_SCHEDULE_NOT_FOUND',
+        message: 'Fee schedule not found'
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    logRouteError(req, 'fees.update', error);
+    sendApiError(req, res, 500, {
+      code: 'FEE_UPDATE_FAILED',
+      message: 'Failed to update fee schedule'
+    });
+  }
 });
 
-// Soft delete fee schedule
 router.delete('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const permanent = req.query.permanent === 'true';
-        
-        if (permanent) {
-            await pool.execute('DELETE FROM fee_schedules WHERE id = ?', [id]);
-        } else {
-            await pool.execute(
-                'UPDATE fee_schedules SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
-                [id]
-            );
-        }
-        
-        res.json({ 
-            success: true, 
-            message: permanent ? 'Fee schedule permanently deleted' : 'Fee schedule moved to trash' 
-        });
-    } catch (error) {
-        console.error('Error deleting fee schedule:', error);
-        res.status(500).json({ error: 'Failed to delete fee schedule' });
+  try {
+    const parsedParams = updateFeeParamsSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_ID',
+        message: 'Invalid fee schedule id',
+        details: parsedParams.error.flatten()
+      });
     }
+
+    const parsedQuery = deleteFeeQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FEE_DELETE_QUERY',
+        message: 'Invalid fee delete query',
+        details: parsedQuery.error.flatten()
+      });
+    }
+
+    const permanent = parsedQuery.data.permanent === 'true';
+    const deleted = await feeService.deleteFeeSchedule(parsedParams.data.id, permanent);
+    if (!deleted) {
+      return sendApiError(req, res, 404, {
+        code: 'FEE_SCHEDULE_NOT_FOUND',
+        message: 'Fee schedule not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: permanent ? 'Fee schedule permanently deleted' : 'Fee schedule moved to trash'
+    });
+  } catch (error) {
+    logRouteError(req, 'fees.delete', error);
+    sendApiError(req, res, 500, {
+      code: 'FEE_DELETE_FAILED',
+      message: 'Failed to delete fee schedule'
+    });
+  }
 });
 
-// Get fee comparison across jurisdictions
 router.get('/compare/:stage', authenticateToken, async (req, res) => {
-    try {
-        const { stage } = req.params;
-        const { category = 'OFFICIAL_FEE' } = req.query;
-        
-        const [rows] = await pool.execute(
-            `SELECT fs.jurisdiction, j.name as jurisdiction_name, fs.amount, fs.currency
-             FROM fee_schedules fs
-             JOIN jurisdictions j ON fs.jurisdiction = j.code
-             WHERE fs.stage = ? AND fs.category = ? AND fs.is_active = TRUE
-             AND fs.deleted_at IS NULL
-             AND (fs.expiry_date IS NULL OR fs.expiry_date >= CURDATE())
-             ORDER BY fs.amount ASC`,
-            [stage, category] as any[]
-        ) as [unknown[], unknown[]];
-        
-        res.json({
-            stage,
-            category,
-            comparisons: rows
-        });
-    } catch (error) {
-        console.error('Error comparing fees:', error);
-        res.status(500).json({ error: 'Failed to compare fees' });
+  try {
+    const parsedParams = compareParamsSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_COMPARE_STAGE',
+        message: 'Invalid stage for fee comparison',
+        details: parsedParams.error.flatten()
+      });
     }
+
+    const parsedQuery = compareQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_COMPARE_QUERY',
+        message: 'Invalid comparison query',
+        details: parsedQuery.error.flatten()
+      });
+    }
+
+    const result = await feeService.compareFees(parsedParams.data.stage, parsedQuery.data.category || 'OFFICIAL_FEE');
+    res.json(result);
+  } catch (error) {
+    logRouteError(req, 'fees.compare', error);
+    sendApiError(req, res, 500, {
+      code: 'FEE_COMPARE_FAILED',
+      message: 'Failed to compare fees'
+    });
+  }
 });
 
 export default router;
