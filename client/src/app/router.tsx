@@ -1,25 +1,32 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, Outlet, useNavigate } from 'react-router-dom'
 
 import AppShell from './AppShell'
-import DashboardPage from '../pages/DashboardPage'
-import DocketPage from '../pages/DocketPage'
-import ClientsPage from '../pages/ClientsPage'
-import ClientDetailPage from '../pages/ClientDetailPage'
-import NewClientPage from '../pages/NewClientPage'
-import CaseFlowPage from '../pages/CaseFlowPage'
-import CaseFlowDemoPage from '../pages/CaseFlowDemoPage'
-import TrademarkDetailInfoPage from '../pages/TrademarkDetailInfoPage'
-import DeadlinesPage from '../pages/DeadlinesPage'
-
-import BillingPage from '../pages/BillingPage'
-import LoginPage from '../pages/LoginPage'
-import SignUpPage from '../pages/SignUpPage'
-import VerifyOtpPage from '../pages/VerifyOtpPage'
-import FormInspectorPage from '../pages/FormInspectorPage'
-import HelpPage from '../pages/HelpPage'
-import TrashPage from '../pages/TrashPage'
 import { useAuthStore } from '../store/authStore'
 import ErrorPage from '../components/ErrorPage'
+
+const DashboardPage = lazy(() => import('../pages/DashboardPage'))
+const DocketPage = lazy(() => import('../pages/DocketPage'))
+const ClientsPage = lazy(() => import('../pages/ClientsPage'))
+const ClientDetailPage = lazy(() => import('../pages/ClientDetailPage'))
+const NewClientPage = lazy(() => import('../pages/NewClientPage'))
+const CaseFlowPage = lazy(() => import('../pages/CaseFlowPage'))
+const CaseFlowDemoPage = lazy(() => import('../pages/CaseFlowDemoPage'))
+const TrademarkDetailInfoPage = lazy(() => import('../pages/TrademarkDetailInfoPage'))
+const DeadlinesPage = lazy(() => import('../pages/DeadlinesPage'))
+const BillingPage = lazy(() => import('../pages/BillingPage'))
+const LoginPage = lazy(() => import('../pages/LoginPage'))
+const SignUpPage = lazy(() => import('../pages/SignUpPage'))
+const VerifyOtpPage = lazy(() => import('../pages/VerifyOtpPage'))
+const FormInspectorPage = lazy(() => import('../pages/FormInspectorPage'))
+const HelpPage = lazy(() => import('../pages/HelpPage'))
+const TrashPage = lazy(() => import('../pages/TrashPage'))
+
+const withRouteSuspense = (node: ReactNode) => (
+  <Suspense fallback={<div className="p-6 text-sm text-foreground/70">Loading page...</div>}>
+    {node}
+  </Suspense>
+)
 
 const ProtectedRoute = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -33,18 +40,18 @@ const VerifyOtpPageWrapper = () => {
     navigate('/signup');
     return null;
   }
-  return <VerifyOtpPage />
+  return withRouteSuspense(<VerifyOtpPage />)
 }
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: withRouteSuspense(<LoginPage />),
     errorElement: <ErrorPage />
   },
   {
     path: '/signup',
-    element: <SignUpPage />,
+    element: withRouteSuspense(<SignUpPage />),
     errorElement: <ErrorPage />
   },
   {
@@ -60,23 +67,23 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'trademarks', element: <DocketPage /> },
-          { path: 'trademarks/:id', element: <TrademarkDetailInfoPage /> },
-          { path: 'trademarks/:id/detail', element: <TrademarkDetailInfoPage /> },
-          { path: 'deadlines', element: <DeadlinesPage /> },
+          { index: true, element: withRouteSuspense(<DashboardPage />) },
+          { path: 'trademarks', element: withRouteSuspense(<DocketPage />) },
+          { path: 'trademarks/:id', element: withRouteSuspense(<TrademarkDetailInfoPage />) },
+          { path: 'trademarks/:id/detail', element: withRouteSuspense(<TrademarkDetailInfoPage />) },
+          { path: 'deadlines', element: withRouteSuspense(<DeadlinesPage />) },
           { path: 'intake/new', element: <Navigate to="/eipa-forms" replace /> },
           { path: 'eipa-forms', element: <Navigate to="application-form" replace /> },
-          { path: 'eipa-forms/application-form', element: <FormInspectorPage /> },
-          { path: 'eipa-forms/renewal-form', element: <FormInspectorPage /> },
-          { path: 'clients', element: <ClientsPage /> },
-          { path: 'clients/new', element: <NewClientPage /> },
-          { path: 'clients/:id', element: <ClientDetailPage /> },
-          { path: 'case-flow/:id', element: <CaseFlowPage /> },
-          { path: 'case-flow/demo', element: <CaseFlowDemoPage /> },
-          { path: 'invoicing', element: <BillingPage /> },
-          { path: 'trash', element: <TrashPage /> },
-          { path: 'help', element: <HelpPage /> }
+          { path: 'eipa-forms/application-form', element: withRouteSuspense(<FormInspectorPage />) },
+          { path: 'eipa-forms/renewal-form', element: withRouteSuspense(<FormInspectorPage />) },
+          { path: 'clients', element: withRouteSuspense(<ClientsPage />) },
+          { path: 'clients/new', element: withRouteSuspense(<NewClientPage />) },
+          { path: 'clients/:id', element: withRouteSuspense(<ClientDetailPage />) },
+          { path: 'case-flow/:id', element: withRouteSuspense(<CaseFlowPage />) },
+          { path: 'case-flow/demo', element: withRouteSuspense(<CaseFlowDemoPage />) },
+          { path: 'invoicing', element: withRouteSuspense(<BillingPage />) },
+          { path: 'trash', element: withRouteSuspense(<TrashPage />) },
+          { path: 'help', element: withRouteSuspense(<HelpPage />) }
         ]
       }
     ]

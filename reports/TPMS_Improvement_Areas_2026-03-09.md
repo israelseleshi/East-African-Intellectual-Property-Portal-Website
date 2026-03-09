@@ -344,3 +344,118 @@ Outcome:
 - `forms/forms/node_modules` is no longer present in active runtime paths.
 - `database_data.sql` is no longer present at repository root.
 - Structure audit command and CI workflow are present and ready for use.
+
+## Post-Sanitization Priority Execution (In Progress)
+Date executed: 2026-03-09
+Current stream: Architecture hardening priorities after Plan A completion.
+
+### Priority 1 (Backend SQL Placement) - Phase 1 Implemented
+Scope completed:
+- Added query repository layer for case reads:
+  - `server/src/repositories/caseRepository.ts`
+- Added case query service:
+  - `server/src/services/caseQueryService.ts`
+- Refactored `server/src/routes/cases.ts`:
+  - `GET /api/cases`
+  - `GET /api/cases/:id`
+  - Both endpoints now call service/repository instead of embedding read SQL in route handlers.
+
+Financials extraction completed:
+- Added financial repository:
+  - `server/src/repositories/financialRepository.ts`
+- Added financial service:
+  - `server/src/services/financialService.ts`
+- Refactored `server/src/routes/financials.ts`:
+  - `POST /payments`
+  - `GET /payments/invoice/:invoiceId`
+  - `POST /invoices`
+  - `GET /invoices`
+  - All endpoint SQL/transaction internals moved into service/repository layers.
+
+Verification:
+- `npm run typecheck --prefix server` passes.
+
+### Priority 5 (Performance and Bundle Size) - Phase 1 Implemented
+Scope completed:
+- Introduced route-level lazy loading in router:
+  - `client/src/app/router.tsx`
+  - Core page routes now load through `React.lazy` + `Suspense` instead of eager imports.
+
+Measured result (post-build):
+- Build now emits multiple route chunks instead of one dominant monolith.
+- Heavy screens are split into independent assets (examples):
+  - `DocketPage` chunk
+  - `FormInspectorPage` chunk
+  - `TrademarkDetailInfoPage` chunk
+  - `BillingPage` chunk
+
+Verification:
+- `npm run typecheck --prefix client` passes.
+- `npm run build --prefix client` passes and confirms chunk splitting.
+
+Remaining for full Priority 5 completion:
+- Add manual chunk strategy in Vite for large third-party libraries (`pdf`, `countries`) to reduce very large vendor chunks further.
+- Add performance budget checks in CI.
+- `npm run audit:structure` passes.
+
+Remaining for full Priority 1 completion:
+- Extract write-heavy logic from `cases.ts` status/flow/update endpoints into dedicated lifecycle/billing services.
+
+### Priority 2 (Type Safety and Runtime Contracts) - Phase 1 Implemented
+Scope completed:
+- Added runtime schema validation with `zod` for refactored endpoints:
+  - `server/src/routes/financials.ts`
+    - `POST /payments` payload validation
+    - `GET /payments/invoice/:invoiceId` param validation
+    - `POST /invoices` payload validation
+  - `server/src/routes/cases.ts`
+    - `GET /api/cases` query validation
+    - `GET /api/cases/:id` param validation
+
+Outcome:
+- Invalid payloads now fail fast with `400` and structured validation details.
+- Route-level request contracts are explicit and enforceable.
+
+Remaining for full Priority 2 completion:
+- Expand DTO/schema coverage to all write-heavy `cases.ts` endpoints and remaining route modules.
+- Introduce shared response DTO types for frontend/backend alignment.
+
+### Priority 3 (Frontend API Consistency) - Phase 1 Implemented
+Scope completed:
+- Unified `useApi` request execution to use the centralized axios client from `client/src/utils/api.ts` instead of native `fetch`.
+- `useApi` now reuses:
+  - shared base URL behavior
+  - shared auth token interceptor behavior
+  - consistent error extraction from API responses
+
+Outcome:
+- Removes split network stack behavior between axios and fetch for hook-driven consumers.
+- Reduces risk of auth/retry/header drift across pages that depend on `useApi`.
+
+Verification:
+- `npm run typecheck --prefix client` passes after unification.
+
+Remaining for full Priority 3 completion:
+- Migrate direct axios service calls into typed endpoint modules progressively.
+- Standardize fallback endpoint candidate behavior (invoice/invoicing) behind one resolver utility.
+
+### Priority 4 (Error Handling and Observability) - Phase 1 Implemented
+Scope completed:
+- Added request correlation middleware:
+  - `server/src/middleware/requestContext.ts`
+  - Registers `x-request-id` on every request and response.
+- Added standardized API error utility:
+  - `server/src/utils/apiError.ts`
+  - Error envelope: `code`, `message`, `details`, `requestId`
+- Added Express request typing for requestId:
+  - `server/src/types/express.d.ts`
+- Applied standardized logging + error envelopes to refactored routes:
+  - `server/src/routes/cases.ts` (query endpoints)
+  - `server/src/routes/financials.ts` (all endpoints)
+
+Outcome:
+- Route errors now include request correlation ID for faster production diagnosis.
+- API responses are more consistent for frontend error handling.
+
+Verification:
+- `npm run typecheck --prefix server` passes.

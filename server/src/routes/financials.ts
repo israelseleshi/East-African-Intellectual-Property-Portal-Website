@@ -1,64 +1,117 @@
 import express from 'express';
-import crypto from 'crypto';
-import { pool, getConnection } from '../database/db.js';
+import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth.js';
+import { financialService } from '../services/financialService.js';
+import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
 
+const paymentPayloadSchema = z.object({
+    invoiceId: z.string().min(1),
+    amount: z.coerce.number().positive(),
+    paymentDate: z.string().min(1),
+    paymentMethod: z.string().min(1),
+    referenceNumber: z.string().optional(),
+    notes: z.string().optional()
+});
+
+const paymentsByInvoiceParamsSchema = z.object({
+    invoiceId: z.string().min(1)
+});
+
+const invoiceItemSchema = z.object({
+    caseId: z.string().optional(),
+    description: z.string().min(1),
+    category: z.string().min(1),
+    amount: z.coerce.number().positive()
+});
+
+const createInvoicePayloadSchema = z.object({
+    clientId: z.string().min(1),
+    items: z.array(invoiceItemSchema).min(1),
+    currency: z.string().optional(),
+    dueDate: z.string().optional(),
+    notes: z.string().optional()
+});
+
+// Record a new payment
+router.post('/payments', authenticateToken, async (req: any, res) => {
+    try {
+        const parsed = paymentPayloadSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_PAYMENT_PAYLOAD',
+                message: 'Invalid payment payload',
+                details: parsed.error.flatten()
+            });
+        }
+
+        const result = await financialService.recordPayment(parsed.data);
+        res.status(201).json(result);
+    } catch (error) {
+        logRouteError(req, 'financials.recordPayment', error);
+        sendApiError(req, res, 500, {
+            code: 'PAYMENT_RECORD_FAILED',
+            message: 'Failed to record payment'
+        });
+    }
+});
+
+// Get payments for an invoice
+router.get('/payments/invoice/:invoiceId', authenticateToken, async (req, res) => {
+    try {
+        const parsed = paymentsByInvoiceParamsSchema.safeParse(req.params);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_INVOICE_ID',
+                message: 'Invalid invoice id',
+                details: parsed.error.flatten()
+            });
+        }
+
+        const rows = await financialService.listPaymentsForInvoice(parsed.data.invoiceId);
+        res.json(rows);
+    } catch (error) {
+        logRouteError(req, 'financials.listPaymentsForInvoice', error);
+        sendApiError(req, res, 500, {
+            code: 'PAYMENTS_FETCH_FAILED',
+            message: 'Failed to fetch payments'
+        });
+    }
+});
+
 router.post('/invoices', authenticateToken, async (req, res) => {
     try {
-        const { clientId, items, currency, dueDate, notes } = req.body;
-
-        const connection = await getConnection();
-        try {
-            await connection.beginTransaction();
-
-            const [rows] = await connection.execute('SELECT COUNT(*) as c FROM invoices') as unknown[];
-            const count = (rows as Array<{ c: number }>)[0].c + 1;
-            const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count).padStart(3, '0')}`;
-
-            const totalAmount = items.reduce((sum: number, item: { amount: number }) => sum + Number(item.amount), 0);
-            const invoiceId = crypto.randomUUID();
-
-            await connection.execute(
-                `INSERT INTO invoices (id, client_id, invoice_number, issue_date, due_date, currency, total_amount, notes, status)
-         VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, 'DRAFT')`,
-                [invoiceId, clientId, invoiceNumber, dueDate || new Date(), currency || 'USD', totalAmount, notes || '']
-            );
-
-            for (const item of items) {
-                await connection.execute(
-                    `INSERT INTO invoice_items (id, invoice_id, case_id, description, category, amount)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-                    [crypto.randomUUID(), invoiceId, item.caseId || null, item.description, item.category, item.amount]
-                );
-            }
-
-            await connection.commit();
-            res.json({ id: invoiceId, invoiceNumber, totalAmount, status: 'DRAFT' });
-        } catch (e) {
-            await connection.rollback();
-            throw e;
-        } finally {
-            connection.release();
+        const parsed = createInvoicePayloadSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_INVOICE_PAYLOAD',
+                message: 'Invalid invoice payload',
+                details: parsed.error.flatten()
+            });
         }
+
+        const result = await financialService.createInvoice(parsed.data);
+        res.json(result);
     } catch (error) {
-        console.error('Error creating invoice:', error);
-        res.status(500).json({ error: 'Failed to create invoice' });
+        logRouteError(req, 'financials.createInvoice', error);
+        sendApiError(req, res, 500, {
+            code: 'INVOICE_CREATE_FAILED',
+            message: 'Failed to create invoice'
+        });
     }
 });
 
 router.get('/invoices', authenticateToken, async (req, res) => {
     try {
-        const [rows] = await pool.execute(`
-      SELECT i.*, c.name as client_name 
-      FROM invoices i
-      JOIN clients c ON i.client_id = c.id
-      ORDER BY i.created_at DESC
-    `);
+        const rows = await financialService.listInvoices();
         res.json(rows);
-    } catch {
-        res.status(500).json({ error: 'Failed to fetch invoices' });
+    } catch (error) {
+        logRouteError(req, 'financials.listInvoices', error);
+        sendApiError(req, res, 500, {
+            code: 'INVOICES_FETCH_FAILED',
+            message: 'Failed to fetch invoices'
+        });
     }
 });
 

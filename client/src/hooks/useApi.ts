@@ -1,40 +1,70 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import type { AxiosRequestConfig, Method } from 'axios';
+import { api } from '../utils/api';
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+const toHeadersRecord = (headers?: HeadersInit): Record<string, string> => {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return headers as Record<string, string>;
+};
+
+const normalizeEndpoint = (endpoint: string): string => endpoint.replace(/^\/api/, '');
+
+interface ApiRequestOptions {
+  method?: string;
+  headers?: HeadersInit;
+  body?: unknown;
+}
 
 export function useApi() {
-  const getAuthToken = () => localStorage.getItem('token');
+  const request = useCallback(async (endpoint: string, options: ApiRequestOptions = {}) => {
+    const method = (options.method ?? 'GET').toUpperCase() as Method;
+    const headers = toHeadersRecord(options.headers);
+    let body: unknown = options.body;
 
-  const request = useCallback(async (endpoint: string, options: RequestInit = {}) => {
-    const token = getAuthToken();
-    const url = `${API_BASE_URL}${endpoint}`;
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    if (typeof body === 'string' && body.length > 0) {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        // Leave non-JSON strings untouched (e.g. text/plain payloads).
+      }
     }
 
-    // Return null for 204 No Content
-    if (response.status === 204) return null;
+    const config: AxiosRequestConfig = {
+      url: normalizeEndpoint(endpoint),
+      method,
+      data: body,
+      headers: {
+        ...headers,
+        ...(body instanceof FormData ? {} : { 'Content-Type': headers['Content-Type'] ?? 'application/json' })
+      }
+    };
 
-    return response.json();
+    try {
+      const response = await api.request(config);
+      return response.status === 204 ? null : response.data;
+    } catch (error: unknown) {
+      const errorData = (error as { response?: { data?: { message?: string; error?: string } }; message?: string });
+      const message = errorData.response?.data?.message || errorData.response?.data?.error || errorData.message || 'Request failed';
+      throw new Error(message);
+    }
   }, []);
 
   const get = useCallback((endpoint: string) => request(endpoint, { method: 'GET' }), [request]);
-  const post = useCallback((endpoint: string, body: unknown) => request(endpoint, { method: 'POST', body: JSON.stringify(body) }), [request]);
+  const post = useCallback((endpoint: string, body: unknown) => request(endpoint, { method: 'POST', body }), [request]);
   const postForm = useCallback((endpoint: string, formData: FormData) => request(endpoint, { method: 'POST', body: formData }), [request]);
-  const patch = useCallback((endpoint: string, body?: unknown) => request(endpoint, { method: 'PATCH', ...(body !== undefined && { body: JSON.stringify(body) }) }), [request]);
-  const put = useCallback((endpoint: string, body: unknown) => request(endpoint, { method: 'PUT', body: JSON.stringify(body) }), [request]);
+  const patch = useCallback((endpoint: string, body?: unknown) => request(endpoint, { method: 'PATCH', ...(body !== undefined && { body }) }), [request]);
+  const put = useCallback((endpoint: string, body: unknown) => request(endpoint, { method: 'PUT', body }), [request]);
   const del = useCallback((endpoint: string) => request(endpoint, { method: 'DELETE' }), [request]);
 
-  return { get, post, postForm, patch, put, delete: del, request };
+  // Keep object identity stable so effects that depend on `api` do not refire endlessly.
+  return useMemo(
+    () => ({ get, post, postForm, patch, put, delete: del, request }),
+    [get, post, postForm, patch, put, del, request]
+  );
 }

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { uploadDir } from './utils/constants.js';
 
@@ -19,6 +20,7 @@ import oppositionsRoutes from './routes/oppositions.js';
 import feesRoutes from './routes/fees.js';
 import formsRoutes from './routes/forms.js';
 import { pool } from './database/db.js';
+import { attachRequestContext } from './middleware/requestContext.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -36,6 +38,7 @@ app.use(cors({
   ],
   credentials: true
 }));
+app.use(attachRequestContext);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -46,10 +49,57 @@ app.use('/api/uploads', express.static(uploadDir));
 // Serve Mark Images and PDFs
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const FORMS_UPLOAD_DIR = path.resolve(__dirname, '../forms-upload');
+const formsUploadCandidates = [
+  process.env.FORMS_UPLOAD_DIR,
+  path.resolve(__dirname, '../forms-upload'),
+  path.resolve(__dirname, 'forms-upload'),
+  path.resolve(process.cwd(), 'forms-upload'),
+  path.resolve(process.cwd(), 'server/forms-upload'),
+  path.resolve(process.cwd(), 'server/src/forms-upload'),
+].filter((v): v is string => Boolean(v));
+
+const FORMS_UPLOAD_DIR = formsUploadCandidates.find((dir) => fs.existsSync(dir)) || formsUploadCandidates[0];
+const MARKS_UPLOAD_DIR = path.resolve(uploadDir, 'marks');
 console.log('[BOOT] FORMS_UPLOAD_DIR resolved to:', FORMS_UPLOAD_DIR);
 app.use('/forms-download', express.static(FORMS_UPLOAD_DIR));
 app.use('/api/forms-download', express.static(FORMS_UPLOAD_DIR));
+
+const findLocalFormAsset = (filename: string) => {
+  const safeName = path.basename(filename);
+  const primary = path.resolve(FORMS_UPLOAD_DIR, safeName);
+  if (fs.existsSync(primary)) return primary;
+
+  const marksExact = path.resolve(MARKS_UPLOAD_DIR, safeName);
+  if (fs.existsSync(marksExact)) return marksExact;
+
+  // Fallback for legacy naming mismatches (e.g. *_<caseid>.png vs *_<timestamp>.png)
+  if (fs.existsSync(MARKS_UPLOAD_DIR)) {
+    const ext = path.extname(safeName);
+    const stem = path.basename(safeName, ext);
+    const basePrefix = stem.replace(/_[a-f0-9]{8,}$/i, '');
+    const candidates = fs.readdirSync(MARKS_UPLOAD_DIR)
+      .filter((name) => name.endsWith(ext) && name.startsWith(`${basePrefix}_`))
+      .map((name) => path.resolve(MARKS_UPLOAD_DIR, name))
+      .sort((a, b) => {
+        const aTime = fs.statSync(a).mtimeMs;
+        const bTime = fs.statSync(b).mtimeMs;
+        return bTime - aTime;
+      });
+
+    if (candidates.length > 0) return candidates[0];
+  }
+
+  return null;
+};
+
+const formDownloadFallback = (req: express.Request, res: express.Response) => {
+  const found = findLocalFormAsset(req.params.filename);
+  if (!found) return res.status(404).json({ error: 'Form asset not found' });
+  return res.sendFile(found);
+};
+
+app.get('/forms-download/:filename', formDownloadFallback);
+app.get('/api/forms-download/:filename', formDownloadFallback);
 
 // Route Registration
 const registerRoutes = (prefix: string = '') => {

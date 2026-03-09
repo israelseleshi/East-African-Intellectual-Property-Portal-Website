@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { TrademarkStatus, CaseFlowStage, JURISDICTION_CONFIG } from '../database/types.js';
 import { pool, getConnection } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -9,126 +10,75 @@ import { addDays, formatDate, recalculateDeadlines } from '../utils/deadlines.js
 import { FEE_SCHEDULE, uploadDir } from '../utils/constants.js';
 import { sanitizeFilename } from '../utils/filing.js';
 import type { CaseRow } from '../database/types.js';
+import { caseQueryService } from '../services/caseQueryService.js';
+import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
+
+const caseListQuerySchema = z.object({
+    q: z.string().optional(),
+    status: z.string().optional(),
+    jurisdiction: z.string().optional()
+});
+
+const caseIdParamSchema = z.object({
+    id: z.string().min(1)
+});
 
 // Get all cases (with search)
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const { q, status, jurisdiction } = req.query;
-        let sql = `
-      SELECT tc.*, c.name as client_name, c.type as client_type 
-      FROM trademark_cases tc
-      JOIN clients c ON tc.client_id = c.id
-      WHERE 1=1
-    `;
-        const params: any[] = [];
-
-        if (status && status !== 'ALL') {
-            sql += ' AND tc.status = ?';
-            params.push(status);
-        }
-
-        if (jurisdiction && jurisdiction !== 'ALL') {
-            sql += ' AND tc.jurisdiction = ?';
-            params.push(jurisdiction);
-        }
-
-        if (q) {
-            sql += ' AND (tc.mark_name LIKE ? OR tc.filing_number LIKE ? OR c.name LIKE ?)';
-            const like = `%${q}%`;
-            params.push(like, like, like);
-        }
-
-        sql += ' ORDER BY tc.created_at DESC';
-
-        const [rows] = await pool.execute(sql, params);
-        const cases = rows as CaseRow[];
-
-        // Fetch all deadlines for these cases
-        if (cases.length > 0) {
-            const caseIds = cases.map(c => c.id);
-            const [deadlineRows] = await pool.execute(
-                `SELECT * FROM deadlines WHERE case_id IN (${caseIds.map(() => '?').join(',')}) ORDER BY due_date ASC`,
-                caseIds
-            );
-            const deadlines = deadlineRows as Array<{ case_id: string; [key: string]: unknown }>;
-
-            cases.forEach(c => {
-                (c as CaseRow & { deadlines: typeof deadlines }).deadlines = deadlines.filter(d => d.case_id === c.id);
+        const parsed = caseListQuerySchema.safeParse(req.query);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_CASE_QUERY',
+                message: 'Invalid case query',
+                details: parsed.error.flatten()
             });
         }
 
+        const { q, status, jurisdiction } = parsed.data;
+        const cases = await caseQueryService.listCases({
+            q,
+            status,
+            jurisdiction
+        });
         res.json(cases);
     } catch (error) {
-        console.error('Error fetching cases:', error);
-        res.status(500).json({ error: 'Failed to fetch cases' });
+        logRouteError(req, 'cases.list', error);
+        sendApiError(req, res, 500, {
+            code: 'CASES_FETCH_FAILED',
+            message: 'Failed to fetch cases'
+        });
     }
 });
 
 // Get case by ID
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
-        const { id } = req.params;
-        const [caseRows] = await pool.execute(`
-      SELECT tc.*, 
-        c.id as client_id_ref,
-        c.name as client_name, 
-        c.type as client_type,
-        c.nationality as client_nationality, 
-        c.email as client_email,
-        c.address_street as client_address_street,
-        c.city as client_city,
-        c.zip_code as client_zip_code,
-        c.telephone as client_telephone,
-        c.fax as client_fax
-      FROM trademark_cases tc
-      JOIN clients c ON tc.client_id = c.id
-      WHERE tc.id = ?
-    `, [id]);
-
-        if ((caseRows as unknown[]).length === 0) {
-            return res.status(404).json({ error: 'Case not found' });
+        const parsed = caseIdParamSchema.safeParse(req.params);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_CASE_ID',
+                message: 'Invalid case id',
+                details: parsed.error.flatten()
+            });
         }
 
-        const caseData = (caseRows as Array<Record<string, unknown>>)[0];
-
-        // Build nested client object
-        const client = {
-            id: caseData.client_id_ref as string,
-            name: caseData.client_name as string,
-            type: caseData.client_type as string,
-            nationality: caseData.client_nationality as string,
-            email: caseData.client_email as string,
-            addressStreet: caseData.client_address_street as string,
-            city: caseData.client_city as string,
-            zipCode: caseData.client_zip_code as string,
-            phone: caseData.client_telephone as string,
-            fax: caseData.client_fax as string
-        };
-
-        const [niceRows] = await pool.execute('SELECT class_no as classNo, description FROM nice_class_mappings WHERE case_id = ?', [id]);
-        const niceMappings = niceRows as any[];
-        const niceClasses = niceMappings.map(m => m.classNo);
-
-        const [assetsRows] = await pool.execute('SELECT * FROM mark_assets WHERE case_id = ? AND is_active = 1', [id]);
-        const [historyRows] = await pool.execute('SELECT * FROM case_history WHERE case_id = ? ORDER BY created_at DESC', [id]);
-        const [deadlineRows] = await pool.execute('SELECT * FROM deadlines WHERE case_id = ? ORDER BY due_date ASC', [id]);
-
-        const result = {
-            ...caseData,
-            client,
-            niceClasses,
-            niceMappings,
-            assets: assetsRows,
-            history: historyRows,
-            deadlines: deadlineRows,
-            eipaForm: caseData.eipa_form_json
-        };
+        const result = await caseQueryService.getCaseById(parsed.data.id);
+        if (!result) {
+            return sendApiError(req, res, 404, {
+                code: 'CASE_NOT_FOUND',
+                message: 'Case not found'
+            });
+        }
         res.json(result);
     } catch (error) {
-        console.error('Error fetching case:', error);
-        res.status(500).json({ error: 'Failed to fetch case' });
+        logRouteError(req, 'cases.getById', error);
+        sendApiError(req, res, 500, {
+            code: 'CASE_FETCH_FAILED',
+            message: 'Failed to fetch case'
+        });
     }
 });
 
@@ -295,16 +245,21 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
                 const invoiceId = crypto.randomUUID();
                 const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
 
+                // Calculate multi-class fee
+                const [niceRows] = await connection.execute('SELECT COUNT(*) as count FROM nice_class_mappings WHERE case_id = ?', [id]);
+                const classCount = (niceRows as any[])[0].count || 1;
+                const totalAmount = fee.amount + (fee.per_extra_class_amount * Math.max(0, classCount - 1));
+
                 await connection.execute(
                     `INSERT INTO invoices (id, client_id, invoice_number, issue_date, due_date, currency, total_amount, notes, status)
                      VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?, 'DRAFT')`,
-                    [invoiceId, oldCase.client_id, invoiceNumber, oldCase.jurisdiction === 'ET' ? 'ETB' : 'KES', fee.amount, `Auto-generated for ${status}`]
+                    [invoiceId, oldCase.client_id, invoiceNumber, oldCase.jurisdiction === 'ET' ? 'ETB' : 'KES', totalAmount, `Auto-generated for ${status}`]
                 );
 
                 await connection.execute(
                     `INSERT INTO invoice_items (id, invoice_id, case_id, description, category, amount)
                      VALUES (?, ?, ?, ?, ?, ?)`,
-                    [crypto.randomUUID(), invoiceId, id, fee.description, fee.category, fee.amount]
+                    [crypto.randomUUID(), invoiceId, id, fee.description, fee.category, totalAmount]
                 );
             }
 
@@ -312,7 +267,7 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
 
             const updatedCase = { ...oldCase, status };
             if (status === 'PUBLISHED' && publicationDate) (updatedCase as Record<string, unknown>).publication_date = publicationDate;
-            await recalculateDeadlines(id, status, updatedCase);
+            await recalculateDeadlines(id, status, updatedCase, connection);
 
             res.json({ id, status });
         } catch (e) {
@@ -487,21 +442,25 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
                         stage === 'RENEWAL_DUE' ? 'RENEWAL' :
                             `${stage}_DEADLINE`;
 
-                // Mark previous deadlines for this case as completed/stale? 
-                // Or just update the one for this specific type?
-                // Senior approach: Clear any existing incomplete deadlines for this case when moving stages to avoid clutter
-                await connection.execute('DELETE FROM deadlines WHERE case_id = ? AND is_completed = FALSE', [id]);
+                // Mark previous pending deadlines as SUPERSEDED instead of deleting
+                await connection.execute(
+                    'UPDATE deadlines SET status = "SUPERSEDED" WHERE case_id = ? AND status = "PENDING"',
+                    [id]
+                );
 
                 await connection.execute(
-                    `INSERT INTO deadlines (id, case_id, due_date, type, is_completed) VALUES (?, ?, ?, ?, ?)`,
-                    [getSafeId(), id, formatDate(deadlineUpdates.next_action_date as Date), deadlineType, false]
+                    `INSERT INTO deadlines (id, case_id, due_date, type, status) VALUES (?, ?, ?, ?, 'PENDING')`,
+                    [getSafeId(), id, formatDate(deadlineUpdates.next_action_date as Date), deadlineType]
                 );
             } else if (stage === 'REGISTERED') {
-                // Handling specifically the long-term renewal deadline for registered marks
-                await connection.execute('DELETE FROM deadlines WHERE case_id = ? AND is_completed = FALSE', [id]);
+                // Mark previous pending deadlines as SUPERSEDED
                 await connection.execute(
-                    `INSERT INTO deadlines (id, case_id, due_date, type, is_completed) VALUES (?, ?, ?, ?, ?)`,
-                    [getSafeId(), id, formatDate(deadlineUpdates.expiry_date as Date), 'RENEWAL', false]
+                    'UPDATE deadlines SET status = "SUPERSEDED" WHERE case_id = ? AND status = "PENDING"',
+                    [id]
+                );
+                await connection.execute(
+                    `INSERT INTO deadlines (id, case_id, due_date, type, status) VALUES (?, ?, ?, ?, 'PENDING')`,
+                    [getSafeId(), id, formatDate(deadlineUpdates.expiry_date as Date), 'RENEWAL']
                 );
             }
 
@@ -532,16 +491,21 @@ router.patch('/:id/flow-stage', authenticateToken, async (req, res) => {
                 const invoiceId = getSafeId();
                 const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
 
+                // Calculate multi-class fee
+                const [niceRows] = await connection.execute('SELECT COUNT(*) as count FROM nice_class_mappings WHERE case_id = ?', [id]);
+                const classCount = (niceRows as any[])[0].count || 1;
+                const totalAmount = fee.amount + (fee.per_extra_class_amount * Math.max(0, classCount - 1));
+
                 await connection.execute(
                     `INSERT INTO invoices (id, client_id, invoice_number, issue_date, due_date, currency, total_amount, notes, status)
            VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?, 'DRAFT')`,
-                    [invoiceId, (caseData as Record<string, unknown>).client_id, invoiceNumber, jurisdiction === 'ET' ? 'ETB' : 'KES', fee.amount, `Auto-generated for ${stage}`]
+                    [invoiceId, (caseData as Record<string, unknown>).client_id, invoiceNumber, jurisdiction === 'ET' ? 'ETB' : 'KES', totalAmount, `Auto-generated for ${stage}`]
                 );
 
                 await connection.execute(
                     `INSERT INTO invoice_items (id, invoice_id, case_id, description, category, amount)
            VALUES (?, ?, ?, ?, ?, ?)`,
-                    [getSafeId(), invoiceId, id, fee.description, fee.category, fee.amount]
+                    [getSafeId(), invoiceId, id, fee.description, fee.category, totalAmount]
                 );
             }
 
