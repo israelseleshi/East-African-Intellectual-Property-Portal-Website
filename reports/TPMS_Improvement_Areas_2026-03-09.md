@@ -190,3 +190,157 @@ Recommendation:
 1. Trademark list now supports mark-image thumbnail rendering with fallback candidate strategy.
 2. Trademark detail deadlines/milestones section updated for proper dark-mode theming.
 3. Nice Class column removed from trademark table per UX request.
+
+## Codebase Structure Sanitation (Senior Plans)
+Based on a full directory scan, the project currently mixes product runtime code with one-time deployment artifacts and legacy scratch folders (`delete-this`, `deploy_tmp`, root temp SQL/log files, nested `forms/forms/node_modules`).
+
+### Plan A: Conservative Sanitation (No-Risk, Zero-Downtime)
+Goal: Clean structure without disrupting any active workflow.
+
+1. Define canonical runtime directories:
+   - Keep: `client/`, `server/`, `scripts/`, `docs/`, `forms/` (templates only), `reports/`.
+   - Keep root control files: `package.json`, `package-lock.json` (or choose pnpm only), `README.md`, `tables.md`, `tsconfig.base.json`.
+2. Create quarantine folder and move one-time artifacts:
+   - Move `delete-this/`, `deploy_tmp/`, `server.js.temp`, `passenger_log_tmp.txt`, `debug_pdf.js`, `api-htaccess.txt`, `database_dump.sql` into `archive/2026-03-sanitization/`.
+   - Keep for 30 days, then purge.
+3. Remove dependency duplication:
+   - Delete nested `forms/forms/node_modules` from version control and add ignore rule.
+   - Keep only one package manager lock strategy (prefer `package-lock.json` in this repo, remove `pnpm-lock.yaml` if npm is standard).
+4. Introduce hygiene gates:
+   - Add CI check to fail if temporary patterns are committed (`*.temp`, `*_tmp*`, `deploy_tmp`, `delete-this`).
+   - Add script: `npm run audit:structure` that verifies approved directories only.
+5. Keep database files policy explicit:
+   - Keep `database_schema.sql` as source of schema bootstrap.
+   - Move `database_data.sql` and other dumps to `backups/` (gitignored), not in tracked root.
+
+Expected outcome:
+- Cleaner repository immediately.
+- Lower accidental deployment risk.
+- No interruption to cPanel deployment flow.
+
+### Plan B: Product-Grade Monorepo Restructure (Strategic Refactor)
+Goal: Make the repository look and operate like a senior production system with clear boundaries.
+
+1. Restructure into domain-aligned layout:
+   - `apps/web` (current `client`)
+   - `apps/api` (current `server`)
+   - `infra/deploy` (deployment scripts, cPanel docs, passenger config)
+   - `infra/db` (schema, migrations, seed templates)
+   - `docs/` (product + engineering docs)
+   - `reports/` (generated architecture and audit outputs)
+2. Migration-first database governance:
+   - Replace ad-hoc SQL dump workflow with `infra/db/migrations`.
+   - Treat `tables.md` as generated artifact only (scripted refresh in CI).
+3. Deployment hardening:
+   - Replace manual ad-hoc copy with one canonical deploy command (build + upload + checksum + smoke check).
+   - Ensure only `client/dist` and server build outputs are deploy artifacts.
+4. Artifact discipline:
+   - Store large binaries, temporary zips, and one-off docs outside repo (or Git LFS if truly required).
+   - Enforce pre-commit checks for forbidden files and max file size.
+5. Rollout approach:
+   - Phase 1: introduce new folders + aliases while keeping old paths.
+   - Phase 2: move code and update import/build paths.
+   - Phase 3: remove legacy folders after two stable releases.
+
+Expected outcome:
+- Senior-grade project topology.
+- Faster onboarding and safer releases.
+- Easier CI/CD scaling and cleaner production operations.
+
+## Plan A Execution Log (Implemented)
+Date executed: 2026-03-09
+Scope executed now: Plan A Priority 1 and Priority 2 only.
+
+### Priority 1 Implemented: Canonical Runtime Structure
+Canonical runtime/product directories confirmed as:
+- `client/`
+- `server/`
+- `scripts/`
+- `docs/`
+- `forms/` (template assets)
+- `reports/`
+
+Root control files retained for active workflow:
+- `package.json`
+- `package-lock.json`
+- `README.md`
+- `tables.md`
+- `tsconfig.base.json`
+
+### Priority 2 Implemented: Quarantine of One-Time Artifacts
+Created quarantine folder:
+- `archive/2026-03-sanitization/`
+
+Moved (not deleted) into quarantine:
+- `delete-this/`
+- `deploy_tmp/`
+- `server.js.temp`
+- `passenger_log_tmp.txt`
+- `debug_pdf.js`
+- `api-htaccess.txt`
+- `database_dump.sql`
+
+Safety note:
+- This is a no-risk move (archive only, zero destructive delete).
+- Any item can be restored immediately from `archive/2026-03-sanitization/`.
+
+## Plan A Execution Log (Implemented - Continuation)
+Date executed: 2026-03-09
+Scope executed now: Plan A Priority 3, Priority 4, and Priority 5.
+
+### Priority 3 Implemented: Dependency Duplication Cleanup
+Actions completed:
+- Moved nested dependency tree out of active runtime path:
+  - `forms/forms/node_modules` -> `archive/2026-03-sanitization/forms_forms_node_modules`
+- Moved alternate lockfile to quarantine to enforce npm lock strategy:
+  - `pnpm-lock.yaml` -> `archive/2026-03-sanitization/pnpm-lock.yaml`
+- Added prevention rules in `.gitignore`:
+  - `forms/forms/node_modules/`
+  - `pnpm-lock.yaml`
+
+Outcome:
+- Single lockfile strategy remains (`package-lock.json`).
+- Nested duplicated dependency folder is removed from active project structure.
+
+### Priority 4 Implemented: Structure Hygiene Gates
+Actions completed:
+- Added repository audit script:
+  - `scripts/audit-structure.js`
+- Added root npm command:
+  - `npm run audit:structure`
+- Added CI workflow:
+  - `.github/workflows/structure-hygiene.yml`
+
+What is enforced:
+- Required runtime directories exist (`client`, `server`, `scripts`, `docs`, `forms`, `reports`).
+- Unexpected top-level directories are flagged.
+- Forbidden root paths are blocked (including `deploy_tmp`, `delete-this`, `forms/forms/node_modules`, `pnpm-lock.yaml`, root SQL dump/data files).
+- Tracked temporary artifacts are blocked (`*.temp`, `*_tmp*`, legacy one-time folders/files).
+
+Outcome:
+- Hygiene checks now run automatically in CI on push and pull requests.
+- A local guardrail exists before deployment and merges.
+
+### Priority 5 Implemented: Database File Policy
+Actions completed:
+- Created local backup directory:
+  - `backups/`
+- Moved mutable dataset dump out of tracked root:
+  - `database_data.sql` -> `backups/database_data_2026-03-09.sql`
+- Updated `.gitignore` policy:
+  - Added `backups/`
+  - Kept root `database_data.sql` / `database_dump.sql` ignored
+  - Removed broad `*.sql` ignore and removed `database_schema.sql` ignore to keep schema explicitly trackable
+- Added policy enforcement in `audit-structure.js`:
+  - Root `database_data.sql` and `database_dump.sql` are hard-fail conditions
+  - `database_schema.sql` presence is required
+
+Outcome:
+- Root now keeps schema bootstrap as canonical.
+- Dump/data artifacts are pushed to a backup location outside tracked runtime root.
+
+### Verification Snapshot
+- `archive/2026-03-sanitization/` now contains one-time artifacts plus `pnpm-lock.yaml` and archived nested `forms` dependencies.
+- `forms/forms/node_modules` is no longer present in active runtime paths.
+- `database_data.sql` is no longer present at repository root.
+- Structure audit command and CI workflow are present and ready for use.

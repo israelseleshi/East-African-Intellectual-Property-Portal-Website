@@ -36,7 +36,10 @@ Copy-Item -Path "client/public/.htaccess" -Destination "deploy_tmp/frontend"
 # Copy backend dist + essentials
 Copy-Item -Recurse -Path "server/dist/*" -Destination "deploy_tmp/backend"
 Copy-Item -Path "server/package.json" -Destination "deploy_tmp/backend"
-Copy-Item -Path "server.js.temp" -Destination "deploy_tmp/backend/server.js"
+# dist/server.js is the canonical runtime entry. Keep a fallback for legacy wrapper if present.
+if (Test-Path "server.js.temp") {
+  Copy-Item -Path "server.js.temp" -Destination "deploy_tmp/backend/server.js"
+}
 # Ensure we don't package local uploads
 if (Test-Path "deploy_tmp/backend/uploads") { Remove-Item -Recurse -Force "deploy_tmp/backend/uploads" }
 Compress-Archive -Path "deploy_tmp/frontend/*" -DestinationPath "deploy_tmp/frontend.zip" -Force

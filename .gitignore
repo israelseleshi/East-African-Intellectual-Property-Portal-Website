@@ -6,12 +6,13 @@ dist
 build
 .vite
 coverage
+forms/forms/node_modules/
+pnpm-lock.yaml
+backups/
 
-# Database and Schema files
-*.sql
+# Database policy
 tables.md
 database_data.sql
-database_schema.sql
 database_dump.sql
 
 # Internal Documentation
