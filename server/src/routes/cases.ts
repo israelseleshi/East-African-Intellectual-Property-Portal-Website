@@ -6,11 +6,12 @@ import { z } from 'zod';
 import { TrademarkStatus, CaseFlowStage, JURISDICTION_CONFIG } from '../database/types.js';
 import { pool, getConnection } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { addDays, formatDate, recalculateDeadlines } from '../utils/deadlines.js';
+import { addDays, formatDate } from '../utils/deadlines.js';
 import { FEE_SCHEDULE, uploadDir } from '../utils/constants.js';
 import { sanitizeFilename } from '../utils/filing.js';
 import type { CaseRow } from '../database/types.js';
 import { caseQueryService } from '../services/caseQueryService.js';
+import { caseLifecycleService } from '../services/caseLifecycleService.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
@@ -207,77 +208,28 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, userId, actionNote, publicationDate } = req.body;
+        const result = await caseLifecycleService.updateCaseStatus({
+            caseId: id,
+            status,
+            userId,
+            actionNote,
+            publicationDate
+        });
 
-        const [rows] = await pool.execute('SELECT * FROM trademark_cases WHERE id = ?', [id]);
-        const cases = rows as CaseRow[];
-        if (cases.length === 0) return res.status(404).json({ error: 'Case not found' });
-
-        const oldCase = cases[0];
-        const connection = await getConnection();
-        try {
-            await connection.beginTransaction();
-
-            await connection.execute(
-                'INSERT INTO case_history (id, case_id, user_id, action, old_data, new_data) VALUES (?, ?, ?, ?, ?, ?)',
-                [crypto.randomUUID(), id, userId || null, `STATUS_CHANGE: ${oldCase.status} -> ${status}`, JSON.stringify({ status: oldCase.status }), JSON.stringify({ status, note: actionNote })]
-            );
-
-            let updateSql = 'UPDATE trademark_cases SET status = ?';
-            const params: any[] = [status];
-
-            if (status === 'FILED' && !oldCase.filing_date) updateSql += ', filing_date = NOW()';
-            if (status === 'REGISTERED' && !oldCase.registration_dt) updateSql += ', registration_dt = NOW()';
-            if (status === 'PUBLISHED' && publicationDate) {
-                updateSql += ', publication_date = ?';
-                params.push(publicationDate);
-            }
-
-            updateSql += ' WHERE id = ?';
-            params.push(id);
-
-            await connection.execute(updateSql, params);
-
-            // Auto-generate invoice for billable status changes (FILED, PUBLISHED, REGISTERED)
-            const invoiceStage = status === 'REGISTERED' ? 'CERTIFICATE_ISSUED' : status;
-            const fees = FEE_SCHEDULE[oldCase.jurisdiction as 'ET' | 'KE'];
-            if (fees && fees[invoiceStage]) {
-                const fee = fees[invoiceStage];
-                const invoiceId = crypto.randomUUID();
-                const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
-
-                // Calculate multi-class fee
-                const [niceRows] = await connection.execute('SELECT COUNT(*) as count FROM nice_class_mappings WHERE case_id = ?', [id]);
-                const classCount = (niceRows as any[])[0].count || 1;
-                const totalAmount = fee.amount + (fee.per_extra_class_amount * Math.max(0, classCount - 1));
-
-                await connection.execute(
-                    `INSERT INTO invoices (id, client_id, invoice_number, issue_date, due_date, currency, total_amount, notes, status)
-                     VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?, 'DRAFT')`,
-                    [invoiceId, oldCase.client_id, invoiceNumber, oldCase.jurisdiction === 'ET' ? 'ETB' : 'KES', totalAmount, `Auto-generated for ${status}`]
-                );
-
-                await connection.execute(
-                    `INSERT INTO invoice_items (id, invoice_id, case_id, description, category, amount)
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [crypto.randomUUID(), invoiceId, id, fee.description, fee.category, totalAmount]
-                );
-            }
-
-            await connection.commit();
-
-            const updatedCase = { ...oldCase, status };
-            if (status === 'PUBLISHED' && publicationDate) (updatedCase as Record<string, unknown>).publication_date = publicationDate;
-            await recalculateDeadlines(id, status, updatedCase, connection);
-
-            res.json({ id, status });
-        } catch (e) {
-            await connection.rollback();
-            throw e;
-        } finally {
-            connection.release();
+        if (!result) {
+            return sendApiError(req, res, 404, {
+                code: 'CASE_NOT_FOUND',
+                message: 'Case not found'
+            });
         }
-    } catch {
-        res.status(500).json({ error: 'Failed to update status' });
+
+        res.json(result);
+    } catch (error) {
+        logRouteError(req, 'cases.updateStatus', error);
+        sendApiError(req, res, 500, {
+            code: 'CASE_STATUS_UPDATE_FAILED',
+            message: 'Failed to update status'
+        });
     }
 });
 

@@ -1,4 +1,5 @@
-import type { RowDataPacket } from 'mysql2/promise';
+import crypto from 'crypto';
+import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { pool } from '../database/db.js';
 import type { CaseRow } from '../database/types.js';
 
@@ -130,5 +131,95 @@ export const caseRepository = {
   async findDeadlinesByCaseId(caseId: string): Promise<RowDataPacket[]> {
     const [rows] = await pool.execute('SELECT * FROM deadlines WHERE case_id = ? ORDER BY due_date ASC', [caseId]);
     return rows as RowDataPacket[];
+  },
+
+  async findCaseById(caseId: string): Promise<CaseRow | null> {
+    const [rows] = await pool.execute('SELECT * FROM trademark_cases WHERE id = ?', [caseId]);
+    const caseRows = rows as CaseRow[];
+    return caseRows[0] ?? null;
+  },
+
+  async insertCaseHistory(
+    connection: PoolConnection,
+    payload: {
+      caseId: string;
+      userId: string | null;
+      action: string;
+      oldData: Record<string, unknown>;
+      newData: Record<string, unknown>;
+    }
+  ): Promise<void> {
+    await connection.execute(
+      'INSERT INTO case_history (id, case_id, user_id, action, old_data, new_data) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        crypto.randomUUID(),
+        payload.caseId,
+        payload.userId,
+        payload.action,
+        JSON.stringify(payload.oldData),
+        JSON.stringify(payload.newData)
+      ]
+    );
+  },
+
+  async updateCaseStatus(
+    connection: PoolConnection,
+    payload: { caseId: string; status: string; hadFilingDate: boolean; hadRegistrationDate: boolean; publicationDate?: string }
+  ): Promise<void> {
+    let updateSql = 'UPDATE trademark_cases SET status = ?';
+    const params: Array<string | null> = [payload.status];
+
+    if (payload.status === 'FILED' && !payload.hadFilingDate) {
+      updateSql += ', filing_date = NOW()';
+    }
+    if (payload.status === 'REGISTERED' && !payload.hadRegistrationDate) {
+      updateSql += ', registration_dt = NOW()';
+    }
+    if (payload.status === 'PUBLISHED' && payload.publicationDate) {
+      updateSql += ', publication_date = ?';
+      params.push(payload.publicationDate);
+    }
+
+    updateSql += ' WHERE id = ?';
+    params.push(payload.caseId);
+    await connection.execute(updateSql, params);
+  },
+
+  async countNiceClasses(connection: PoolConnection, caseId: string): Promise<number> {
+    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM nice_class_mappings WHERE case_id = ?', [caseId]);
+    const countRows = rows as Array<RowDataPacket & { count: unknown }>;
+    const rawCount = countRows[0]?.count;
+    if (typeof rawCount === 'number') return rawCount;
+    if (typeof rawCount === 'string' && rawCount.trim()) return Number(rawCount);
+    return 0;
+  },
+
+  async insertInvoice(
+    connection: PoolConnection,
+    payload: {
+      id: string;
+      clientId: string;
+      invoiceNumber: string;
+      currency: string;
+      totalAmount: number;
+      notes: string;
+    }
+  ): Promise<void> {
+    await connection.execute(
+      `INSERT INTO invoices (id, client_id, invoice_number, issue_date, due_date, currency, total_amount, notes, status)
+       VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?, 'DRAFT')`,
+      [payload.id, payload.clientId, payload.invoiceNumber, payload.currency, payload.totalAmount, payload.notes]
+    );
+  },
+
+  async insertInvoiceItem(
+    connection: PoolConnection,
+    payload: { invoiceId: string; caseId: string; description: string; category: string; amount: number }
+  ): Promise<void> {
+    await connection.execute(
+      `INSERT INTO invoice_items (id, invoice_id, case_id, description, category, amount)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [crypto.randomUUID(), payload.invoiceId, payload.caseId, payload.description, payload.category, payload.amount]
+    );
   }
 };

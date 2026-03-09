@@ -370,7 +370,17 @@ Financials extraction completed:
   - `GET /payments/invoice/:invoiceId`
   - `POST /invoices`
   - `GET /invoices`
-  - All endpoint SQL/transaction internals moved into service/repository layers.
+- All endpoint SQL/transaction internals moved into service/repository layers.
+
+Additional write-path extraction completed:
+- Added lifecycle service:
+  - `server/src/services/caseLifecycleService.ts`
+- Extended case repository with transactional write helpers:
+  - status update
+  - case history insert
+  - fee-class counting
+  - auto-invoice creation helpers
+- Refactored `PATCH /api/cases/:id/status` in `server/src/routes/cases.ts` to service/repository flow.
 
 Verification:
 - `npm run typecheck --prefix server` passes.
@@ -399,7 +409,7 @@ Remaining for full Priority 5 completion:
 - `npm run audit:structure` passes.
 
 Remaining for full Priority 1 completion:
-- Extract write-heavy logic from `cases.ts` status/flow/update endpoints into dedicated lifecycle/billing services.
+- Extract remaining write-heavy logic from `cases.ts` flow-stage and general update endpoints into dedicated lifecycle services.
 
 ### Priority 2 (Type Safety and Runtime Contracts) - Phase 1 Implemented
 Scope completed:
