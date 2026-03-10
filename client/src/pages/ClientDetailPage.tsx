@@ -28,12 +28,16 @@ interface Client {
   name: string;
   local_name?: string;
   type: ApplicantType;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
   nationality: string;
   email: string;
   address_street: string;
   address_zone?: string;
   wereda?: string;
   city: string;
+  state_name?: string;
+  city_code?: string;
+  state_code?: string;
   house_no?: string;
   zip_code: string;
   po_box?: string;
@@ -253,6 +257,28 @@ export default function ClientDetailPage() {
                     </div>
                   )}
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">Gender</Label>
+                  {isEditing ? (
+                    <div className="apple-input-container">
+                      <select
+                        value={formData.gender || ''}
+                        onChange={(e) => handleChange('gender', e.target.value)}
+                        className="w-full h-11 bg-transparent text-body outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="">Not Specified</option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="text-body font-bold text-[var(--eai-text)]">
+                      {client.gender || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -366,6 +392,45 @@ export default function ClientDetailPage() {
                     />
                   ) : (
                     <div className="text-body font-medium text-[var(--eai-text)]">{client.city || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">City Code</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.city_code || ''}
+                      onChange={(e) => handleChange('city_code', e.target.value)}
+                      placeholder="City Code"
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.city_code || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">State / Region</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.state_name || ''}
+                      onChange={(e) => handleChange('state_name', e.target.value)}
+                      placeholder="State / Region"
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.state_name || '—'}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-micro text-[var(--eai-text-secondary)]">State Code</Label>
+                  {isEditing ? (
+                    <Input
+                      value={formData.state_code || ''}
+                      onChange={(e) => handleChange('state_code', e.target.value)}
+                      placeholder="State Code"
+                      className="apple-input"
+                    />
+                  ) : (
+                    <div className="text-body font-medium text-[var(--eai-text)]">{client.state_code || '—'}</div>
                   )}
                 </div>
                 <div className="space-y-1.5">

@@ -41,17 +41,17 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, hand
         <FormField label="Priority application date">
           <input
             type="date"
-            value={formData.priority_filing_date_1}
-            onChange={(e) => handleInputChange('priority_filing_date_1', e.target.value)}
+            value={formData.priority_filing_date}
+            onChange={(e) => handleInputChange('priority_filing_date', e.target.value)}
             className="apple-input"
           />
         </FormField>
-        <FormField label="Priority goods & services (PDF mapping N/A)" className="sm:col-span-2">
+        <FormField label="Priority goods & services" className="sm:col-span-2">
           <textarea
-            value={formData.priority_filing_date}
-            onChange={(e) => handleInputChange('priority_filing_date', e.target.value)}
+            value={formData.goods_and_services_covered_by_the_previous_application}
+            onChange={(e) => handleInputChange('goods_and_services_covered_by_the_previous_application', e.target.value)}
             className="apple-input min-h-[80px] py-3"
-            placeholder="Map this to available PDF fields if needed..."
+            placeholder="Enter goods and services covered..."
           />
         </FormField>
         <div className="sm:col-span-2 pt-2">

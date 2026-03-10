@@ -214,10 +214,10 @@ export default function DashboardPage() {
     <div className="w-full space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-h1 font-black tracking-tight text-[var(--eai-text)]">Command Center</h1>
+          <h1 className="text-h1 font-black tracking-tight text-[var(--eai-text)]">Dashboard</h1>
           <p className="text-body font-medium text-[var(--eai-text-secondary)] flex items-center gap-2">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Live operations and mission-critical action queues.
+            little text
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -260,10 +260,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="mt-6">
-              <div className="text-[11px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] opacity-60">{card.label}</div>
-              <div className="h-1 w-full bg-gray-100 rounded-full mt-2 overflow-hidden">
-                <div className={cn("h-full rounded-full transition-all duration-1000", card.bg.replace('/10', ''))} style={{ width: '65%' }} />
-              </div>
+              <div className="text-[14px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] opacity-80">{card.label}</div>
             </div>
           </div>
         ))}

@@ -32,13 +32,17 @@ export interface ClientRow {
   name: string;
   local_name?: string;
   type: string;
-  email?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
   nationality?: string;
   residence_country?: string;
+  email?: string;
   address_street?: string;
   address_zone?: string;
   wereda?: string;
   city?: string;
+  state_name?: string;
+  city_code?: string;
+  state_code?: string;
   house_no?: string;
   zip_code?: string;
   po_box?: string;

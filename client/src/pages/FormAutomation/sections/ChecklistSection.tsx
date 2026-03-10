@@ -34,8 +34,8 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
       <div className="space-y-4 pt-6 border-t border-[var(--eai-border)]">
         <FormField label="Applicant signature name">
           <input
-            value={formData["Text Field"]}
-            onChange={(e) => handleInputChange('Text Field', e.target.value)}
+            value={formData.applicant_sign_day}
+            onChange={(e) => handleInputChange('applicant_sign_day', e.target.value)}
             className="apple-input"
             placeholder="Type name for digital signature"
           />
@@ -43,8 +43,8 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
         <div className="grid grid-cols-3 gap-4">
           <FormField label="Day">
             <input
-              value={formData.applicant_sign_day_en}
-              onChange={(e) => handleInputChange('applicant_sign_day_en', e.target.value)}
+              value={formData.applicant_sign_day}
+              onChange={(e) => handleInputChange('applicant_sign_day', e.target.value)}
               className="apple-input"
               placeholder="DD"
             />

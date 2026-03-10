@@ -161,14 +161,26 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
 
       const hasAmharic = /[\u1200-\u137F]/.test(strValue);
 
-      const matches = availableFields.filter(actualName =>
-        possibleNames.some(p => p.trim().toLowerCase() === actualName.trim().toLowerCase())
+      // Find exact matches first, then fallback to case-insensitive if needed
+      let matches = availableFields.filter(actualName =>
+        possibleNames.includes(actualName)
       );
-      if (matches.length === 0) return;
+
+      if (matches.length === 0) {
+        matches = availableFields.filter(actualName =>
+          possibleNames.some(p => p.toLowerCase() === actualName.toLowerCase())
+        );
+      }
+
+      if (matches.length === 0) {
+        console.warn(`No PDF field match found for any of: ${possibleNames.join(', ')}`);
+        return;
+      }
 
       for (const matchedName of matches) {
         try {
           const field = form.getField(matchedName);
+          console.log(`[PDF-ENGINE] Filling field "${matchedName}" with value: "${strValue}"`);
 
           // Image fields (PDFButton type in the PDF)
           if ((matchedName.toLowerCase().includes('image') || matchedName.toLowerCase().includes('logo'))
@@ -235,185 +247,159 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       }
     };
 
+    const isRenewal = pdfUrl.includes('renewal_form.pdf');
+    console.log(`[PDF-ENGINE] Detected form type: ${isRenewal ? 'RENEWAL' : 'APPLICATION'}`);
 
-    // 1. Applicant Details
-    await fillField(['applicant_name_english', 'applicant_name', 'Full Name', 'Applicant Name', 'Applicant Name 1'], data.applicant_name_english);
-    await fillField(['applicant_name_amharic', 'renewal_applicant_name_amharic'], data.renewal_applicant_name_amharic || data.applicant_name_amharic, 11);
-    await fillField(['address_street', 'renewal_address_street'], data.renewal_address_street || data.address_street);
-    await fillField(['address_zone', 'renewal_address_zone'], data.renewal_address_zone || data.address_zone);
-    await fillField(['city_code', 'renewal_city_code'], data.renewal_city_code || data.city_code, 9);
-    await fillField(['city_name', 'renewal_city_name'], data.renewal_city_name || data.city_name);
-    await fillField(['state_code', 'renewal_state_code'], data.renewal_state_code || data.state_code, 9);
-    await fillField(['state_name', 'renewal_state_name'], data.renewal_state_name || data.state_name, 10);
-    await fillField(['zip_code', 'renewal_zip_code'], data.renewal_zip_code || data.zip_code, 9);
-    await fillField(['wereda', 'renewal_wereda'], data.renewal_wereda || data.wereda, 9);
-    await fillField(['house_no', 'renewal_house_no'], data.renewal_house_no || data.house_no, 9);
+    if (isRenewal) {
+      console.log('--- Filling Renewal Form ---');
+      await fillField(['renewal_applicant_name'], data.renewal_applicant_name);
+      await fillField(['renewal_applicant_name_amharic'], data.renewal_applicant_name_amharic, 11);
+      await fillField(['renewal_address_street'], data.renewal_address_street);
+      await fillField(['renewal_address_zone'], data.renewal_address_zone);
+      await fillField(['renewal_city_code'], data.renewal_city_code, 9);
+      await fillField(['renewal_city_name'], data.renewal_city_name);
+      await fillField(['renewal_state_code'], data.renewal_state_code, 9);
+      await fillField(['renewal_state_name'], data.renewal_state_name, 10);
+      await fillField(['renewal_zip_code'], data.renewal_zip_code, 9);
+      await fillField(['renewal_wereda'], data.renewal_wereda, 9);
+      await fillField(['renewal_house_no'], data.renewal_house_no, 9);
+      await fillField(['renewal_telephone'], data.renewal_telephone, 9);
+      await fillField(['renewal_email'], data.renewal_email, 9);
+      await fillField(['renewal_fax'], data.renewal_fax, 9);
+      await fillField(['renewal_po_box'], data.renewal_po_box, 9);
+      await fillField(['renewal_nationality'], data.renewal_nationality, 8);
+      await fillField(['renewal_residence_country'], data.renewal_residence_country ? `      ${data.renewal_residence_country}` : '', 9);
 
-    // 2. Contact info
-    await fillField(['telephone', 'renewal_telephone'], data.renewal_telephone || data.telephone, 9);
-    await fillField(['email', 'renewal_email'], data.renewal_email || data.email, 9);
-    await fillField(['fax', 'renewal_fax'], data.renewal_fax || data.fax, 9);
-    // If Fax and P.O. Box share the same tag 'renewal_fax', we prioritize the value that isn't empty, 
-    // or we might need to rely on the PDF form itself having unique field structures.
-    await fillField(['po_box', 'renewal_po_box', 'p_o_box'], data.renewal_po_box || data.po_box, 9);
+      setCheckbox(data.renewal_chk_female, ['renewal_chk_female']);
+      setCheckbox(data.renewal_chk_male, ['renewal_chk_male']);
+      setCheckbox(data.renewal_chk_company, ['renewal_chk_company']);
 
-    // Nationality & Residence
-    await fillField(['nationality', 'renewal_nationality'], data.renewal_nationality || data.nationality, 8);
-    await fillField(['residence_country', 'renewal_residence_country'],
-      (data.renewal_residence_country || data.residence_country)
-        ? `      ${data.renewal_residence_country || data.residence_country}`
-        : '',
-      9);
+      await fillField(['renewal_agent_name'], data.renewal_agent_name);
+      await fillField(['renewal_agent_country'], data.renewal_agent_country);
+      await fillField(['renewal_agent_city'], data.renewal_agent_city);
+      await fillField(['renewal_agent_subcity'], data.renewal_agent_subcity);
+      await fillField(['renewal_agent_wereda'], data.renewal_agent_wereda);
+      await fillField(['renewal_agent_house_no'], data.renewal_agent_house_no);
+      await fillField(['renewal_agent_telephone'], data.renewal_agent_telephone);
+      await fillField(['renewal_agent_email'], data.renewal_agent_email);
+      await fillField(['renewal_agent_pobox'], data.renewal_agent_pobox);
+      await fillField(['renewal_agent_fax'], data.renewal_agent_fax);
 
-    // 4. Agent / Representative Section (Restored Tags)
-    await fillField(['agent_name', '_name', 'name_of_representative'], data.agent_name);
-    await fillField(['agent_country', 'country_of_agent'], data.agent_country);
-    await fillField(['agent_city', 'city_of_agent'], data.agent_city);
-    await fillField(['agent_subcity', 'subcity_of_agent'], data.agent_subcity);
-    await fillField(['agent_wereda', 'wereda_of_agent'], data.agent_wereda);
-    await fillField(['agent_house_no', 'house_no_of_agent'], data.agent_house_no);
-    await fillField(['agent_telephone', 'tel_of_agent'], data.agent_telephone);
-    await fillField(['agent_email', 'email_of_agent', 'e_mail'], data.agent_email);
-    await fillField(['agent_po_box', 'p_o_box', 'p_o_box_of_agent'], data.agent_po_box);
-    await fillField(['agent_fax', 'fax_of_agent'], data.agent_fax);
+      setCheckbox(data.renewal_chk_goods_mark, ['renewal_chk_goods_mark']);
+      setCheckbox(data.renewal_chk_service_mark, ['renewal_chk_service_mark']);
+      setCheckbox(data.renewal_chk_collective_mark, ['renewal_chk_collective_mark']);
 
+      await fillField(['renewal_mark_logo'], data.renewal_mark_logo);
+      await fillField(['renewal_app_no'], data.renewal_app_no);
+      await fillField(['renewal_reg_no'], data.renewal_reg_no);
+      await fillField(['renewal_reg_date'], data.renewal_reg_date);
+      await fillField(['renewal_goods_services_1'], data.renewal_goods_services_1);
+      await fillField(['renewal_goods_services_2'], data.renewal_goods_services_2);
+      await fillField(['renewal_goods_services_3'], data.renewal_goods_services_3);
+      await fillField(['renewal_goods_services_4'], data.renewal_goods_services_4);
+      await fillField(['renewal_goods_services_5'], data.renewal_goods_services_5);
+      await fillField(['renewal_goods_services_6'], data.renewal_goods_services_6);
+      await fillField(['renewal_sign_day'], data.renewal_sign_day);
+      await fillField(['renewal_sign_month'], data.renewal_sign_month);
+      await fillField(['renewal_sign_year'], data.renewal_sign_year);
 
-    // 3. Legal Personality
-    setCheckbox(data.chk_female, ['chk_female', 'female']);
-    setCheckbox(data.chk_male, ['chk_male', 'male']);
-    setCheckbox(data.chk_company, ['chk_company', 'company']);
+    } else {
+      console.log('--- Filling Application Form ---');
+      // I. Applicant Details
+      console.log('--- Section I ---');
+      await fillField(['applicant_name_english'], data.applicant_name_english);
+      
+      const appAmharicName = data.applicant_name_amharic || (data as any).renewal_applicant_name_amharic;
+      console.log('[PDF-ENGINE] Filling applicant_name_amharic with:', appAmharicName);
+      await fillField(['applicant_name_amharic'], appAmharicName, 11);
+      
+      await fillField(['address_street'], data.address_street);
+      await fillField(['address_zone'], data.address_zone);
+      await fillField(['city_code'], data.city_code, 9);
+      await fillField(['city_name'], data.city_name);
+      await fillField(['state_code'], data.state_code, 9);
+      await fillField(['state_name'], data.state_name, 10);
+      await fillField(['zip_code'], data.zip_code, 9);
+      await fillField(['wereda'], data.wereda, 9);
+      await fillField(['house_no'], data.house_no, 9);
+      await fillField(['telephone'], data.telephone, 9);
+      await fillField(['email'], data.email, 9);
+      await fillField(['fax'], data.fax, 9);
+      await fillField(['po_box'], data.po_box, 9);
+      await fillField(['nationality'], data.nationality, 8);
+      await fillField(['residence_country'], data.residence_country ? `      ${data.residence_country}` : '', 9);
 
-    // 4. Use of Trademark 
-    setCheckbox(data.chk_goods, ['chk_goods', 'goods_mark']);
-    setCheckbox(data.chk_services, ['chk_services', 'service_mark']);
-    setCheckbox(data.chk_collective, ['chk_collective', 'collective_mark']);
+      setCheckbox(data.chk_female, ['chk_female']);
+      setCheckbox(data.chk_male, ['chk_male']);
+      setCheckbox(data.chk_company, ['chk_company']);
 
-    // 5. Mark Details (Page 2)
-    setCheckbox(data.mark_type_figurative || data.markType === 'FIGURATIVE', ['mark_type_figurative', 'figurative']);
-    setCheckbox(data.mark_type_word || data.markType === 'WORD', ['mark_type_word', 'word']);
-    setCheckbox(data.mark_type_mixed || data.markType === 'MIXED', ['mark_type_mixed', 'mixed']);
-    setCheckbox(data.mark_type_three_dim || data.markType === 'THREE_DIMENSION', ['mark_type_three_dim', 'three_dimension', 'pe_th']);
+      // II. Agent Details
+      console.log('--- Section II: Agent Details ---');
+      await fillField(['agent_name'], data.agent_name);
+      await fillField(['agent_country'], data.agent_country);
+      await fillField(['agent_city'], data.agent_city);
+      await fillField(['agent subcity', 'agent_subcity'], data.agent_subcity);
+      await fillField(['agent_woreda'], data.agent_woreda);
+      await fillField(['agent_house_no'], data.agent_house_no);
+      await fillField(['agent_telephone'], data.agent_telephone);
+      await fillField(['agent_email'], data.agent_email);
+      await fillField(['agent_po_box'], data.agent_po_box);
+      await fillField(['agent_fax'], data.agent_fax);
 
-    await fillField(['mark_description'], data.mark_description);
-    await fillField(['mark_translation'], data.mark_translation);
-    await fillField(['mark_transliteration'], data.mark_transliteration);
-    await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation'], data.mark_language_requiring_traslation);
-    await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
-    await fillField(['mark_color_indication'], data.mark_color_indication);
-    await fillField(['image_field', 'mark_image'], data.image_field);
-    // Goods & Services: 6 separate lines matching PDF tags goods_services_list_1..6
-    // Also support legacy single-field PDF with goods_services_list
-    await fillField(['goods_services_list_1'], data.goods_services_list_1 || data.goods_services_list);
-    await fillField(['goods_services_list_2'], data.goods_services_list_2);
-    await fillField(['goods_services_list_3'], data.goods_services_list_3);
-    await fillField(['goods_services_list_4'], data.goods_services_list_4);
-    await fillField(['goods_services_list_5'], data.goods_services_list_5);
-    await fillField(['goods_services_list_6'], data.goods_services_list_6);
-    // Legacy single field fallback
-    await fillField(['goods_services_list'], data.goods_services_list);
+      // III. Use of Mark
+      console.log('--- Section III ---');
+      setCheckbox(data.chk_goods, ['chk_goods']);
+      setCheckbox(data.chk_services, ['chk_services']);
+      setCheckbox(data.chk_collective, ['chk_collective']);
 
-    // 6. Disclaimer & Priority (Section V & VI)
-    await fillField(['disclaimer_text_amharic', 'disclaimer_text'], data.disclaimer_text_amharic);
-    await fillField(['disclaimer_text_english'], data.disclaimer_text_english);
+      // IV. Mark Specification
+      console.log('--- Section IV ---');
+      setCheckbox(data.mark_type_figurative, ['mark_type_figurative']);
+      setCheckbox(data.mark_type_word, ['mark_type_word']);
+      setCheckbox(data.mark_type_mixed, ['mark_type_mixed']);
+      setCheckbox(data.mark_type_three_dim, ['mark_type_three_dim']);
+      await fillField(['mark_description'], data.mark_description);
+      await fillField(['mark_translation'], data.mark_translation);
+      await fillField(['mark_transliteration'], data.mark_transliteration);
+      await fillField(['mark_language_requiring_traslation'], data.mark_language_requiring_traslation);
+      await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
+      await fillField(['mark_color_indication'], data.mark_color_indication);
+      await fillField(['image_field'], data.image_field);
 
-    await fillField(['priority_right_declaration'], data.priority_right_declaration);
-    await fillField(['priority_filing_date_1', 'priority_application_filing_date'], data.priority_filing_date_1);
-    await fillField(['priority_filing_date'], data.priority_filing_date);
-    await fillField(['priority_country'], data.priority_country);
+      // V. Priority Right
+      console.log('--- Section V ---');
+      await fillField(['priority_filing_date'], data.priority_filing_date);
+      await fillField(['priority_country'], data.priority_country);
+      await fillField(['goods_and_services_covered_by_the_previous_application'], data.goods_and_services_covered_by_the_previous_application);
+      await fillField(['priority_right_declaration'], data.priority_right_declaration);
+      setCheckbox(data.chk_priority_accompanies, ['chk_priority_accompanies']);
+      setCheckbox(data.chk_priority_submitted_later, ['chk_priority_submitted_later']);
 
-    // Application Agent (Section II)
-    await fillField(['agent_name'], data.agent_name);
-    await fillField(['agent_country'], data.agent_country);
-    await fillField(['agent_city'], data.agent_city);
-    await fillField(['agent_subcity'], data.agent_subcity);
-    await fillField(['agent_wereda'], data.agent_wereda);
-    await fillField(['agent_house_no'], data.agent_house_no);
-    await fillField(['agent_telephone'], data.agent_telephone);
-    await fillField(['agent_po_box'], data.agent_po_box);
-    await fillField(['agent_email'], data.agent_email);
-    await fillField(['agent_fax'], data.agent_fax);
+      // VI. Classification
+      console.log('--- Section VI ---');
+      await fillField(['goods_services_list_1'], data.goods_services_list_1);
+      await fillField(['goods_services_list_2'], data.goods_services_list_2);
+      await fillField(['goods_services_list_3'], data.goods_services_list_3);
+      await fillField(['goods_services_list_4'], data.goods_services_list_4);
+      await fillField(['goods_services_list_5'], data.goods_services_list_5);
+      await fillField(['goods_services_list_6'], data.goods_services_list_6);
+      await fillField(['disclaimer_text_amharic'], data.disclaimer_text_amharic);
+      await fillField(['disclaimer_text_english'], data.disclaimer_text_english);
 
-    // 6.1 Unique Renewal Fields
-    await fillField(['renewal_auth_app_no'], data.renewal_auth_app_no);
-    await fillField(['renewal_auth_filing_date'], data.renewal_auth_filing_date);
-    await fillField(['renewal_auth_receipt_date'], data.renewal_auth_receipt_date);
-    await fillField(['renewal_auth_approved_by'], data.renewal_auth_approved_by);
-    await fillField(['renewal_applicant_name'], data.renewal_applicant_name);
-    await fillField(['renewal_applicant_name_amharic'], data.renewal_applicant_name_amharic);
-    await fillField(['renewal_address_zone'], data.renewal_address_zone);
-    await fillField(['renewal_city_name'], data.renewal_city_name);
-    await fillField(['renewal_state_name'], data.renewal_state_name);
-    await fillField(['renewal_zip_code'], data.renewal_zip_code);
-    await fillField(['renewal_wereda'], data.renewal_wereda);
-    await fillField(['renewal_house_no'], data.renewal_house_no);
-    await fillField(['renewal_telephone'], data.renewal_telephone);
-    await fillField(['renewal_email'], data.renewal_email);
-    await fillField(['renewal_fax'], data.renewal_fax);
-    await fillField(['renewal_po_box'], data.renewal_po_box);
-    await fillField(['renewal_nationality'], data.renewal_nationality);
-    await fillField(['renewal_residence_country'], data.renewal_residence_country);
-
-    // City and State Codes for Renewal
-    await fillField(['renewal_city_code'], data.renewal_city_code);
-    await fillField(['renewal_state_code'], data.renewal_state_code);
-
-    // Agent Details (Comprehensive Mapping)
-    await fillField(['renewal_agent_name'], data.renewal_agent_name);
-    await fillField(['renewal_agent_country'], data.renewal_agent_country);
-    await fillField(['renewal_agent_city'], data.renewal_agent_city);
-    await fillField(['renewal_agent_subcity'], data.renewal_agent_subcity);
-    await fillField(['renewal_agent_wereda'], data.renewal_agent_wereda);
-    await fillField(['renewal_agent_house_no'], data.renewal_agent_house_no);
-    await fillField(['renewal_agent_telephone'], data.renewal_agent_telephone);
-    await fillField(['renewal_agent_email'], data.renewal_agent_email);
-    await fillField(['renewal_agent_pobox'], data.renewal_agent_pobox);
-    await fillField(['renewal_agent_fax'], data.renewal_agent_fax);
-
-    // Checkboxes
-    setCheckbox(data.renewal_chk_female, ['renewal_chk_female']);
-    setCheckbox(data.renewal_chk_male, ['renewal_chk_male']);
-    setCheckbox(data.renewal_chk_company, ['renewal_chk_company']);
-
-    setCheckbox(data.renewal_chk_goods_mark, ['renewal_chk_goods_mark']);
-    setCheckbox(data.renewal_chk_service_mark, ['renewal_chk_service_mark']);
-    setCheckbox(data.renewal_chk_collective_mark, ['renewal_chk_collective_mark']);
-
-    await fillField(['renewal_mark_logo'], data.renewal_mark_logo);
-    await fillField(['renewal_app_no'], data.renewal_app_no);
-    await fillField(['renewal_reg_no'], data.renewal_reg_no);
-    await fillField(['renewal_reg_date'], data.renewal_reg_date);
-    await fillField(['renewal_goods_services_1'], data.renewal_goods_services_1);
-    await fillField(['renewal_goods_services_2'], data.renewal_goods_services_2);
-    await fillField(['renewal_goods_services_3'], data.renewal_goods_services_3);
-    await fillField(['renewal_goods_services_4'], data.renewal_goods_services_4);
-    await fillField(['renewal_goods_services_5'], data.renewal_goods_services_5);
-    await fillField(['renewal_goods_services_6'], data.renewal_goods_services_6);
-    await fillField(['renewal_signature'], data.renewal_signature);
-    await fillField(['renewal_sign_day'], data.renewal_sign_day);
-    await fillField(['renewal_sign_month'], data.renewal_sign_month);
-    await fillField(['renewal_sign_year'], data.renewal_sign_year);
-
-    await fillField(['registration_no'], data.registration_no);
-    await fillField(['registration_date'], data.registration_date);
-    await fillField(['application_no'], data.application_no);
-
-    setCheckbox(data.chk_priority_accompanies, ['chk_priority_accompanies', 'ty_acc']);
-    setCheckbox(data.chk_priority_submitted_later, ['chk_priority_submitted_later', '_subn']);
-
-    // 7. Checklist (Section VII)
-    setCheckbox(data.chk_list_copies, ['chk_list_copies', 'copies']);
-    setCheckbox(data.chk_list_status, ['chk_list_status', 'chk_list_statues', 'statutes']);
-    setCheckbox(data.chk_list_poa, ['chk_list_poa', 'poa']);
-    setCheckbox(data.chk_list_priority_docs, ['chk_list_priority_docs', 'priority_docs']);
-    setCheckbox(data.chk_list_drawing, ['chk_list_drawing', 'drawing']);
-    setCheckbox(data.chk_list_payment, ['chk_list_payment', 'payment']);
-    setCheckbox(data.chk_list_other, ['chk_list_other', 'other']);
-
-    await fillField(['other_documents_text', 'chk_list_other_specify'], data.other_documents_text);
-    await fillField(['Text Field', 'applicant_signature'], data["Text Field"]);
-    await fillField(['applicant_sign_day_en', 'applicant_sign_day'], data.applicant_sign_day_en);
-    await fillField(['applicant_sign_month'], data.applicant_sign_month);
-    await fillField(['applicant_sign_year_en', 'applicant_sign_year'], data.applicant_sign_year_en);
+      // VII. Checklist & Signature
+      console.log('--- Section VII ---');
+      setCheckbox(data.chk_list_copies, ['chk_list_copies']);
+      setCheckbox(data.chk_list_status, ['chk_list_status']);
+      setCheckbox(data.chk_list_poa, ['chk_list_poa']);
+      setCheckbox(data.chk_list_priority_docs, ['chk_list_priority_docs']);
+      setCheckbox(data.chk_list_drawing, ['chk_list_drawing']);
+      setCheckbox(data.chk_list_payment, ['chk_list_payment']);
+      setCheckbox(data.chk_list_other, ['chk_list_other']);
+      await fillField(['other_documents_text'], data.other_documents_text);
+      await fillField(['applicant_sign_day'], data.applicant_sign_day);
+      await fillField(['applicant_sign_month'], data.applicant_sign_month);
+      await fillField(['applicant_sign_year_en'], data.applicant_sign_year_en);
+    }
 
     // ===== NUCLEAR FINAL SWEEP =====
     // Delete AP streams from ALL TEXT fields (not buttons) so pdf-lib's save
