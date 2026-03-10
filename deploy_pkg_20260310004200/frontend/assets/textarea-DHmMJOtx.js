@@ -1,1 +1,0 @@
-import{r as t,j as s}from"./react-vendor-8XNGB-rG.js";import{c as p}from"./index-CyfeaGN7.js";const o=t.forwardRef(({className:a,...r},e)=>s.jsx("textarea",{className:p("apple-input min-h-[80px] py-2",a),ref:e,...r}));o.displayName="Textarea";export{o as T};
