@@ -195,13 +195,12 @@ app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
 // Ensure critical auth tables exist before accepting requests.
-try {
-  await ensureAuthTables();
+ensureAuthTables().then(() => {
   logger.info('boot-auth-tables-ok');
-} catch (err: unknown) {
+}).catch((err: unknown) => {
   // If this fails, login/refresh will 500. We log loudly but still start so health endpoints work.
   logger.error('boot-auth-tables-failed', { error: String(err) });
-}
+});
 
 app.listen(port, () => {
   logger.info('server-started', {

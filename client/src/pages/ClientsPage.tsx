@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Joyride, { Step } from 'react-joyride';
 import { 
   Plus, 
   Building, 
@@ -53,7 +52,7 @@ const CLIENT_TYPE_ICONS: Record<ApplicantType, typeof User> = {
 export default function ClientsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const startTourFromUrl = searchParams.get('tour') === 'true';
+   searchParams.get('tour') === 'true';
   
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +60,7 @@ export default function ClientsPage() {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [selectedType, setSelectedType] = useState<ApplicantType | 'ALL'>('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [runTour, setRunTour] = useState(startTourFromUrl);
+  
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -192,49 +191,7 @@ export default function ClientsPage() {
   };
 
   // Tour Steps
-  const tourSteps: Step[] = [
-    {
-      target: '#clients-header',
-      content: 'Welcome to the Clients Management page. Here you can manage your entire client database including individuals, companies, and partnerships.',
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: '#new-client-btn',
-      content: 'Create a new client record. This will be used when filing trademark applications.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#search-clients',
-      content: 'Search clients by name, email, or city using fuzzy search.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#type-filter',
-      content: 'Filter clients by type: Individual, Company, or Partnership.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#view-toggle',
-      content: 'Switch between Grid view (cards) and Table view (list).',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#clients-grid',
-      content: 'Your clients are displayed here. Click any client to view their details, trademark cases, and history.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#bulk-actions',
-      content: 'Select multiple clients to perform bulk actions like Delete or Merge (combine duplicate clients).',
-      placement: 'left' as const,
-    },
-    {
-      target: '#pagination',
-      content: 'Navigate through large client lists using pagination.',
-      placement: 'top' as const,
-    },
-  ];
+  
 
   if (loading) {
     return (
@@ -287,49 +244,6 @@ export default function ClientsPage() {
 
   return (
     <div className="w-full">
-      <Joyride
-        steps={tourSteps}
-        run={runTour}
-        continuous={true}
-        showProgress={true}
-        showSkipButton={true}
-        callback={(data: { status: string }) => {
-          if (['finished', 'skipped'].includes(data.status)) {
-            setRunTour(false);
-            searchParams.delete('tour');
-            setSearchParams(searchParams);
-          }
-        }}
-        styles={{
-          options: {
-            primaryColor: 'var(--eai-primary)',
-            textColor: '#1C1C1E',
-            zIndex: 10000,
-            arrowColor: '#fff',
-            backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.5)',
-          },
-          tooltipContainer: {
-            textAlign: 'left',
-            borderRadius: '12px',
-            fontFamily: 'inherit',
-          },
-          buttonNext: {
-            borderRadius: '0px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonBack: {
-            marginRight: '10px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonSkip: {
-            fontSize: '13px',
-            fontWeight: 'bold',
-          }
-        }}
-      />
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4" id="clients-header">
         <div className="space-y-1">
           <h1 className="text-h1">Clients</h1>

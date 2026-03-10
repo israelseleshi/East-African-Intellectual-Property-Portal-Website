@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import Joyride, { Step } from 'react-joyride'
 import {
   ArrowsClockwise,
   WarningCircle,
@@ -77,7 +76,7 @@ const formatMoney = (value: number, currency: string) =>
 export default function DashboardPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const startTour = searchParams.get('tour') === 'true'
+   searchParams.get('tour') === 'true'
 
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -182,13 +181,7 @@ export default function DashboardPage() {
     [dueIn7Days.length, overdueActions.length, invoiceQueue.length, stalledCases.length]
   )
 
-  const tourSteps: Step[] = [
-    { target: '#ops-summary', content: 'This is your operations command center summary.', disableBeacon: true, placement: 'bottom' },
-    { target: '#queue-due7', content: 'Action queue for deadlines due in the next 7 days.', placement: 'right' },
-    { target: '#queue-overdue', content: 'Handle overdue legal actions first.', placement: 'left' },
-    { target: '#queue-invoices', content: 'Track and act on unpaid invoices quickly.', placement: 'top' },
-    { target: '#queue-stalled', content: 'Find matters that have gone cold for over 14 days.', placement: 'top' }
-  ]
+  
 
   const handleTourCallback = (data: { status: string }) => {
     if (['finished', 'skipped'].includes(data.status)) {
@@ -219,18 +212,6 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
-      <Joyride
-        steps={tourSteps}
-        run={startTour}
-        continuous
-        showProgress
-        showSkipButton
-        callback={handleTourCallback}
-        styles={{
-          options: { primaryColor: 'var(--eai-primary)', textColor: '#1C1C1E', zIndex: 10000, arrowColor: '#fff', backgroundColor: '#fff', overlayColor: 'rgba(0,0,0,0.5)' }
-        }}
-      />
-
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-h1 font-black tracking-tight text-[var(--eai-text)]">Command Center</h1>

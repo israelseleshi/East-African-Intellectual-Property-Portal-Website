@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Button } from '../components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
-import Joyride, { Step } from 'react-joyride';
 import { useSearchParams } from 'react-router-dom';
 
 type ResourceType = 'clients' | 'trademark_cases' | 'invoices' | 'case_notes' | 'oppositions' | 'fee_schedules';
@@ -25,58 +24,15 @@ const RESOURCE_LABELS: Record<ResourceType, string> = {
   fee_schedules: 'Fee Schedule'
 };
 
-const tourSteps: Step[] = [
-  {
-    target: '#trash-header',
-    content: 'Welcome to Trash & Recovery! Deleted items are kept here for 30 days before permanent deletion.',
-    placement: 'bottom',
-    disableBeacon: true,
-  },
-  {
-    target: '#filter-buttons',
-    content: 'Filter by type: Clients, Trademark Cases, Invoices, Case Notes, and more.',
-    placement: 'bottom' as const,
-  },
-  {
-    target: '#empty-trash-btn',
-    content: 'Empty Trash to permanently delete all items at once. This action cannot be undone!',
-    placement: 'left' as const,
-  },
-  {
-    target: '#trash-table',
-    content: 'Each item shows when it was deleted and by whom. You can restore items or permanently delete them.',
-    placement: 'right' as const,
-  },
-  {
-    target: '#restore-btn',
-    content: 'Click Restore to recover an item to its original location with all data intact.',
-    placement: 'top' as const,
-  },
-  {
-    target: '#info-box',
-    content: 'Soft deletes keep your data safe. Only administrators can permanently delete items.',
-    placement: 'top' as const,
-  },
-];
-
 export default function TrashPage() {
   const [items, setItems] = useState<TrashedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<ResourceType | 'all'>('all');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [runTour, setRunTour] = useState(false);
   const api = useApi();
 
   useEffect(() => {
     loadTrashedItems();
-    // Check for tour param
-    if (searchParams.get('tour') === 'true') {
-      setRunTour(true);
-      // Clean up URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('tour');
-      setSearchParams(newParams);
-    }
   }, [searchParams]);
 
   const loadTrashedItems = async () => {
@@ -190,47 +146,6 @@ export default function TrashPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <Joyride
-        steps={tourSteps}
-        run={runTour}
-        continuous={true}
-        showProgress={true}
-        showSkipButton={true}
-        callback={(data: { status: string }) => {
-          if (['finished', 'skipped'].includes(data.status)) {
-            setRunTour(false);
-          }
-        }}
-        styles={{
-          options: {
-            primaryColor: 'var(--eai-primary)',
-            textColor: '#1C1C1E',
-            zIndex: 10000,
-            arrowColor: '#fff',
-            backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.5)',
-          },
-          tooltipContainer: {
-            textAlign: 'left',
-            borderRadius: '12px',
-            fontFamily: 'inherit',
-          },
-          buttonNext: {
-            borderRadius: '0px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonBack: {
-            marginRight: '10px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonSkip: {
-            fontSize: '13px',
-            fontWeight: 'bold',
-          }
-        }}
-      />
       {/* Header */}
       <div id="trash-header" className="flex items-center justify-between mb-6">
         <div>
@@ -248,11 +163,10 @@ export default function TrashPage() {
       <div id="filter-buttons" className="flex gap-2 mb-6">
         <button
           onClick={() => setSelectedType('all')}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${
-            selectedType === 'all'
+          className={`px-4 py-2 rounded-md text-sm font-medium ${selectedType === 'all'
               ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+            }`}
         >
           All Types
         </button>
@@ -260,11 +174,10 @@ export default function TrashPage() {
           <button
             key={type}
             onClick={() => setSelectedType(type as ResourceType)}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              selectedType === type
+            className={`px-4 py-2 rounded-md text-sm font-medium ${selectedType === type
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             {label}s
           </button>

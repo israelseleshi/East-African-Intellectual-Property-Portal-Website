@@ -19,7 +19,6 @@ import {
   Bank
 } from '@phosphor-icons/react'
 
-import Joyride, { Step } from 'react-joyride'
 import { useSearchParams } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -31,7 +30,7 @@ export default function BillingPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
-  const startTour = searchParams.get('tour') === 'true'
+   searchParams.get('tour') === 'true'
 
   const [currency] = useState<'USD' | 'ETB'>('USD')
   const [transactions, setTransactions] = useState<any[]>([])
@@ -60,29 +59,7 @@ export default function BillingPage() {
     overdueCount: 0
   })
 
-  const tourSteps: Step[] = [
-    {
-      target: '#billing-stats-grid',
-      content: 'Track your financial health with real-time revenue and outstanding metrics.',
-      placement: 'bottom' as const,
-      disableBeacon: true,
-    },
-    {
-      target: '#stat-revenue',
-      content: 'Total Revenue shows all income generated from official and professional fees.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#stat-outstanding',
-      content: 'Keep an eye on Outstanding payments and Overdue invoices to maintain cash flow.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#billing-ledger',
-      content: 'The Ledger lists every transaction, linked directly to your trademark cases.',
-      placement: 'top' as const,
-    }
-  ]
+  
 
   const handleTourCallback = (data: { status: string }) => {
     const { status } = data
@@ -297,43 +274,6 @@ export default function BillingPage() {
 
   return (
     <div className="w-full">
-      <Joyride
-        steps={tourSteps}
-        run={startTour}
-        continuous={true}
-        showProgress={true}
-        showSkipButton={true}
-        callback={handleTourCallback}
-        styles={{
-          options: {
-            primaryColor: 'var(--eai-primary)',
-            textColor: '#1C1C1E',
-            zIndex: 10000,
-            arrowColor: '#fff',
-            backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.5)',
-          },
-          tooltipContainer: {
-            textAlign: 'left',
-            borderRadius: '12px',
-            fontFamily: 'inherit',
-          },
-          buttonNext: {
-            borderRadius: '0px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonBack: {
-            marginRight: '10px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonSkip: {
-            fontSize: '13px',
-            fontWeight: 'bold',
-          }
-        }}
-      />
       <header className="flex flex-col gap-1">
         <h1 className="text-h1 text-[var(--eai-text)]">Billing & Ledger</h1>
         <p className="text-body text-[var(--eai-text-secondary)] font-medium">Professional invoicing and financial fee management.</p>

@@ -17,7 +17,6 @@ import {
   XCircle
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import Joyride, { Step } from 'react-joyride';
 
 import { useFormAutomation } from '../hooks/useFormAutomation';
 import { FormHeader } from './FormAutomation/components/FormHeader';
@@ -29,10 +28,6 @@ export default function FormInspectorPage() {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tourParam = searchParams.get('tour');
-  const startTour = tourParam === 'true';
-  const startJurisdictionTour = tourParam === 'jurisdiction';
-  const startFeeTour = tourParam === 'fees';
 
   const {
     formType,
@@ -80,134 +75,6 @@ export default function FormInspectorPage() {
     const expected = new Set(expectedTags.map((k) => k.trim()));
     return uniqueDetectedFields.filter((f) => !expected.has(f.trim()));
   }, [expectedTags, uniqueDetectedFields]);
-
-  const tourSteps: Step[] = [
-    {
-      target: '#form-controls-section',
-      content: 'Welcome to EIPA Form Automation! This tool helps you generate professional trademark applications for Ethiopia.',
-      placement: 'right',
-      disableBeacon: true,
-    },
-    {
-      target: '#applicant-section',
-      content: "Section I: Enter the applicant's full legal name and type. For Ethiopian filings, use the company name as registered with the Ministry of Trade.",
-      placement: 'right' as const,
-    },
-    {
-      target: '#address-section',
-      content: 'Section II: Enter the complete address. For Ethiopia: include Subcity (e.g., Bole), Wereda (district), and House Number.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#contact-section',
-      content: 'Section III: Provide valid contact details. The email will be used for official correspondence from EIPA.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#mark-specification-section',
-      content: 'Section IV: Define your trademark. Select mark type (Goods, Service, or Collective), mark form (Word, Figurative, Mixed, or 3D), and provide a detailed description.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#nice-classification',
-      content: 'Nice Classification: Select relevant international classes for your goods/services. You can select multiple classes.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#goods-services',
-      content: 'List specific goods/services for each selected Nice class. Be precise as this defines your trademark protection scope.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#priority-section',
-      content: 'Section V: Priority Claims. If filing within 6 months of a first filing in another country, claim priority here.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#checklist-section',
-      content: 'Section VII: Document Checklist. Verify all required documents: Power of Attorney, Payment Proof, 3 copies of mark, and Priority docs if applicable.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#inspect-tags-button',
-      content: 'Advanced Feature: Inspect PDF field tags for troubleshooting or when working with custom PDF templates.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#download-pdf-button',
-      content: 'Download: Save the completed PDF for printing, signing, and physical submission to EIPA.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#submit-button',
-      content: 'Submit: Save the trademark to your docket and create a case record for tracking throughout the registration process.',
-      placement: 'bottom' as const,
-    },
-  ];
-
-  const jurisdictionTourSteps: Step[] = [
-    {
-      target: '#jurisdiction-info-card',
-      content: 'Welcome to Jurisdiction Management! This tour explains how jurisdiction rules affect deadlines, fees, and filing requirements.',
-      placement: 'right',
-      disableBeacon: true,
-    },
-    {
-      target: '#address-section',
-      content: 'Ethiopia (ET): 60-day opposition period, 7-year renewal, ETB currency. Required fields: Subcity, Wereda, House Number.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#nationality-field',
-      content: 'Kenya (KE): 60-day opposition period, 10-year renewal, KES currency. Different address format required.',
-      placement: 'top' as const,
-    },
-    {
-      target: '#submit-button',
-      content: 'When you submit, the system automatically calculates deadlines based on the selected jurisdiction rules.',
-      placement: 'bottom' as const,
-    },
-  ];
-
-  const feeCalculatorTourSteps: Step[] = [
-    {
-      target: '#fee-estimate-card',
-      content: 'Welcome to the Fee Calculator! This shows estimated costs by jurisdiction and case stage.',
-      placement: 'left',
-      disableBeacon: true,
-    },
-    {
-      target: '#address-section',
-      content: 'Official Fees (Government): Filing fees, publication fees, registration fees - vary by jurisdiction.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#mark-specification-section',
-      content: 'Professional Fees: Your legal service charges. Multi-class applications incur additional fees per class.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#submit-button',
-      content: 'Total estimate combines Official + Professional fees. Use this for client quotes.',
-      placement: 'bottom' as const,
-    },
-  ];
-
-  const getActiveSteps = () => {
-    if (startJurisdictionTour) return jurisdictionTourSteps;
-    if (startFeeTour) return feeCalculatorTourSteps;
-    return tourSteps;
-  };
-
-  const shouldRunTour = startTour || startJurisdictionTour || startFeeTour;
-
-  const handleTourCallback = (data: { status: string }) => {
-    const { status } = data;
-    if (['finished', 'skipped'].includes(status)) {
-      searchParams.delete('tour');
-      setSearchParams(searchParams);
-    }
-  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -315,21 +182,6 @@ export default function FormInspectorPage() {
 
   return (
     <div className="min-h-screen bg-[var(--eai-bg)] pb-20">
-      <Joyride
-        steps={getActiveSteps()}
-        run={shouldRunTour}
-        continuous
-        showProgress
-        showSkipButton
-        callback={handleTourCallback}
-        styles={{
-          options: {
-            primaryColor: 'var(--eai-primary)',
-            zIndex: 1000,
-          },
-        }}
-      />
-
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
 
         <FormHeader

@@ -19,7 +19,6 @@ import {
   CaretUp
 } from '@phosphor-icons/react'
 import * as XLSX from 'xlsx'
-import Joyride, { Step } from 'react-joyride'
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -195,7 +194,7 @@ export default function DocketPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
-  const startTourFromUrl = searchParams.get('tour') === 'true'
+   searchParams.get('tour') === 'true'
 
   const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_date?: string; filingDate?: string; filing_number?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string }>>([])
   const [loading, setLoading] = useState(true)
@@ -210,53 +209,11 @@ export default function DocketPage() {
   // Delete Dialog State
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [runTour, setRunTour] = useState(startTourFromUrl)
+  
   const caseToDelete = useMemo(() => cases.find(c => c.id === deleteId), [cases, deleteId])
 
   // Tour Steps
-  const tourSteps: Step[] = [
-    {
-      target: '#trademarks-header',
-      content: 'Welcome to the Trademarks Docket. This is your central hub for managing all trademark cases across East African jurisdictions.',
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: '#new-application-btn',
-      content: 'Create a new trademark application here. This starts the intake process for new filings.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#search-filter',
-      content: 'Search by mark name, filing number, or client name to quickly find specific cases.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#jurisdiction-filter',
-      content: 'Filter by jurisdiction to view cases from specific countries (Ethiopia, Kenya, etc.).',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#status-filter',
-      content: 'Filter by case status: Draft, Filed, Under Examination, Published, or Registered.',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#view-toggle',
-      content: 'Switch between Table view (detailed) and Grid view (compact cards).',
-      placement: 'bottom' as const,
-    },
-    {
-      target: '#trademarks-table',
-      content: 'Your trademark cases are displayed here with key information: mark, client, jurisdiction, status, and important dates.',
-      placement: 'right' as const,
-    },
-    {
-      target: '#pagination',
-      content: 'Navigate through large dockets using pagination. Shows total record count.',
-      placement: 'top' as const,
-    },
-  ]
+  
 
   useEffect(() => {
     fetchCases()
@@ -536,49 +493,6 @@ export default function DocketPage() {
 
   return (
     <div className="w-full">
-      <Joyride
-        steps={tourSteps}
-        run={runTour}
-        continuous={true}
-        showProgress={true}
-        showSkipButton={true}
-        callback={(data: { status: string }) => {
-          if (['finished', 'skipped'].includes(data.status)) {
-            setRunTour(false);
-            searchParams.delete('tour');
-            setSearchParams(searchParams);
-          }
-        }}
-        styles={{
-          options: {
-            primaryColor: 'var(--eai-primary)',
-            textColor: '#1C1C1E',
-            zIndex: 10000,
-            arrowColor: '#fff',
-            backgroundColor: '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.5)',
-          },
-          tooltipContainer: {
-            textAlign: 'left',
-            borderRadius: '12px',
-            fontFamily: 'inherit',
-          },
-          buttonNext: {
-            borderRadius: '0px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonBack: {
-            marginRight: '10px',
-            fontWeight: 'bold',
-            fontSize: '13px',
-          },
-          buttonSkip: {
-            fontSize: '13px',
-            fontWeight: 'bold',
-          }
-        }}
-      />
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="trademarks-header">
         <h1 className="text-h1 text-[var(--eai-text)]">Trademarks</h1>
         <div className="flex items-center gap-2">
