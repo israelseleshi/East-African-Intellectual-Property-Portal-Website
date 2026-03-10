@@ -12,12 +12,12 @@
 
 ---
 
-# Renewal Form Tags (33 Total)
+# Renewal Form Tags (46 Total)
 
 | Section | Expected # of Tags | PDF Tag Name | Status |
 | :--- | :--- | :--- | :--- |
-| **I. Applicant** | 13 | `renewal_applicant_name`, `renewal_applicant_name_amharic`, `renewal_address_street`, `renewal_address_zone`, `renewal_city_code`, `renewal_city_name`, `renewal_state_code`, `renewal_state_name`, `renewal_zip_code`, `renewal_wereda`, `renewal_house_no`, `renewal_telephone`, `renewal_email`, `renewal_fax`, `renewal_po_box`, `renewal_nationality`, `renewal_residence_country`, `renewal_chk_female`, `renewal_chk_male`, `renewal_chk_company` | ✅ Completely Supported (Additional address/contact UI elements inherited from dynamic fields) |
-| **II. Agent** | 10 | `renewal_agent_name`, `renewal_agent_country`, `renewal_agent_city`, `renewal_agent_subcity`, `renewal_agent_email`, `renewal_agent_pobox`, `renewal_agent_wereda`, `renewal_agent_telephone`, `renewal_agent_house_no`, `renewal_agent_fax` | ✅ Completely Supported |
-| **III. Mark Info** | 7 | `renewal_chk_goods_mark`, `renewal_chk_service_mark`, `renewal_chk_collective_mark`, `renewal_mark_logo`, `renewal_app_no`, `renewal_reg_no`, `renewal_reg_date` | ✅ Completely Supported |
-| **IV. Goods/Services** | 6 | `renewal_goods_services_1`, `renewal_goods_services_2`, `renewal_goods_services_3`, `renewal_goods_services_4`, `renewal_goods_services_5`, `renewal_goods_services_6` | ✅ Mapped properly |
-| **V. Signature** | 3 | `renewal_sign_day`, `renewal_sign_month`, `renewal_sign_year`, `renewal_signature` | ✅ Breakdown supported natively in codebase |
+| **I. Applicant (23)** | 23 | `renewal_applicant_name`, `renewal_applicant_name_amharic`, `renewal_address_street`, `renewal_address_zone`, `renewal_city_code`, `renewal_city_name`, `renewal_state_code`, `renewal_state_name`, `renewal_zip_code`, `renewal_wereda`, `renewal_house_no`, `renewal_telephone`, `renewal_email`, `renewal_fax` (x2 on pdf structure), `renewal_po_box`, `renewal_nationality`, `renewal_residence_country`, `renewal_chk_female`, `renewal_chk_male`, `renewal_chk_company`, `renewal_app_no`, `renewal_reg_no` | ✅ Completely Supported (Additional address/contact UI elements inherited from dynamic fields) |
+| **II. Agent (10)** | 10 | `renewal_agent_name`, `renewal_agent_country`, `renewal_agent_city`, `renewal_agent_subcity`, `renewal_agent_email`, `renewal_agent_pobox`, `renewal_agent_wereda`, `renewal_agent_telephone`, `renewal_agent_house_no`, `renewal_agent_fax` | ✅ Completely Supported |
+| **III. Mark Info (5)** | 5 | `renewal_chk_goods_mark`, `renewal_chk_service_mark`, `renewal_chk_collective_mark`, `renewal_mark_logo`, `renewal_reg_date` | ✅ Completely Supported |
+| **IV. Goods/Services (6)** | 6 | `renewal_goods_services_1`, `renewal_goods_services_2`, `renewal_goods_services_3`, `renewal_goods_services_4`, `renewal_goods_services_5`, `renewal_goods_services_6` | ✅ Mapped properly |
+| **V. Signature (2)** | 2 | `renewal_sign_day`, `renewal_sign_month`, `renewal_sign_year` *(PDF defines month and year, signature line is rendered directly)* | ✅ Breakdown supported natively in codebase |
