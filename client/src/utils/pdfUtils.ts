@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, PDFFont, PDFTextField, PDFCheckBox, PDFObject, PDFName, PDFArray, PDFDict } from 'pdf-lib'
+import { PDFDocument, StandardFonts, PDFFont, PDFTextField, PDFCheckBox, PDFObject, PDFName, PDFArray, PDFDict, PDFHexString, PDFString } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import countries from 'world-countries'
 
@@ -18,13 +18,6 @@ export async function getPdfFields(pdfUrl: string) {
     const form = pdfDoc.getForm()
     const fields = form.getFields()
 
-    console.log('--- DETECTED PDF FIELDS ---');
-    fields.forEach(f => {
-      console.log(`Name: "${f.getName()}" | Type: ${f.constructor.name}`);
-    });
-    console.log('Total Fields:', fields.length);
-    console.log('---------------------------');
-
     return fields.map(f => ({
       name: f.getName(),
       type: f.constructor.name
@@ -37,239 +30,253 @@ export async function getPdfFields(pdfUrl: string) {
 
 export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>, shouldFlatten = false) {
   try {
-    console.log(`[fillPdfForm] Fetching PDF from: ${pdfUrl}`);
     const response = await fetch(pdfUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
     }
     const arrayBuffer = await response.arrayBuffer();
-    console.log(`[fillPdfForm] PDF loaded, size: ${arrayBuffer.byteLength} bytes`);
     const pdfDoc = await PDFDocument.load(arrayBuffer);
 
     pdfDoc.registerFontkit(fontkit);
-    // Load Amharic font (Ebrima)
+    // Load Amharic font (prefer Ebrima, fallback to Abyssinica SIL)
+    // Load Amharic font (Check user specified fonts)
     let amharicFont: PDFFont | null = null;
     try {
-      const fontUrl = '/fonts/ebrima.ttf';
-      const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
-      amharicFont = await pdfDoc.embedFont(fontBytes);
+      const fontUrls = [
+        window.location.origin + '/fonts/AbyssinicaSIL-Regular.ttf',
+        window.location.origin + '/fonts/ebrima.ttf',
+        window.location.origin + '/fonts/ebrima-bold.ttf',
+        '/fonts/AbyssinicaSIL-Regular.ttf',
+        '/fonts/ebrima.ttf',
+      ];
+      for (const fontUrl of fontUrls) {
+        try {
+          const fontRes = await fetch(fontUrl);
+          if (fontRes.ok) {
+            const fontBytes = await fontRes.arrayBuffer();
+            amharicFont = await pdfDoc.embedFont(fontBytes);
+            break;
+          }
+        } catch { /* try next font */ }
+      }
     } catch (_e) {
-      console.warn('Failed to load local Amharic font, trying fallback...', _e);
-      // Fallback logic if needed
+      console.warn('Failed to load local Amharic font...', _e);
+    }
+
+    if (amharicFont) {
+      // REGISTER the font in the form's default resources so it can be used by name in DA strings
+      const formForFontReg = pdfDoc.getForm();
+      try {
+        const dr = formForFontReg.acroForm.dict.get(PDFName.of('DR')) as PDFDict;
+        if (dr) {
+          let fontRes = dr.get(PDFName.of('Font')) as PDFDict;
+          if (!fontRes) {
+            fontRes = pdfDoc.context.obj({}) as unknown as PDFDict;
+            dr.set(PDFName.of('Font'), fontRes as unknown as PDFObject);
+          }
+          (fontRes as any).set(PDFName.of(amharicFont.name), amharicFont.ref);
+        }
+      } catch (regErr) {
+        console.warn('Could not register Amharic font in DR:', regErr);
+      }
     }
 
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     const form = pdfDoc.getForm();
+
+    // CRITICAL: Tell the PDF spec we are handling appearances ourselves.
+    // This prevents pdf-lib (and viewers) from auto-regenerating field appearances
+    // using the default Helvetica/WinAnsi font, which crashes on Amharic.
+    try {
+      form.acroForm.dict.set(PDFName.of('NeedAppearances'), pdfDoc.context.obj(false));
+    } catch (_e) { /* ignore */ }
+
     const allFields = form.getFields();
-    // Early Repair: Fix malformed fields that lack a Rect entry before filling anything
-    // This prevents "Expected instance of PDFArray2, but got instance of undefined" crash
+
+    // ─── EARLY REPAIR SWEEP ──────────────────────────────────────────────────
+    // Some fields (notably the second `renewal_fax` used for P.O.Box) are malformed:
+    // they have no Rect and no /DA. We patch both before doing anything else.
     allFields.forEach(field => {
       try {
-        const widgets = (field as any).acroField.getWidgets();
-        widgets.forEach((widget: any) => {
+        const acroField = (field as any).acroField;
+        const fieldDA = acroField.dict.get(PDFName.of('DA'));
+        if (!fieldDA) {
+          // Inject a safe Helv (Helvetica) DA at the field level
+          acroField.dict.set(PDFName.of('DA'), pdfDoc.context.obj('/Helv 10 Tf 0 g'));
+        }
+        acroField.getWidgets().forEach((widget: any) => {
           try {
             const rect = widget.dict.get(PDFName.of('Rect'));
             if (!rect || !(rect instanceof PDFArray)) {
-              console.warn(`Field ${field.getName()} has no valid Rect, repairing at load time...`);
               widget.dict.set(PDFName.of('Rect'), pdfDoc.context.obj([0, 0, 0, 0]));
             }
-          } catch (rectErr) {
-            console.error(`Failed to repair Rect for widget of field ${field.getName()}`, rectErr);
-          }
+          } catch { /* ignore */ }
         });
-      } catch (e) {
-        // Some fields might not have widgets or acroField accessor might fail
-      }
+      } catch { /* ignore */ }
     });
 
     const availableFields = allFields.map(f => f.getName());
 
+    // ─── HELPERS ─────────────────────────────────────────────────────────────
+    // Encode any string as UTF-16BE hex with BOM (works for both Latin and Amharic)
+    const toUtf16BEHex = (str: string): PDFHexString => {
+      const bytes: number[] = [0xfe, 0xff]; // BOM
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        bytes.push((code >> 8) & 0xff, code & 0xff);
+      }
+      return PDFHexString.of(bytes.map(b => b.toString(16).padStart(2, '0')).join(''));
+    };
+
+    // Set a text field value WITHOUT calling any pdf-lib high-level method.
+    // We write V and DA directly and delete the AP stream so the viewer
+    // regenerates it using the embedded font — avoiding all WinAnsi crashes.
+    const setFieldDirect = (acroField: any, value: string, fontName: string, fontSize: number) => {
+      try {
+        // Value: always UTF-16BE so both Latin and Amharic work
+        acroField.dict.set(PDFName.of('V'), toUtf16BEHex(value));
+        // Default Appearance tells the viewer which font/size to use
+        const da = `/${fontName} ${fontSize} Tf 0 g`;
+        acroField.dict.set(PDFName.of('DA'), pdfDoc.context.obj(da));
+        // Delete widget-level AP streams so the viewer builds them from scratch
+        acroField.getWidgets().forEach((w: any) => {
+          w.dict.delete(PDFName.of('AP'));
+          // Also propagate DA to widget level for maximum compatibility
+          w.dict.set(PDFName.of('DA'), pdfDoc.context.obj(da));
+        });
+      } catch (e) {
+        console.warn('setFieldDirect failed:', e);
+      }
+    };
+
+    const timesRomanFontName = timesRomanFont.name;
+    const amharicFontName = amharicFont?.name || null;
+
     const fillField = async (possibleNames: string[], value: unknown, customFontSize?: number) => {
       if (value === undefined || value === null || value === '') return;
       const strValue = String(value);
+      if (strValue.trim() === '') return;
 
-      // Detect if the value contains Amharic characters (Ethiopic script range)
       const hasAmharic = /[\u1200-\u137F]/.test(strValue);
 
-      const match = possibleNames.find(name =>
-        availableFields.some(f => f.trim().toLowerCase() === name.trim().toLowerCase())
+      const matches = availableFields.filter(actualName =>
+        possibleNames.some(p => p.trim().toLowerCase() === actualName.trim().toLowerCase())
       );
+      if (matches.length === 0) return;
 
-      if (match) {
+      for (const matchedName of matches) {
         try {
-          const matchedName = availableFields.find(f => f.trim().toLowerCase() === match.trim().toLowerCase())!;
-          
-          let field;
-          try {
-            field = form.getField(matchedName);
-          } catch (e) {
-            console.warn(`Could not get field ${matchedName}:`, e);
-            return;
-          }
+          const field = form.getField(matchedName);
 
-          // Handle Image Embedding for fields that look like images
-          const isImageField = matchedName.toLowerCase().includes('image') || 
-                               matchedName.toLowerCase().includes('logo') || 
-                               matchedName.toLowerCase().includes('placeholder');
-          
-          if (isImageField && (strValue.startsWith('data:image') || strValue.startsWith('/uploads/'))) {
+          // Image fields (PDFButton type in the PDF)
+          if ((matchedName.toLowerCase().includes('image') || matchedName.toLowerCase().includes('logo'))
+            && strValue.startsWith('data:image')) {
             try {
-              console.log('Embedding image into field:', matchedName);
-              
-              // Handle both base64 and URL-based images
-              let imageBytes: Uint8Array;
-              let mimeType = '';
-              if (strValue.startsWith('data:image')) {
-                const parts = strValue.split(',');
-                mimeType = parts[0];
-                imageBytes = Uint8Array.from(atob(parts[1]), c => c.charCodeAt(0));
-              } else {
-                const url = strValue.startsWith('http') ? strValue : window.location.origin + strValue;
-                const imgRes = await fetch(url);
-                imageBytes = new Uint8Array(await imgRes.arrayBuffer());
-                mimeType = imgRes.headers.get('Content-Type') || '';
-              }
-              
-              let image;
-              const isPng = mimeType.includes('png') || (imageBytes[0] === 0x89 && imageBytes[1] === 0x50);
-              const isJpeg = mimeType.includes('jpeg') || (imageBytes[0] === 0xFF && imageBytes[1] === 0xD8);
-              
-              if (isPng) image = await pdfDoc.embedPng(imageBytes);
-              else if (isJpeg) image = await pdfDoc.embedJpg(imageBytes);
-              else {
-                try { image = await pdfDoc.embedPng(imageBytes); }
-                catch { image = await pdfDoc.embedJpg(imageBytes); }
-              }
-
-              // Try to set image on button if it's a button
-              try {
-                const button = form.getButton(matchedName);
-                button.setImage(image);
-                return;
-              } catch (btnErr) {
-                console.warn(`Field ${matchedName} is not a button, cannot setImage:`, btnErr);
-                // Fallback to text if it's an image string being set in a text field (unlikely but safe)
-              }
-            } catch (imgErr) {
-              console.error('Error embedding image into field:', imgErr);
-            }
+              const parts = strValue.split(',');
+              const imgBytes = Uint8Array.from(atob(parts[1]), c => c.charCodeAt(0));
+              let img: any;
+              try { img = await pdfDoc.embedPng(imgBytes); }
+              catch { img = await pdfDoc.embedJpg(imgBytes); }
+              // setImage() is now safe because pdfDoc.save({ updateFieldAppearances: false })
+              // prevents the global appearance update that used to crash on Amharic fields.
+              try { form.getButton(matchedName).setImage(img); }
+              catch { /* not a button field, skip */ }
+            } catch (e) { console.error('Image embed err:', e); }
+            continue;
           }
 
-          // Fallback to text if not an image
           if (field instanceof PDFTextField) {
-            const textField = field as any;
-            
-            // Apply font based on content BEFORE setting text
-            try {
-              if (hasAmharic && amharicFont) {
-                textField.updateAppearances(amharicFont);
-                // Explicitly set the font on the field's default appearance string
-                // and the widget's appearance stream to avoid WinAnsi fallback
-                const widgets = textField.acroField.getWidgets();
-                widgets.forEach((widget: any) => {
-                  // Ebrima usually has better scaling than Abyssinica SIL
-                  const appearance = `/${amharicFont!.name} 11 Tf 0 g`;
-                  widget.dict.set(PDFName.of('DA'), pdfDoc.context.obj(appearance));
-                });
-                
-                textField.setFontSize(11);
-              } else if (timesRomanFont) {
-                textField.updateAppearances(timesRomanFont);
-                textField.setFontSize(customFontSize || 11);
-              }
-            } catch (appearErr) {
-              console.warn(`Could not update appearances for field ${matchedName}:`, appearErr);
-            }
-
-            const currentText = textField.getText() || '';
-            if (currentText.length < strValue.length) {
-              const maxLen = textField.getMaxLength();
-              if (maxLen && strValue.length > maxLen) {
-                textField.setMaxLength(strValue.length + 10);
-              }
-            }
-            
-            textField.setText(strValue);
+            const acroField = (field as any).acroField;
+            const isAmharicField = /amharic/i.test(matchedName);
+            // Use Amharic font if: (a) value contains Amharic chars, OR (b) field name says amharic
+            const useAmharic = Boolean(amharicFontName && (hasAmharic || isAmharicField));
+            const fontName = useAmharic ? amharicFontName! : timesRomanFontName;
+            const fontSize = customFontSize || (useAmharic ? 10 : 10);
+            setFieldDirect(acroField, strValue, fontName, fontSize);
           }
         } catch (e) {
-          console.error(`Error filling field ${match}:`, e);
+          console.warn(`fillField error for ${matchedName}:`, e);
         }
       }
     };
 
     const setCheckbox = (value: unknown, names: string[]) => {
-
-      const match = names.find(name =>
-        availableFields.some(f => f.trim().toLowerCase() === name.trim().toLowerCase())
+      const actualName = availableFields.find(f =>
+        names.some(n => n.trim().toLowerCase() === f.trim().toLowerCase())
       );
-
-      if (match) {
-        let actualFieldName = "";
-        try {
-          actualFieldName = availableFields.find(f => f.trim().toLowerCase() === match.trim().toLowerCase())!;
-          const field = form.getField(actualFieldName);
-
-          if (field instanceof PDFTextField) {
-            if (value) {
-              field.setText('X');
-            } else {
-              field.setText('');
-            }
-            try {
-              field.setFontSize(10);
-              field.updateAppearances(timesRomanBoldFont);
-            } catch (appearErr) {
-              console.warn(`Could not update appearances for checkbox text field ${actualFieldName}:`, appearErr);
-            }
-          } else if (field instanceof PDFCheckBox) {
-            if (value) {
-              field.check();
-            } else {
-              field.uncheck();
-            }
-          } else {
-            console.warn(`Field ${actualFieldName} is neither TextField nor CheckBox: ${field.constructor.name}`);
-          }
-        } catch (e) {
-          console.warn(`Failed to set checkbox for ${actualFieldName || match}`, e);
+      if (!actualName) return;
+      try {
+        const field = form.getField(actualName);
+        // Use low-level dict writes for BOTH text and checkbox fields.
+        // NEVER call .check()/.uncheck() or .setText()/.updateAppearances() because
+        // those high-level methods trigger a GLOBAL updateAppearances() sweep across
+        // ALL form fields, which crashes on any field containing Amharic text.
+        if (field instanceof PDFTextField) {
+          setFieldDirect((field as any).acroField, value ? 'X' : '', timesRomanFontName, 10);
+        } else if (field instanceof PDFCheckBox) {
+          const acroField = (field as any).acroField;
+          // Get the 'on' value name (usually 'Yes' or the export value like 'Checked')
+          let onValue: any;
+          try { onValue = (field as any).getOnValue?.() || PDFName.of('Yes'); }
+          catch { onValue = PDFName.of('Yes'); }
+          const state = value ? onValue : PDFName.of('Off');
+          // Set /V (value) at the field level
+          acroField.dict.set(PDFName.of('V'), state);
+          // Set /AS (appearance state) at each widget level + delete stale AP
+          acroField.getWidgets().forEach((w: any) => {
+            w.dict.set(PDFName.of('AS'), state);
+            w.dict.delete(PDFName.of('AP'));
+          });
         }
+      } catch (e) {
+        console.warn(`setCheckbox error for ${actualName}:`, e);
       }
     };
 
+
     // 1. Applicant Details
-    await fillField(['applicant_name_english', 'applicant_name', 'Full Name', 'Applicant Name', 'Applicant Name 1'], data.applicant_name);
-    await fillField(['applicant_name_amharic', 'applicant_name_amharic_1'], data.applicant_name_amharic, 11);
-    await fillField(['address_street'], data.address_street);
-    await fillField(['address_zone'], data.address_zone);
-    await fillField(['city_code'], data.city_code, 9);
-    await fillField(['city_name'], data.city_name);
-    await fillField(['state_code'], data.state_code, 9);
-    await fillField(['state_name'], data.state_name, 10);
-    await fillField(['zip_code'], data.zip_code, 9);
-    await fillField(['wereda'], data.wereda, 9);
-    await fillField(['house_no'], data.house_no, 9);
+    await fillField(['applicant_name_english', 'applicant_name', 'Full Name', 'Applicant Name', 'Applicant Name 1'], data.applicant_name_english);
+    await fillField(['applicant_name_amharic', 'renewal_applicant_name_amharic'], data.renewal_applicant_name_amharic || data.applicant_name_amharic, 11);
+    await fillField(['address_street', 'renewal_address_street'], data.renewal_address_street || data.address_street);
+    await fillField(['address_zone', 'renewal_address_zone'], data.renewal_address_zone || data.address_zone);
+    await fillField(['city_code', 'renewal_city_code'], data.renewal_city_code || data.city_code, 9);
+    await fillField(['city_name', 'renewal_city_name'], data.renewal_city_name || data.city_name);
+    await fillField(['state_code', 'renewal_state_code'], data.renewal_state_code || data.state_code, 9);
+    await fillField(['state_name', 'renewal_state_name'], data.renewal_state_name || data.state_name, 10);
+    await fillField(['zip_code', 'renewal_zip_code'], data.renewal_zip_code || data.zip_code, 9);
+    await fillField(['wereda', 'renewal_wereda'], data.renewal_wereda || data.wereda, 9);
+    await fillField(['house_no', 'renewal_house_no'], data.renewal_house_no || data.house_no, 9);
 
     // 2. Contact info
-    await fillField(['telephone'], data.telephone, 9);
-    await fillField(['email'], data.email, 9);
-    await fillField(['fax'], data.fax, 9);
-    await fillField(['po_box'], data.po_box, 9);
-    
-    // Nationality logic: Include the text as is.
-    await fillField(['nationality'], data.nationality, 8);
+    await fillField(['telephone', 'renewal_telephone'], data.renewal_telephone || data.telephone, 9);
+    await fillField(['email', 'renewal_email'], data.renewal_email || data.email, 9);
+    await fillField(['fax', 'renewal_fax'], data.renewal_fax || data.fax, 9);
+    // If Fax and P.O. Box share the same tag 'renewal_fax', we prioritize the value that isn't empty, 
+    // or we might need to rely on the PDF form itself having unique field structures.
+    await fillField(['po_box', 'renewal_po_box', 'p_o_box'], data.renewal_po_box || data.po_box, 9);
 
-    // Residence Country logic: Find ISO code for flag, then add spacing.
-    const residenceCountry = String(data.residence_country || '');
-    const countryData = countryList.find((c: any) => c.name === residenceCountry || c.value === residenceCountry);
-    
-    // We can't easily draw an image into a text field with pdf-lib in a simple way without 
-    // more complex coordinates, but we can simulate the gap for the manual flag sticker 
-    // or use unicode flag emojis if the font supports them. 
-    // For now, providing the requested "left gap" via spacing.
-    const residenceValWithGap = residenceCountry ? `      ${residenceCountry}` : '';
-    await fillField(['residence_country'], residenceValWithGap, 9);
+    // Nationality & Residence
+    await fillField(['nationality', 'renewal_nationality'], data.renewal_nationality || data.nationality, 8);
+    await fillField(['residence_country', 'renewal_residence_country'],
+      (data.renewal_residence_country || data.residence_country)
+        ? `      ${data.renewal_residence_country || data.residence_country}`
+        : '',
+      9);
+
+    // 4. Agent / Representative Section (Restored Tags)
+    await fillField(['agent_name', '_name', 'name_of_representative'], data.agent_name);
+    await fillField(['agent_country', 'country_of_agent'], data.agent_country);
+    await fillField(['agent_city', 'city_of_agent'], data.agent_city);
+    await fillField(['agent_subcity', 'subcity_of_agent'], data.agent_subcity);
+    await fillField(['agent_wereda', 'wereda_of_agent'], data.agent_wereda);
+    await fillField(['agent_house_no', 'house_no_of_agent'], data.agent_house_no);
+    await fillField(['agent_telephone', 'tel_of_agent'], data.agent_telephone);
+    await fillField(['agent_email', 'email_of_agent', 'e_mail'], data.agent_email);
+    await fillField(['agent_po_box', 'p_o_box', 'p_o_box_of_agent'], data.agent_po_box);
+    await fillField(['agent_fax', 'fax_of_agent'], data.agent_fax);
+
 
     // 3. Legal Personality
     setCheckbox(data.chk_female, ['chk_female', 'female']);
@@ -282,36 +289,57 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     setCheckbox(data.chk_collective, ['chk_collective', 'collective_mark']);
 
     // 5. Mark Details (Page 2)
-    setCheckbox(data.type_figur || data.markType === 'FIGURATIVE', ['mark_type_figurative', 'figurative']);
-    setCheckbox(data.type_word || data.markType === 'WORD', ['mark_type_word', 'word']);
-    setCheckbox(data.k_type_mi || data.markType === 'MIXED', ['mark_type_mixed', 'mixed']);
-    setCheckbox(data.type_thre || data.markType === 'THREE_DIMENSION', ['mark_type_three_dim', 'three_dimension', 'pe_th']);
+    setCheckbox(data.mark_type_figurative || data.markType === 'FIGURATIVE', ['mark_type_figurative', 'figurative']);
+    setCheckbox(data.mark_type_word || data.markType === 'WORD', ['mark_type_word', 'word']);
+    setCheckbox(data.mark_type_mixed || data.markType === 'MIXED', ['mark_type_mixed', 'mixed']);
+    setCheckbox(data.mark_type_three_dim || data.markType === 'THREE_DIMENSION', ['mark_type_three_dim', 'three_dimension', 'pe_th']);
 
     await fillField(['mark_description'], data.mark_description);
     await fillField(['mark_translation'], data.mark_translation);
     await fillField(['mark_transliteration'], data.mark_transliteration);
-    await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation', 'mark_language_requiring_translation\t'], data.mark_language_requiring_translation);
+    await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation'], data.mark_language_requiring_traslation);
     await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
     await fillField(['mark_color_indication'], data.mark_color_indication);
-    await fillField(['mark_logo_placeholder', 'mark_logo', 'logo_placeholder', 'image_field', 'graphical_representation', 'Text Field', 'image_field_1', 'mark_image'], data.mark_image);
+    await fillField(['image_field', 'mark_image'], data.image_field);
+    // Goods & Services: 6 separate lines matching PDF tags goods_services_list_1..6
+    // Also support legacy single-field PDF with goods_services_list
+    await fillField(['goods_services_list_1'], data.goods_services_list_1 || data.goods_services_list);
+    await fillField(['goods_services_list_2'], data.goods_services_list_2);
+    await fillField(['goods_services_list_3'], data.goods_services_list_3);
+    await fillField(['goods_services_list_4'], data.goods_services_list_4);
+    await fillField(['goods_services_list_5'], data.goods_services_list_5);
+    await fillField(['goods_services_list_6'], data.goods_services_list_6);
+    // Legacy single field fallback
     await fillField(['goods_services_list'], data.goods_services_list);
 
     // 6. Disclaimer & Priority (Section V & VI)
     await fillField(['disclaimer_text_amharic', 'disclaimer_text'], data.disclaimer_text_amharic);
     await fillField(['disclaimer_text_english'], data.disclaimer_text_english);
 
-    await fillField(['priority_filing_date', 'priority_application_filing_date'], data.priority_application_filing_date);
-    await fillField(['priority_filing_date_1'], data.priority_filing_date);
+    await fillField(['priority_right_declaration'], data.priority_right_declaration);
+    await fillField(['priority_filing_date_1', 'priority_application_filing_date'], data.priority_filing_date_1);
+    await fillField(['priority_filing_date'], data.priority_filing_date);
     await fillField(['priority_country'], data.priority_country);
-    await fillField(['priority_goods_services'], data.priority_goods_services);
 
-    // 6.1 Renewal Details
+    // Application Agent (Section II)
+    await fillField(['agent_name'], data.agent_name);
+    await fillField(['agent_country'], data.agent_country);
+    await fillField(['agent_city'], data.agent_city);
+    await fillField(['agent_subcity'], data.agent_subcity);
+    await fillField(['agent_wereda'], data.agent_wereda);
+    await fillField(['agent_house_no'], data.agent_house_no);
+    await fillField(['agent_telephone'], data.agent_telephone);
+    await fillField(['agent_po_box'], data.agent_po_box);
+    await fillField(['agent_email'], data.agent_email);
+    await fillField(['agent_fax'], data.agent_fax);
+
+    // 6.1 Unique Renewal Fields
     await fillField(['renewal_auth_app_no'], data.renewal_auth_app_no);
     await fillField(['renewal_auth_filing_date'], data.renewal_auth_filing_date);
     await fillField(['renewal_auth_receipt_date'], data.renewal_auth_receipt_date);
     await fillField(['renewal_auth_approved_by'], data.renewal_auth_approved_by);
     await fillField(['renewal_applicant_name'], data.renewal_applicant_name);
-    await fillField(['renewal_address_street'], data.renewal_address_street);
+    await fillField(['renewal_applicant_name_amharic'], data.renewal_applicant_name_amharic);
     await fillField(['renewal_address_zone'], data.renewal_address_zone);
     await fillField(['renewal_city_name'], data.renewal_city_name);
     await fillField(['renewal_state_name'], data.renewal_state_name);
@@ -324,7 +352,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     await fillField(['renewal_po_box'], data.renewal_po_box);
     await fillField(['renewal_nationality'], data.renewal_nationality);
     await fillField(['renewal_residence_country'], data.renewal_residence_country);
-    
+
     // City and State Codes for Renewal
     await fillField(['renewal_city_code'], data.renewal_city_code);
     await fillField(['renewal_state_code'], data.renewal_state_code);
@@ -340,37 +368,41 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     await fillField(['renewal_agent_email'], data.renewal_agent_email);
     await fillField(['renewal_agent_pobox'], data.renewal_agent_pobox);
     await fillField(['renewal_agent_fax'], data.renewal_agent_fax);
-    
+
     // Checkboxes
     setCheckbox(data.renewal_chk_female, ['renewal_chk_female']);
     setCheckbox(data.renewal_chk_male, ['renewal_chk_male']);
     setCheckbox(data.renewal_chk_company, ['renewal_chk_company']);
-    
+
     setCheckbox(data.renewal_chk_goods_mark, ['renewal_chk_goods_mark']);
     setCheckbox(data.renewal_chk_service_mark, ['renewal_chk_service_mark']);
     setCheckbox(data.renewal_chk_collective_mark, ['renewal_chk_collective_mark']);
-    
+
     await fillField(['renewal_mark_logo'], data.renewal_mark_logo);
     await fillField(['renewal_app_no'], data.renewal_app_no);
     await fillField(['renewal_reg_no'], data.renewal_reg_no);
     await fillField(['renewal_reg_date'], data.renewal_reg_date);
-    await fillField(['renewal_goods_services'], data.renewal_goods_services);
-    await fillField(['renewal_nice_classes'], data.renewal_nice_classes);
+    await fillField(['renewal_goods_services_1'], data.renewal_goods_services_1);
+    await fillField(['renewal_goods_services_2'], data.renewal_goods_services_2);
+    await fillField(['renewal_goods_services_3'], data.renewal_goods_services_3);
+    await fillField(['renewal_goods_services_4'], data.renewal_goods_services_4);
+    await fillField(['renewal_goods_services_5'], data.renewal_goods_services_5);
+    await fillField(['renewal_goods_services_6'], data.renewal_goods_services_6);
     await fillField(['renewal_signature'], data.renewal_signature);
     await fillField(['renewal_sign_day'], data.renewal_sign_day);
     await fillField(['renewal_sign_month'], data.renewal_sign_month);
     await fillField(['renewal_sign_year'], data.renewal_sign_year);
 
-    await fillField(['registration_no', 'Registration No', 'Registration No.'], data.registration_no);
-    await fillField(['registration_date', 'Registration Date', 'Registration Date.'], data.registration_date);
-    await fillField(['application_no', 'Application No', 'Application No.'], data.application_no);
+    await fillField(['registration_no'], data.registration_no);
+    await fillField(['registration_date'], data.registration_date);
+    await fillField(['application_no'], data.application_no);
 
     setCheckbox(data.chk_priority_accompanies, ['chk_priority_accompanies', 'ty_acc']);
     setCheckbox(data.chk_priority_submitted_later, ['chk_priority_submitted_later', '_subn']);
 
     // 7. Checklist (Section VII)
     setCheckbox(data.chk_list_copies, ['chk_list_copies', 'copies']);
-    setCheckbox(data.chk_list_status || data.chk_list_statues || data.chk_list_statutes, ['chk_list_status', 'chk_list_statues', 'statutes']);
+    setCheckbox(data.chk_list_status, ['chk_list_status', 'chk_list_statues', 'statutes']);
     setCheckbox(data.chk_list_poa, ['chk_list_poa', 'poa']);
     setCheckbox(data.chk_list_priority_docs, ['chk_list_priority_docs', 'priority_docs']);
     setCheckbox(data.chk_list_drawing, ['chk_list_drawing', 'drawing']);
@@ -378,31 +410,46 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     setCheckbox(data.chk_list_other, ['chk_list_other', 'other']);
 
     await fillField(['other_documents_text', 'chk_list_other_specify'], data.other_documents_text);
-    await fillField(['applicant_signature'], data.applicant_signature);
-    await fillField(['applicant_sign_day_en'], data.applicant_sign_day_en);
-    await fillField(['applicant_sign_month_en', 'applicant_sign_month'], data.applicant_sign_month_en);
+    await fillField(['Text Field', 'applicant_signature'], data["Text Field"]);
+    await fillField(['applicant_sign_day_en', 'applicant_sign_day'], data.applicant_sign_day_en);
+    await fillField(['applicant_sign_month'], data.applicant_sign_month);
     await fillField(['applicant_sign_year_en', 'applicant_sign_year'], data.applicant_sign_year_en);
 
-    // IMPORTANT: Update appearances for ALL fields to ensure they reflect current font/text
-    // We already call updateAppearances(font) per field in fillField, 
-    // but calling form.updateFieldAppearances() at the end can sometimes 
-    // reset fonts to default if not careful. 
-    if (amharicFont) {
-      form.updateFieldAppearances(amharicFont);
-    } else if (timesRomanFont) {
-      form.updateFieldAppearances(timesRomanFont);
-    }
-
-
-    if (shouldFlatten) {
-      try {
-        form.flatten();
-      } catch (e) {
-        console.warn('Failed to flatten PDF form. The output PDF might still have interactive fields.', e);
+    // ===== NUCLEAR FINAL SWEEP =====
+    // Delete AP streams from ALL TEXT fields (not buttons) so pdf-lib's save
+    // doesn't call defaultUpdateAppearances with WinAnsi on any text field.
+    // We must SKIP PDFButton fields — their AP contains the image we just embedded.
+    form.getFields().forEach(field => {
+      if (field instanceof PDFCheckBox || field instanceof PDFTextField) {
+        try {
+          (field as any).acroField.getWidgets().forEach((w: any) => {
+            w.dict.delete(PDFName.of('AP'));
+          });
+        } catch { /* ignore */ }
       }
+      // PDFButton fields are intentionally skipped to preserve their image AP stream
+    });
+
+    // Flatten only if no Amharic content — form.flatten() calls updateAppearances on ALL fields
+    const hasAnyAmharic = Object.values(data).some(
+      v => typeof v === 'string' && /[\u1200-\u137F]/.test(v)
+    );
+    if (shouldFlatten && !hasAnyAmharic) {
+      try { form.flatten(); }
+      catch (e) { console.warn('flatten() failed:', e); }
     }
 
-    const pdfBytes = await pdfDoc.save()
+    // Final: NeedAppearances = false so viewers use our DA+V, not Helvetica/WinAnsi auto-render.
+    try {
+      form.acroForm.dict.set(PDFName.of('NeedAppearances'), pdfDoc.context.obj(false));
+    } catch { /* ignore */ }
+
+    // CRITICAL: Pass { updateFieldAppearances: false } to pdfDoc.save().
+    // pdf-lib's save() defaults to updateFieldAppearances=true, which internally calls
+    // form.updateFieldAppearances() → field.defaultUpdateAppearances() on EVERY field.
+    // When any field contains Amharic text, this crashes with "WinAnsi cannot encode".
+    // This single option is the definitive fix for the WinAnsi crash.
+    const pdfBytes = await pdfDoc.save({ updateFieldAppearances: false });
     return pdfBytes
   } catch (error) {
     console.error('Error filling PDF:', error)

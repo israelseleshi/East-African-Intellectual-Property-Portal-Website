@@ -8,6 +8,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { JWT_SECRET } from '../utils/constants.js';
 import { sendVerificationEmail, sendWelcomeEmail } from '../utils/mailer.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
+import { logger } from '../utils/logger.js';
 
 interface User {
   id: string;
@@ -36,6 +37,48 @@ const verifyOtpSchema = z.object({
   email: z.string().email(),
   otp: z.string().min(4)
 });
+
+const ACCESS_COOKIE = 'access_token';
+const REFRESH_COOKIE = 'refresh_token';
+const ACCESS_TTL = '7d';
+const REFRESH_DAYS = 30;
+const isProd = process.env.NODE_ENV === 'production';
+
+const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
+
+const signAccess = (user: User) =>
+  jwt.sign(
+    { id: user.id, email: user.email, role: user.role, name: user.full_name },
+    JWT_SECRET,
+    { expiresIn: ACCESS_TTL }
+  );
+
+const signRefresh = (user: User, jti: string) =>
+  jwt.sign(
+    { id: user.id, email: user.email, role: user.role, name: user.full_name, jti, type: 'refresh' },
+    JWT_SECRET,
+    { expiresIn: `${REFRESH_DAYS}d` }
+  );
+
+const setAuthCookies = (res: express.Response, accessToken: string, refreshToken: string) => {
+  res.cookie(ACCESS_COOKIE, accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: '/api'
+  });
+  res.cookie(REFRESH_COOKIE, refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: '/api/auth'
+  });
+};
+
+const clearAuthCookies = (res: express.Response) => {
+  res.clearCookie(ACCESS_COOKIE, { path: '/api' });
+  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+};
 
 const router = express.Router();
 
@@ -82,14 +125,18 @@ router.post('/login', async (req, res) => {
 
     await pool.execute('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, name: user.full_name },
-      JWT_SECRET,
-      { expiresIn: '12h' }
+    const jti = crypto.randomUUID();
+    const accessToken = signAccess(user);
+    const refreshToken = signRefresh(user, jti);
+
+    await pool.execute(
+      'INSERT INTO user_refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))',
+      [jti, user.id, hashToken(refreshToken), REFRESH_DAYS]
     );
 
+    setAuthCookies(res, accessToken, refreshToken);
+
     res.json({
-      token,
       user: {
         id: user.id,
         full_name: user.full_name,
@@ -187,14 +234,16 @@ router.post('/verify-otp', async (req, res) => {
 
     await sendWelcomeEmail(user.email, user.full_name);
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, name: user.full_name },
-      JWT_SECRET,
-      { expiresIn: '12h' }
+    const jti = crypto.randomUUID();
+    const accessToken = signAccess(user as User);
+    const refreshToken = signRefresh(user as User, jti);
+    await pool.execute(
+      'INSERT INTO user_refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))',
+      [jti, user.id, hashToken(refreshToken), REFRESH_DAYS]
     );
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.json({
-      token,
       user: {
         id: user.id,
         full_name: user.full_name,
@@ -208,6 +257,83 @@ router.post('/verify-otp', async (req, res) => {
       code: 'VERIFICATION_FAILED',
       message: 'Verification failed'
     });
+  }
+});
+
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    if (!refreshToken) {
+      return sendApiError(req, res, 401, { code: 'REFRESH_TOKEN_MISSING', message: 'Refresh token missing' });
+    }
+
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as jwt.JwtPayload;
+    if (!decoded?.id || decoded.type !== 'refresh' || !decoded.jti) {
+      return sendApiError(req, res, 401, { code: 'REFRESH_TOKEN_INVALID', message: 'Invalid refresh token' });
+    }
+
+    const [rows] = await pool.execute(
+      'SELECT user_id, revoked_at, expires_at FROM user_refresh_tokens WHERE id = ? AND token_hash = ?',
+      [decoded.jti, hashToken(refreshToken)]
+    );
+    const row = (rows as Array<{ user_id: string; revoked_at: Date | null; expires_at: Date }>)[0];
+    if (!row || row.revoked_at) {
+      return sendApiError(req, res, 401, { code: 'REFRESH_TOKEN_REVOKED', message: 'Refresh token revoked' });
+    }
+    if (row.expires_at && new Date(row.expires_at) < new Date()) {
+      return sendApiError(req, res, 401, { code: 'REFRESH_TOKEN_EXPIRED', message: 'Refresh token expired' });
+    }
+
+    await pool.execute('UPDATE user_refresh_tokens SET revoked_at = NOW() WHERE id = ?', [decoded.jti]);
+
+    const [userRows] = await pool.execute(
+      'SELECT id, full_name, email, role, password_hash, is_verified, is_active FROM users WHERE id = ?',
+      [decoded.id]
+    );
+    const user = (userRows as User[])[0];
+    if (!user) {
+      clearAuthCookies(res);
+      return sendApiError(req, res, 401, { code: 'USER_NOT_FOUND', message: 'User no longer exists' });
+    }
+
+    const newJti = crypto.randomUUID();
+    const newAccess = signAccess(user);
+    const newRefresh = signRefresh(user, newJti);
+    await pool.execute(
+      'INSERT INTO user_refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))',
+      [newJti, user.id, hashToken(newRefresh), REFRESH_DAYS]
+    );
+    setAuthCookies(res, newAccess, newRefresh);
+    res.json({ user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role } });
+  } catch (error) {
+    logRouteError(req, 'auth.refresh', error);
+    clearAuthCookies(res);
+    return sendApiError(req, res, 401, { code: 'REFRESH_FAILED', message: 'Token refresh failed' });
+  }
+});
+
+router.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    if (refreshToken) {
+      try {
+        const decoded = jwt.verify(refreshToken, JWT_SECRET) as jwt.JwtPayload;
+        if (decoded?.jti) {
+          await pool.execute('UPDATE user_refresh_tokens SET revoked_at = NOW() WHERE id = ?', [decoded.jti]);
+        }
+      } catch (err) {
+        logger.warn('logout-refresh-invalid', { err });
+      }
+    }
+    if (userId) {
+      await pool.execute('UPDATE user_refresh_tokens SET revoked_at = NOW() WHERE user_id = ?', [userId]);
+    }
+    clearAuthCookies(res);
+    res.json({ success: true });
+  } catch (error) {
+    logRouteError(req, 'auth.logout', error);
+    sendApiError(req, res, 500, { code: 'LOGOUT_FAILED', message: 'Logout failed' });
   }
 });
 

@@ -11,7 +11,7 @@ interface ChecklistSectionProps {
 export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, handleInputChange }) => {
   const checklistOptions = [
     { id: 'chk_list_copies', label: '3 identical copies of mark' },
-    { id: 'chk_list_statutes', label: 'Statutes governing mark' },
+    { id: 'chk_list_status', label: 'Statutes governing mark' },
     { id: 'chk_list_poa', label: 'Power of attorney' },
     { id: 'chk_list_priority_docs', label: 'Priority documents' },
     { id: 'chk_list_drawing', label: 'Mark drawing (3D)' },
@@ -34,8 +34,8 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
       <div className="space-y-4 pt-6 border-t border-[var(--eai-border)]">
         <FormField label="Applicant signature name">
           <input
-            value={formData.applicant_signature}
-            onChange={(e) => handleInputChange('applicant_signature', e.target.value)}
+            value={formData["Text Field"]}
+            onChange={(e) => handleInputChange('Text Field', e.target.value)}
             className="apple-input"
             placeholder="Type name for digital signature"
           />
@@ -51,10 +51,10 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
           </FormField>
           <FormField label="Month">
             <input
-              value={formData.applicant_sign_month_en}
-              onChange={(e) => handleInputChange('applicant_sign_month_en', e.target.value)}
+              value={formData.applicant_sign_month || ''}
+              onChange={(e) => handleInputChange('applicant_sign_month', e.target.value)}
               className="apple-input"
-              placeholder="MM"
+              placeholder="MMM"
             />
           </FormField>
           <FormField label="Year">

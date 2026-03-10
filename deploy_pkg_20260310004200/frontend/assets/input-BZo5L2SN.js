@@ -1,0 +1,1 @@
+import{r as a,j as o}from"./react-vendor-8XNGB-rG.js";import{c as e}from"./index-CyfeaGN7.js";const n=a.forwardRef(({className:r,type:t,...p},s)=>o.jsx("input",{type:t,className:e("apple-input",r),ref:s,...p}));n.displayName="Input";export{n as I};

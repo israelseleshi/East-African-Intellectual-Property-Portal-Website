@@ -8,6 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "postinstall": "echo Skipping husky in this environment",
     "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "sync:tables": "node generate_tables.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts,.js",
@@ -16,11 +18,13 @@
   "dependencies": {
     "axios": "^1.13.5",
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "docx": "^9.5.3",
     "docx-templates": "^4.13.0",
     "dotenv": "^17.3.1",
     "express": "^4.19.2",
+    "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
     "mysql2": "^3.17.1",
@@ -29,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.7",
@@ -36,6 +41,7 @@
     "@types/node": "^22.13.0",
     "@types/nodemailer": "^7.0.9",
     "@types/pizzip": "^3.1.2",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "docxtemplater": "^3.42.3",
@@ -43,8 +49,10 @@
     "eslint": "^9.0.0",
     "pdf-lib": "^1.17.1",
     "pizzip": "^3.1.6",
+    "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^2.1.9"
   }
 }

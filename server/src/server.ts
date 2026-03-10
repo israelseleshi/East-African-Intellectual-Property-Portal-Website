@@ -5,6 +5,8 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { uploadDir } from './utils/constants.js';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 // Import Routes
 import authRoutes from './routes/auth.js';
@@ -19,10 +21,11 @@ import notesRoutes from './routes/notes.js';
 import oppositionsRoutes from './routes/oppositions.js';
 import feesRoutes from './routes/fees.js';
 import formsRoutes from './routes/forms.js';
-import { pool } from './database/db.js';
+import { ensureAuthTables, pool } from './database/db.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
+import { csrfMiddleware, csrfTokenSetter } from './middleware/csrf.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -51,9 +54,25 @@ app.use(cors({
   ],
   credentials: true
 }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'", "'unsafe-inline'"],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      'img-src': ["'self'", 'data:', 'blob:'],
+      'connect-src': ["'self'", 'https://eastafricanip.com', 'https://www.eastafricanip.com', 'http://eastafricanip.com', 'http://www.eastafricanip.com', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001']
+    }
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+app.use(cookieParser());
 app.use(attachRequestContext);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(csrfTokenSetter);
 
 // Serve uploads from both /uploads and /api/uploads for production compatibility
 app.use('/uploads', express.static(uploadDir));
@@ -137,6 +156,7 @@ const registerRoutes = (prefix: string = '') => {
 
 // Register routes at both root and /api
 // This is critical for cPanel Passenger which sometimes strips or keeps the /api prefix
+app.use(csrfMiddleware);
 registerRoutes('');
 registerRoutes('/api');
 
@@ -173,6 +193,15 @@ app.get('/api/db-check', async (req, res) => {
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
+
+// Ensure critical auth tables exist before accepting requests.
+try {
+  await ensureAuthTables();
+  logger.info('boot-auth-tables-ok');
+} catch (err: unknown) {
+  // If this fails, login/refresh will 500. We log loudly but still start so health endpoints work.
+  logger.error('boot-auth-tables-failed', { error: String(err) });
+}
 
 app.listen(port, () => {
   logger.info('server-started', {

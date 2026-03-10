@@ -74,8 +74,8 @@ export const ApplicantSection: React.FC<ApplicantSectionProps> = ({
       <div className="grid grid-cols-1 gap-4">
         <FormField label="Full name (English)">
           <input
-            value={formData.applicant_name}
-            onChange={(e) => handleInputChange('applicant_name', e.target.value)}
+            value={formData.applicant_name_english}
+            onChange={(e) => handleInputChange('applicant_name_english', e.target.value)}
             className="apple-input"
             placeholder="Enter full legal name in English"
           />

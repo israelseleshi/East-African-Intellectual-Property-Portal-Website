@@ -10,29 +10,36 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   email: string | null;
   setSignupEmail: (email: string) => void;
-  login: (user: User, token: string) => void;
+  login: (user: User) => void;
   logout: () => void;
 }
+
+const readCookie = (name: string) => {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[2]) : null;
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
       isAuthenticated: false,
       email: null,
       setSignupEmail: (email: string) => set({ email }),
-      login: (user, token) => {
-        set({ user, token, isAuthenticated: true, email: null });
-        localStorage.setItem('token', token);
+      login: (user) => {
+        set({ user, isAuthenticated: true, email: null });
       },
       logout: () => {
-        set({ user: null, token: null, isAuthenticated: false, email: null });
-        localStorage.removeItem('token');
+        const csrf = readCookie('csrf_token');
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: csrf ? { 'x-csrf-token': csrf } : {}
+        }).catch(() => {});
+        set({ user: null, isAuthenticated: false, email: null });
       },
     }),
     {

@@ -1,19 +1,23 @@
 import jwt from 'jsonwebtoken';
+import type { JwtPayload as JwtPayloadBase, VerifyErrors } from 'jsonwebtoken';
 import { JWT_SECRET } from '../utils/constants.js';
 import type { NextFunction, Request, Response } from 'express';
 import { sendApiError } from '../utils/apiError.js';
 import { logRouteError } from '../utils/apiError.js';
 
-interface JwtPayload {
+interface AuthTokenPayload extends JwtPayloadBase {
     id: string;
     email?: string;
     role?: string;
     name?: string;
+    jti?: string;
 }
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+    const cookieToken = req.cookies?.access_token;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const bearerToken = authHeader && authHeader.split(' ')[1];
+    const token = cookieToken || bearerToken;
 
     if (!token) {
         return sendApiError(req, res, 401, {
@@ -22,7 +26,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, user: string | JwtPayloadBase | undefined) => {
         if (err) {
             logRouteError(req, 'auth.verify', err);
             return sendApiError(req, res, 403, {
@@ -30,7 +34,30 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
                 message: 'Invalid or expired token.'
             });
         }
-        req.user = user as JwtPayload;
+
+        // jsonwebtoken can return a string depending on how the token was signed.
+        if (!user || typeof user === 'string') {
+            return sendApiError(req, res, 403, {
+                code: 'AUTH_TOKEN_INVALID',
+                message: 'Invalid token payload.'
+            });
+        }
+
+        const decoded = user as AuthTokenPayload;
+        if (!decoded.id) {
+            return sendApiError(req, res, 403, {
+                code: 'AUTH_TOKEN_INVALID',
+                message: 'Token is missing user id.'
+            });
+        }
+
+        // Keep only what the app expects to be on req.user (see src/types/express.d.ts).
+        req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            role: decoded.role,
+            name: decoded.name
+        };
         next();
     });
 };

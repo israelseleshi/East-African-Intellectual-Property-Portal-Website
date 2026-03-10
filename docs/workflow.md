@@ -451,3 +451,8 @@ agent_email: 'info@eastafricanip.com',
 ---
 
 > **Summary:** The TPMS platform has a solid foundation with a well-designed 14-stage lifecycle, real PDF generation with Amharic support, and professional UI. The primary gaps are: (1) no notification/alert system despite the DB schema being ready, (2) document upload UX missing from the detail page, (3) date formatting inconsistency, and (4) a broken download link at the READY_TO_FILE stage. The architecture is clean and extensible — these gaps can be closed methodically without restructuring.
+
+## Query Shape Expectations (2026-03-10)
+- Avoid `SELECT *` in API routes; return only fields consumed by the client DTOs.
+- New indexes: `trademark_cases(status, jurisdiction, created_at)`, `deadlines(case_id, status, due_date)`, `invoices(status, due_date, created_at)`.
+- Slow query logging triggers at >200ms; see `/api/system/metrics` for aggregated counts.

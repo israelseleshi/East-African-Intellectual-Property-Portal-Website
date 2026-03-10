@@ -40,10 +40,10 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
   ];
 
   const markFormOptions = [
-    { id: 'type_word', label: 'Word mark' },
-    { id: 'type_figur', label: 'Figurative mark' },
-    { id: 'k_type_mi', label: 'Mixed mark' },
-    { id: 'type_thre', label: '3D mark' }
+    { id: 'mark_type_word', label: 'Word mark' },
+    { id: 'mark_type_figurative', label: 'Figurative mark' },
+    { id: 'mark_type_mixed', label: 'Mixed mark' },
+    { id: 'mark_type_three_dim', label: '3D mark' }
   ];
 
   return (
@@ -70,7 +70,7 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
 
         <div className="space-y-3">
           <label className="text-label text-[var(--eai-text)]">Mark image</label>
-          <div 
+          <div
             onClick={() => fileInputRef.current?.click()}
             className="relative aspect-video w-full rounded-2xl border-2 border-dashed border-[var(--eai-border)] bg-[var(--eai-bg)]/30 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-[var(--eai-primary)] hover:bg-[var(--eai-bg)] transition-all"
           >
@@ -83,9 +83,9 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
             />
             {markImage ? (
               <div className="relative w-full h-full p-4">
-                <img 
-                  src={markImage} 
-                  alt="Mark preview" 
+                <img
+                  src={markImage}
+                  alt="Mark preview"
                   className="w-full h-full object-contain"
                 />
                 <button
@@ -141,18 +141,26 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
           </FormField>
           <FormField label="Language">
             <input
-              value={formData.mark_language_requiring_translation}
-              onChange={(e) => handleInputChange('mark_language_requiring_translation', e.target.value)}
+              value={formData.mark_language_requiring_traslation}
+              onChange={(e) => handleInputChange('mark_language_requiring_traslation', e.target.value)}
               className="apple-input"
               placeholder="e.g., Amharic, Oromo"
             />
           </FormField>
           <FormField label="Color indication">
             <input
-              value={formData.mark_color_indication}
+              value={formData.mark_color_indication || ''}
               onChange={(e) => handleInputChange('mark_color_indication', e.target.value)}
               className="apple-input"
               placeholder="e.g., Blue and White"
+            />
+          </FormField>
+          <FormField label="3D features indication">
+            <input
+              value={formData.mark_has_three_dim_features || ''}
+              onChange={(e) => handleInputChange('mark_has_three_dim_features', e.target.value)}
+              className="apple-input"
+              placeholder="Describe 3D features"
             />
           </FormField>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { trademarkService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
@@ -59,6 +59,27 @@ export default function FormInspectorPage() {
     setShowPreview,
     generatePreview
   } = useFormAutomation();
+
+  const uniqueDetectedFields = useMemo(() => Array.from(new Set(availableFields)).sort(), [availableFields]);
+  const expectedTags = useMemo(() => {
+    const keys = Object.keys(formData || {});
+
+    // Keep the inspection panel readable by filtering to the active template's expected keys.
+    if (formType === 'RENEWAL') {
+      return keys.filter((k) => k.startsWith('renewal_') || k.startsWith('agent_')).sort();
+    }
+
+    // APPLICATION: include agent_ keys too since we track them in state
+    return keys.filter((k) => !k.startsWith('renewal_')).sort();
+  }, [formData, formType]);
+  const missingTags = useMemo(() => {
+    const detected = new Set(uniqueDetectedFields.map((f) => f.trim()));
+    return expectedTags.filter((k) => !detected.has(k.trim()));
+  }, [expectedTags, uniqueDetectedFields]);
+  const unknownPdfTags = useMemo(() => {
+    const expected = new Set(expectedTags.map((k) => k.trim()));
+    return uniqueDetectedFields.filter((f) => !expected.has(f.trim()));
+  }, [expectedTags, uniqueDetectedFields]);
 
   const tourSteps: Step[] = [
     {
@@ -222,7 +243,7 @@ export default function FormInspectorPage() {
     try {
       const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
       const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, true);
-      
+
       if (pdfBytes) {
         const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -251,7 +272,7 @@ export default function FormInspectorPage() {
       setFormData(prev => ({
         ...prev,
         // Application fields
-        applicant_name: selectedClient.name,
+        applicant_name_english: selectedClient.name,
         applicant_name_amharic: selectedClient.local_name || '',
         address_street: selectedClient.address_street || '',
         address_zone: selectedClient.address_zone || '',
@@ -271,6 +292,7 @@ export default function FormInspectorPage() {
 
         // Renewal fields
         renewal_applicant_name: selectedClient.name,
+        renewal_applicant_name_amharic: selectedClient.local_name || '',
         renewal_address_street: selectedClient.address_street || '',
         renewal_address_zone: selectedClient.address_zone || '',
         renewal_city_name: selectedClient.city || '',
@@ -280,11 +302,13 @@ export default function FormInspectorPage() {
         renewal_telephone: selectedClient.telephone || '',
         renewal_email: selectedClient.email || '',
         renewal_fax: selectedClient.fax || '',
+        renewal_po_box: selectedClient.po_box || '',
         renewal_nationality: selectedClient.nationality || '',
         renewal_residence_country: selectedClient.residence_country || '',
         renewal_chk_company: selectedClient.type === 'COMPANY',
         renewal_chk_male: selectedClient.type === 'INDIVIDUAL',
         renewal_chk_female: false,
+
       }));
     }
   };
@@ -307,28 +331,6 @@ export default function FormInspectorPage() {
       />
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <div className="flex gap-2 p-1 bg-[var(--eai-surface)] rounded-lg w-fit mb-8 border border-[var(--eai-border)]">
-          <Link
-            to="/eipa-forms/application-form"
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-              formType === 'APPLICATION'
-                ? 'bg-[var(--eai-bg)] shadow-md text-[var(--eai-text)] border border-[var(--eai-border)]'
-                : 'text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)] hover:bg-[var(--eai-bg)]/30'
-            }`}
-          >
-            Application Form
-          </Link>
-          <Link
-            to="/eipa-forms/renewal-form"
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-              formType === 'RENEWAL'
-                ? 'bg-[var(--eai-bg)] shadow-md text-[var(--eai-text)] border border-[var(--eai-border)]'
-                : 'text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)] hover:bg-[var(--eai-bg)]/30'
-            }`}
-          >
-            Renewal Form
-          </Link>
-        </div>
 
         <FormHeader
           formType={formType}
@@ -393,12 +395,86 @@ export default function FormInspectorPage() {
                 <XCircle size={24} />
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar p-2">
-              {Array.from(new Set(availableFields)).map(field => (
-                <div key={field} className="px-3 py-2 bg-[var(--eai-bg)] rounded-xl border border-[var(--eai-border)] text-[10px] font-mono truncate hover:border-[var(--eai-primary)] transition-colors cursor-help text-[var(--eai-text-secondary)]" title={field}>
-                  {field}
-                </div>
-              ))}
+
+            <div className="flex flex-wrap items-center gap-2 mb-4 text-[11px] text-[var(--eai-text-secondary)]">
+              <span className="px-2 py-1 rounded-lg border border-[var(--eai-border)] bg-[var(--eai-bg)]">
+                Detected in PDF: <span className="font-bold text-[var(--eai-text)]">{uniqueDetectedFields.length}</span>
+              </span>
+              <span className="px-2 py-1 rounded-lg border border-[var(--eai-border)] bg-[var(--eai-bg)]">
+                Expected (form model): <span className="font-bold text-[var(--eai-text)]">{expectedTags.length}</span>
+              </span>
+              <span className="px-2 py-1 rounded-lg border border-[var(--eai-border)] bg-[var(--eai-bg)]">
+                Missing from PDF: <span className="font-bold text-[var(--eai-critical)]">{missingTags.length}</span>
+              </span>
+            </div>
+
+            {/* Agent Section Notice */}
+            <div className="mb-3 px-3 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-[11px] text-amber-300 flex items-start gap-2">
+              <span className="mt-0.5 text-amber-400">⚠</span>
+              <span>
+                <strong>Agent Section fields</strong> (Name, Country, City, Sub-City, etc.) are printed on the physical PDF form but are <strong>not interactive AcroForm fields</strong> — they are static text. This is a limitation of the original EIPA PDF template. To make them fillable, the PDF must be edited in Adobe Acrobat Pro to add form fields. The Inspect Tags button only detects interactive AcroForm fields.
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[340px] overflow-y-auto custom-scrollbar p-2">
+              <div className="space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] opacity-70">Detected PDF Tags</div>
+                {uniqueDetectedFields.length === 0 ? (
+                  <div className="text-sm text-[var(--eai-text-secondary)] p-2">
+                    No tags detected yet. If this persists, click Refresh or ensure the PDF templates are reachable.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {uniqueDetectedFields.map((field) => (
+                      <div
+                        key={`detected-${field}`}
+                        className="px-3 py-2 bg-[var(--eai-bg)] rounded-xl border border-[var(--eai-border)] text-[10px] font-mono truncate hover:border-[var(--eai-primary)] transition-colors cursor-help text-[var(--eai-text-secondary)]"
+                        title={field}
+                      >
+                        {field}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] opacity-70">Missing From PDF</div>
+                {missingTags.length === 0 ? (
+                  <div className="text-sm text-[var(--eai-text-secondary)] p-2">All form keys exist as PDF fields.</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {missingTags.map((field) => (
+                      <div
+                        key={`missing-${field}`}
+                        className="px-3 py-2 bg-[var(--eai-critical)]/10 rounded-xl border border-[var(--eai-critical)]/20 text-[10px] font-mono truncate cursor-help text-[var(--eai-critical)]"
+                        title={field}
+                      >
+                        {field}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] opacity-70">PDF Tags Not Used</div>
+                {unknownPdfTags.length === 0 ? (
+                  <div className="text-sm text-[var(--eai-text-secondary)] p-2">Every PDF field maps to a form key.</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {unknownPdfTags.map((field) => (
+                      <div
+                        key={`unknown-${field}`}
+                        className="px-3 py-2 bg-[var(--eai-warn)]/10 rounded-xl border border-[var(--eai-warn)]/20 text-[10px] font-mono truncate cursor-help text-[var(--eai-text-secondary)]"
+                        title={field}
+                      >
+                        {field}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

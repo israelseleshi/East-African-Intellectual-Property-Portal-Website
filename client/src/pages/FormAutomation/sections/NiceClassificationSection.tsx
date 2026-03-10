@@ -30,17 +30,25 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
           />
         </div>
 
-        <FormField label="Goods and services description" id="goods-services">
-          <textarea
-            value={formData.goods_services_list}
-            onChange={(e) => handleInputChange('goods_services_list', e.target.value)}
-            className="apple-input min-h-[150px] py-3"
-            placeholder="List specific goods and services for the selected classes..."
-          />
-          <p className="text-[11px] text-[var(--eai-text-secondary)] italic pt-1">
-            Separate different classes clearly if applicable.
+        <div className="space-y-2" id="goods-services">
+          <p className="text-label text-[var(--eai-text)] mb-3">
+            List of goods and services <span className="text-[var(--eai-text-secondary)] font-normal">(6 lines — split into separate rows for the PDF)</span>
           </p>
-        </FormField>
+          {([1, 2, 3, 4, 5, 6] as const).map(n => {
+            const field = `goods_services_list_${n}` as keyof EipaFormData;
+            return (
+              <div key={n} className="flex items-center gap-3">
+                <span className="text-[11px] font-bold text-[var(--eai-text-secondary)] w-4 shrink-0">{n}</span>
+                <input
+                  value={(formData[field] as string) || ''}
+                  onChange={(e) => handleInputChange(field, e.target.value)}
+                  className="apple-input flex-1"
+                  placeholder={`Goods/services line ${n}`}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </FormSection>
   );

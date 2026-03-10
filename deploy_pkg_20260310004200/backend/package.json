@@ -1,0 +1,50 @@
+{
+  "name": "tpms-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "postinstall": "echo Skipping husky in this environment",
+    "start": "node dist/server.js",
+    "sync:tables": "node generate_tables.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --ext .ts,.js",
+    "lint:fix": "eslint src --ext .ts,.js --fix"
+  },
+  "dependencies": {
+    "axios": "^1.13.5",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "docx": "^9.5.3",
+    "docx-templates": "^4.13.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.0",
+    "mysql2": "^3.17.1",
+    "nodemailer": "^8.0.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.13.0",
+    "@types/nodemailer": "^7.0.9",
+    "@types/pizzip": "^3.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "docxtemplater": "^3.42.3",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.0.0",
+    "pdf-lib": "^1.17.1",
+    "pizzip": "^3.1.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.0.0"
+  }
+}

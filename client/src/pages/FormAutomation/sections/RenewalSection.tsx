@@ -87,14 +87,24 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
     <div className="space-y-6">
       {/* I. Applicant Name */}
       <FormSection title="I. Applicant Name" icon={User} rightElement={quickLoadTrigger}>
-        <FormField label="Applicant Name (Required)">
-          <input
-            value={formData.renewal_applicant_name || ''}
-            onChange={(e) => handleInputChange('renewal_applicant_name', e.target.value)}
-            className="apple-input"
-            placeholder="Full legal name"
-          />
-        </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="Applicant Name (English)">
+            <input
+              value={formData.renewal_applicant_name || ''}
+              onChange={(e) => handleInputChange('renewal_applicant_name', e.target.value)}
+              className="apple-input"
+              placeholder="Full legal name"
+            />
+          </FormField>
+          <FormField label="Applicant Name (Amharic)">
+            <input
+              value={formData.renewal_applicant_name_amharic || ''}
+              onChange={(e) => handleInputChange('renewal_applicant_name_amharic', e.target.value)}
+              className="apple-input"
+              placeholder="ስም በዐማርኛ"
+            />
+          </FormField>
+        </div>
       </FormSection>
 
       {/* II. Address */}
@@ -369,7 +379,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="IV. Representation of Mark" icon={ImageIcon}>
         <div className="space-y-3">
           <label className="text-label text-[var(--eai-text)]">Mark Logo / Image</label>
-          <div 
+          <div
             onClick={() => fileInputRef.current?.click()}
             className="relative aspect-video w-full rounded-2xl border-2 border-dashed border-[var(--eai-border)] bg-[var(--eai-bg)]/30 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-[var(--eai-primary)] hover:bg-[var(--eai-bg)] transition-all"
           >
@@ -382,9 +392,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
             />
             {markImage ? (
               <div className="relative w-full h-full p-4">
-                <img 
-                  src={markImage} 
-                  alt="Mark preview" 
+                <img
+                  src={markImage}
+                  alt="Mark preview"
                   className="w-full h-full object-contain"
                 />
                 <button
@@ -444,21 +454,47 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       {/* VI. Classification */}
       <FormSection title="VI. Classification" icon={List}>
         <div className="grid grid-cols-1 gap-4">
-          <FormField label="List of goods and or services">
-            <textarea
-              value={formData.renewal_goods_services || ''}
-              onChange={(e) => handleInputChange('renewal_goods_services', e.target.value)}
-              className="apple-input min-h-[100px]"
-            />
-          </FormField>
-          <FormField label="International Class(es)">
-            <input
-              value={formData.renewal_nice_classes || ''}
-              onChange={(e) => handleInputChange('renewal_nice_classes', e.target.value)}
-              className="apple-input"
-              placeholder="e.g. 5, 35, 42"
-            />
-          </FormField>
+          <div className="space-y-3">
+            <label className="text-label text-[var(--eai-text)]">List of goods and or services (Split into 6 lines for PDF)</label>
+            <div className="grid grid-cols-1 gap-2">
+              <input
+                value={formData.renewal_goods_services_1 || ''}
+                onChange={(e) => handleInputChange('renewal_goods_services_1', e.target.value)}
+                className="apple-input"
+                placeholder="Line 1"
+              />
+              <input
+                value={formData.renewal_goods_services_2 || ''}
+                onChange={(e) => handleInputChange('renewal_goods_services_2', e.target.value)}
+                className="apple-input"
+                placeholder="Line 2"
+              />
+              <input
+                value={formData.renewal_goods_services_3 || ''}
+                onChange={(e) => handleInputChange('renewal_goods_services_3', e.target.value)}
+                className="apple-input"
+                placeholder="Line 3"
+              />
+              <input
+                value={formData.renewal_goods_services_4 || ''}
+                onChange={(e) => handleInputChange('renewal_goods_services_4', e.target.value)}
+                className="apple-input"
+                placeholder="Line 4"
+              />
+              <input
+                value={formData.renewal_goods_services_5 || ''}
+                onChange={(e) => handleInputChange('renewal_goods_services_5', e.target.value)}
+                className="apple-input"
+                placeholder="Line 5"
+              />
+              <input
+                value={formData.renewal_goods_services_6 || ''}
+                onChange={(e) => handleInputChange('renewal_goods_services_6', e.target.value)}
+                className="apple-input"
+                placeholder="Line 6"
+              />
+            </div>
+          </div>
         </div>
       </FormSection>
 

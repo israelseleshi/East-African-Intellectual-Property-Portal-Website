@@ -3,7 +3,7 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import { trademarkService, clientService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
 import { useApi } from '../hooks/useApi';
-import { fillPdfForm } from '../utils/pdfUtils';
+import { fillPdfForm, getPdfFields } from '../utils/pdfUtils';
 import { EipaFormData, Client, FormType } from '../pages/FormAutomation/types';
 
 export function useFormAutomation() {
@@ -25,7 +25,7 @@ export function useFormAutomation() {
   const [markImageBase64, setMarkImageBase64] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<EipaFormData>({
-    applicant_name: '',
+    applicant_name_english: '',
     applicant_name_amharic: '',
     address_street: '',
     address_zone: '',
@@ -45,53 +45,57 @@ export function useFormAutomation() {
     chk_female: false,
     chk_male: false,
     chk_company: false,
+    agent_name: '',
+    agent_country: '',
+    agent_city: '',
+    agent_subcity: '',
+    agent_wereda: '',
+    agent_house_no: '',
+    agent_telephone: '',
+    agent_email: '',
+    agent_po_box: '',
+    agent_fax: '',
     chk_goods: false,
     chk_services: false,
     chk_collective: false,
-    type_figur: false,
-    type_word: false,
-    k_type_mi: false,
-    type_thre: false,
+    mark_type_figurative: false,
+    mark_type_word: false,
+    mark_type_mixed: false,
+    mark_type_three_dim: false,
     mark_description: '',
     mark_translation: '',
     mark_transliteration: '',
-    mark_language_requiring_translation: '',
+    mark_language_requiring_traslation: '',
     mark_has_three_dim_features: '',
     mark_color_indication: '',
-    mark_image: '',
+    image_field: '',
     goods_services_list: '',
     disclaimer_text_amharic: '',
     disclaimer_text_english: '',
-    priority_application_filing_date: '',
+    priority_filing_date_1: '',
     priority_filing_date: '',
-    priority_goods_services: '',
     priority_country: '',
     chk_priority_accompanies: false,
     chk_priority_submitted_later: false,
-    registration_no: '',
-    registration_date: '',
-    application_no: '',
     chk_list_copies: false,
-    chk_list_statutes: false,
+    chk_list_status: false,
     chk_list_poa: false,
     chk_list_priority_docs: false,
     chk_list_drawing: false,
     chk_list_payment: false,
     chk_list_other: false,
     other_documents_text: '',
-    applicant_signature: '',
     applicant_sign_day_en: '',
-    applicant_sign_month_en: '',
     applicant_sign_year_en: '',
-    renewal_auth_app_no: '',
-    renewal_auth_filing_date: '',
-    renewal_auth_receipt_date: '',
-    renewal_auth_approved_by: '',
+    "Text Field": '',
     renewal_applicant_name: '',
+    renewal_applicant_name_amharic: '',
     renewal_address_street: '',
     renewal_address_zone: '',
     renewal_city_name: '',
+    renewal_city_code: '',
     renewal_state_name: '',
+    renewal_state_code: '',
     renewal_zip_code: '',
     renewal_wereda: '',
     renewal_house_no: '',
@@ -105,26 +109,35 @@ export function useFormAutomation() {
     renewal_chk_male: false,
     renewal_chk_company: false,
     renewal_agent_name: '',
-    renewal_agent_address: '',
-    renewal_agent_tel: '',
-    renewal_chk_goods: false,
-    renewal_chk_services: false,
-    renewal_chk_collective: false,
+    renewal_agent_country: '',
+    renewal_agent_city: '',
+    renewal_agent_subcity: '',
+    renewal_agent_wereda: '',
+    renewal_agent_house_no: '',
+    renewal_agent_telephone: '',
+    renewal_agent_email: '',
+    renewal_agent_pobox: '',
+    renewal_agent_fax: '',
+    renewal_chk_goods_mark: false,
+    renewal_chk_service_mark: false,
+    renewal_chk_collective_mark: false,
     renewal_mark_logo: '',
     renewal_app_no: '',
     renewal_reg_no: '',
     renewal_reg_date: '',
-    renewal_goods_services: '',
-    renewal_nice_classes: '',
-    renewal_signature: '',
+    renewal_goods_services_1: '',
+    renewal_goods_services_2: '',
+    renewal_goods_services_3: '',
+    renewal_goods_services_4: '',
+    renewal_goods_services_5: '',
+    renewal_goods_services_6: '',
     renewal_sign_day: '',
     renewal_sign_month: '',
     renewal_sign_year: '',
-    agent_name: 'East African IP',
-    agent_subcity: 'Yeka',
-    agent_wereda: '02',
-    agent_telephone: '0939423012',
-    agent_email: 'info@eastafricanip.com',
+    renewal_auth_app_no: '',
+    renewal_auth_filing_date: '',
+    renewal_auth_receipt_date: '',
+    renewal_auth_approved_by: '',
   });
 
   // Live Preview States
@@ -136,17 +149,17 @@ export function useFormAutomation() {
 
   const generatePreview = useCallback(async () => {
     if (!showPreview) return;
-    
+
     setPreviewLoading(true);
     setPreviewError(null);
     try {
       const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
       const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, false);
-      
+
       if (pdfBytes && pdfBytes.length > 0) {
         const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        
+
         setPreviewUrl(prev => {
           if (prev) URL.revokeObjectURL(prev);
           return url;
@@ -162,6 +175,31 @@ export function useFormAutomation() {
     }
   }, [formData, formType, showPreview]);
 
+  const loadAvailableFields = useCallback(async () => {
+    try {
+      const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
+      const fields = await getPdfFields(pdfFile);
+      setAvailableFields(fields.map(f => f.name));
+    } catch (error) {
+      // Keep the UI usable even if inspection fails (e.g., fetch blocked).
+      console.warn('Failed to load PDF fields for inspection:', error);
+      setAvailableFields([]);
+    }
+  }, [formType]);
+
+  const loadClients = useCallback(async () => {
+    try {
+      const result = await clientService.getClients({ page: 1, limit: 500 });
+      const data = (result && typeof result === 'object' && 'data' in (result as any))
+        ? (result as any).data
+        : result;
+      setClients(Array.isArray(data) ? (data as Client[]) : []);
+    } catch (error) {
+      console.warn('Failed to load clients for quick load:', error);
+      setClients([]);
+    }
+  }, []);
+
   useEffect(() => {
     const newType = location.pathname.includes('renewal-form') ? 'RENEWAL' : 'APPLICATION';
     if (newType !== formType) {
@@ -175,6 +213,16 @@ export function useFormAutomation() {
     setPreviewLoading(true);
     generatePreview();
   }, [formType, generatePreview]);
+
+  useEffect(() => {
+    // Load inspection tags for the selected PDF template.
+    loadAvailableFields();
+  }, [loadAvailableFields]);
+
+  useEffect(() => {
+    // Populate the "Quick load client" dropdown in the form pages.
+    loadClients();
+  }, [loadClients]);
 
   return {
     formType,

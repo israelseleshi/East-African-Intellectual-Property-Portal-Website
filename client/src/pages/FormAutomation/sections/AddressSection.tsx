@@ -13,7 +13,7 @@ export const AddressSection: React.FC<AddressSectionProps> = ({ formData, handle
   return (
     <FormSection
       id="address-section"
-      title="II. Address details"
+      title="II. Address & Contact"
       icon={MapPin}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -49,6 +49,30 @@ export const AddressSection: React.FC<AddressSectionProps> = ({ formData, handle
             placeholder="Enter city name"
           />
         </FormField>
+        <FormField label="City Code">
+          <input
+            value={formData.city_code}
+            onChange={(e) => handleInputChange('city_code', e.target.value)}
+            className="apple-input"
+            placeholder="City code"
+          />
+        </FormField>
+        <FormField label="State Name">
+          <input
+            value={formData.state_name}
+            onChange={(e) => handleInputChange('state_name', e.target.value)}
+            className="apple-input"
+            placeholder="Enter state / region"
+          />
+        </FormField>
+        <FormField label="State Code">
+          <input
+            value={formData.state_code}
+            onChange={(e) => handleInputChange('state_code', e.target.value)}
+            className="apple-input"
+            placeholder="State code"
+          />
+        </FormField>
         <FormField label="House number">
           <input
             value={formData.house_no}
@@ -65,12 +89,36 @@ export const AddressSection: React.FC<AddressSectionProps> = ({ formData, handle
             placeholder="Enter ZIP code"
           />
         </FormField>
+        <FormField label="Telephone">
+          <input
+            value={formData.telephone}
+            onChange={(e) => handleInputChange('telephone', e.target.value)}
+            className="apple-input"
+            placeholder="+251 ..."
+          />
+        </FormField>
         <FormField label="P.O. Box">
           <input
             value={formData.po_box}
             onChange={(e) => handleInputChange('po_box', e.target.value)}
             className="apple-input"
             placeholder="Enter P.O. Box"
+          />
+        </FormField>
+        <FormField label="Email">
+          <input
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            className="apple-input"
+            placeholder="name@example.com"
+          />
+        </FormField>
+        <FormField label="Fax">
+          <input
+            value={formData.fax}
+            onChange={(e) => handleInputChange('fax', e.target.value)}
+            className="apple-input"
+            placeholder="Enter fax number"
           />
         </FormField>
         <div id="nationality-field">

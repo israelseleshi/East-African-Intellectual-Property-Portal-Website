@@ -248,3 +248,8 @@ Use these placeholders if the user provides them, otherwise fallback to defaults
 4. **Review/Develop:** Provide clean, sustainable, optimized recommendations.
 5. **Re-check:** Edge cases, deprecation risks, security, performance.
 6. **Output:** Strict format, actionable items, line references, safe examples.
+
+## Encoding & Text Hygiene
+- Keep all source files UTF-8. Do not commit mojibake characters (`�`, `Ã`, `â€`).
+- Prefer proper punctuation (`’`, `“”`, `—`) or plain ASCII equivalents; avoid copying smart quotes that degrade to bytes.
+- CI/locals: run `npm run lint:encoding --prefix client` to fail if corrupted characters appear in UI copy or TSX.

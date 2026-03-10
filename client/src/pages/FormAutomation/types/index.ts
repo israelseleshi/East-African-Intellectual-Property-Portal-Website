@@ -21,7 +21,8 @@ export interface Client {
 }
 
 export interface EipaFormData {
-  applicant_name: string;
+  // Page 1
+  applicant_name_english: string;
   applicant_name_amharic: string;
   address_street: string;
   address_zone: string;
@@ -41,50 +42,65 @@ export interface EipaFormData {
   chk_female: boolean;
   chk_male: boolean;
   chk_company: boolean;
+  agent_name: string;
+  agent_country: string;
+  agent_city: string;
+  agent_subcity: string;
+  agent_wereda: string;
+  agent_house_no: string;
+  agent_telephone: string;
+  agent_email: string;
+  agent_po_box: string;
+  agent_fax: string;
   chk_goods: boolean;
   chk_services: boolean;
   chk_collective: boolean;
-  type_figur: boolean;
-  type_word: boolean;
-  k_type_mi: boolean;
-  type_thre: boolean;
+  mark_type_figurative: boolean;
+  mark_type_word: boolean;
+  mark_type_mixed: boolean;
+  mark_type_three_dim: boolean;
   mark_description: string;
   mark_translation: string;
   mark_transliteration: string;
-  mark_language_requiring_translation: string;
+  mark_language_requiring_traslation: string;
   mark_has_three_dim_features: string;
   mark_color_indication: string;
-  mark_image: string;
+  image_field: string;
   goods_services_list: string;
   disclaimer_text_amharic: string;
   disclaimer_text_english: string;
-  priority_application_filing_date: string;
+  priority_filing_date_1: string;
   priority_filing_date: string;
-  priority_goods_services: string;
   priority_country: string;
   chk_priority_accompanies: boolean;
   chk_priority_submitted_later: boolean;
-  registration_no: string;
-  registration_date: string;
-  application_no: string;
   chk_list_copies: boolean;
-  chk_list_statutes: boolean;
+  chk_list_status: boolean;
   chk_list_poa: boolean;
   chk_list_priority_docs: boolean;
   chk_list_drawing: boolean;
   chk_list_payment: boolean;
   chk_list_other: boolean;
   other_documents_text: string;
-  applicant_signature: string;
   applicant_sign_day_en: string;
-  applicant_sign_month_en: string;
+  applicant_sign_month: string;
   applicant_sign_year_en: string;
+  "Text Field": string;
+
+  // Application Goods & Services (6 lines matching PDF)
+  goods_services_list_1: string;
+  goods_services_list_2: string;
+  goods_services_list_3: string;
+  goods_services_list_4: string;
+  goods_services_list_5: string;
+  goods_services_list_6: string;
+
+  // Priority
+  priority_right_declaration: string;
+
   // Renewal Fields
-  renewal_auth_app_no?: string;
-  renewal_auth_filing_date?: string;
-  renewal_auth_receipt_date?: string;
-  renewal_auth_approved_by?: string;
   renewal_applicant_name?: string;
+  renewal_applicant_name_amharic?: string;
   renewal_address_street?: string;
   renewal_address_zone?: string;
   renewal_city_code?: string;
@@ -103,6 +119,8 @@ export interface EipaFormData {
   renewal_chk_female?: boolean;
   renewal_chk_male?: boolean;
   renewal_chk_company?: boolean;
+
+  // Renewal Agent Fields
   renewal_agent_name?: string;
   renewal_agent_country?: string;
   renewal_agent_city?: string;
@@ -113,12 +131,8 @@ export interface EipaFormData {
   renewal_agent_telephone?: string;
   renewal_agent_house_no?: string;
   renewal_agent_fax?: string;
-  renewal_agent_address?: string;
-  renewal_agent_tel?: string;
-  renewal_chk_goods?: boolean;
-  renewal_chk_services?: boolean;
-  renewal_chk_collective?: boolean;
-  // New PDF-mapped checkbox fields
+
+  // Renewal Mark Fields
   renewal_chk_goods_mark?: boolean;
   renewal_chk_service_mark?: boolean;
   renewal_chk_collective_mark?: boolean;
@@ -126,17 +140,26 @@ export interface EipaFormData {
   renewal_app_no?: string;
   renewal_reg_no?: string;
   renewal_reg_date?: string;
-  renewal_goods_services?: string;
-  renewal_nice_classes?: string;
-  renewal_signature?: string;
+
+  // Renewal Goods & Services
+  renewal_goods_services_1?: string;
+  renewal_goods_services_2?: string;
+  renewal_goods_services_3?: string;
+  renewal_goods_services_4?: string;
+  renewal_goods_services_5?: string;
+  renewal_goods_services_6?: string;
+
+  // Renewal Signature
   renewal_sign_day?: string;
   renewal_sign_month?: string;
   renewal_sign_year?: string;
-  agent_name?: string;
-  agent_subcity?: string;
-  agent_wereda?: string;
-  agent_telephone?: string;
-  agent_email?: string;
+
+  // Legacy/Other
+  renewal_auth_app_no?: string;
+  renewal_auth_filing_date?: string;
+  renewal_auth_receipt_date?: string;
+  renewal_auth_approved_by?: string;
 }
+
 
 export type FormType = 'APPLICATION' | 'RENEWAL';

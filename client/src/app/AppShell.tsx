@@ -110,6 +110,7 @@ export default function AppShell() {
   useEffect(() => {
     applyTheme(theme)
   }, [theme])
+  const [version, setVersion] = useState<{ gitSha?: string | null; buildTime?: string | null }>({})
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
@@ -155,6 +156,13 @@ export default function AppShell() {
     return () => window.removeEventListener('click', onClick)
   }, [commandOpen])
 
+  useEffect(() => {
+    fetch('/api/system/version', { credentials: 'include' })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => data && setVersion(data))
+      .catch(() => {});
+  }, [])
+
   return (
     <div className={`flex h-screen w-full overflow-hidden ${theme}`}>
       <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} theme={theme} />
@@ -179,6 +187,9 @@ export default function AppShell() {
             </motion.div>
           </AnimatePresence>
         </main>
+        <div className="text-[11px] text-muted-foreground px-4 pb-2 text-right">
+          {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : ''}
+        </div>
       </div>
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </div>

@@ -29,20 +29,29 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, hand
             placeholder="Select priority country"
           />
         </FormField>
+        <FormField label="Priority right declaration (if any)" className="sm:col-span-2">
+          <input
+            value={formData.priority_right_declaration || ''}
+            onChange={(e) => handleInputChange('priority_right_declaration', e.target.value)}
+            className="apple-input"
+            placeholder="Enter declaration"
+          />
+        </FormField>
+
         <FormField label="Priority application date">
           <input
             type="date"
-            value={formData.priority_application_filing_date}
-            onChange={(e) => handleInputChange('priority_application_filing_date', e.target.value)}
+            value={formData.priority_filing_date_1}
+            onChange={(e) => handleInputChange('priority_filing_date_1', e.target.value)}
             className="apple-input"
           />
         </FormField>
-        <FormField label="Priority goods and services" className="sm:col-span-2">
+        <FormField label="Priority goods & services (PDF mapping N/A)" className="sm:col-span-2">
           <textarea
-            value={formData.priority_goods_services}
-            onChange={(e) => handleInputChange('priority_goods_services', e.target.value)}
+            value={formData.priority_filing_date}
+            onChange={(e) => handleInputChange('priority_filing_date', e.target.value)}
             className="apple-input min-h-[80px] py-3"
-            placeholder="List goods/services covered by priority claim"
+            placeholder="Map this to available PDF fields if needed..."
           />
         </FormField>
         <div className="sm:col-span-2 pt-2">

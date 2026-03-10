@@ -14,6 +14,7 @@
     "perf:budget:fail-test": "node ./scripts/check-chunk-budgets.mjs --max-chunk-kb=100 --max-total-js-kb=200",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
+    "lint:encoding": "node ./scripts/check-encoding.mjs",
     "test": "cypress run",
     "test:open": "cypress open",
     "cypress:install": "cypress install"

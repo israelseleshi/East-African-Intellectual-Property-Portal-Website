@@ -69,10 +69,9 @@ export default function VerifyOtpPage() {
         otp: otpValue,
       });
 
-      // Store token and user in auth store
+      // Store user in auth store (cookies carry tokens)
       useAuthStore.getState().login(
-        { id: response.data.user.id, full_name: response.data.user.full_name, email: response.data.user.email, role: response.data.user.role },
-        response.data.token
+        { id: response.data.user.id, full_name: response.data.user.full_name, email: response.data.user.email, role: response.data.user.role }
       );
 
       navigate('/');

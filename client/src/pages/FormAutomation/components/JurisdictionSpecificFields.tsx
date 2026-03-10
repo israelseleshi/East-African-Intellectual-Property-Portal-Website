@@ -1,10 +1,9 @@
 import { ApplicantSection } from '../sections/ApplicantSection';
 import { AddressSection } from '../sections/AddressSection';
-import { ContactSection } from '../sections/ContactSection';
+import { AgentSection } from '../sections/AgentSection';
 import { MarkSpecificationSection } from '../sections/MarkSpecificationSection';
 import { NiceClassificationSection } from '../sections/NiceClassificationSection';
 import { PrioritySection } from '../sections/PrioritySection';
-import { AgentSection } from '../sections/AgentSection';
 import { DisclaimerSection } from '../sections/DisclaimerSection';
 import { ChecklistSection } from '../sections/ChecklistSection';
 import { RenewalSection } from '../sections/RenewalSection';
@@ -74,7 +73,7 @@ export function JurisdictionSpecificFields({
         handleInputChange={handleInputChange}
       />
 
-      <ContactSection
+      <AgentSection
         formData={formData}
         handleInputChange={handleInputChange}
       />
@@ -94,11 +93,6 @@ export function JurisdictionSpecificFields({
       />
 
       <PrioritySection
-        formData={formData}
-        handleInputChange={handleInputChange}
-      />
-
-      <AgentSection
         formData={formData}
         handleInputChange={handleInputChange}
       />
