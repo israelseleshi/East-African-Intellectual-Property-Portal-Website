@@ -15,7 +15,8 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
     { id: 'chk_list_poa', label: 'Power of attorney' },
     { id: 'chk_list_priority_docs', label: 'Priority documents' },
     { id: 'chk_list_drawing', label: 'Mark drawing (3D)' },
-    { id: 'chk_list_payment', label: 'Proof of payment' }
+    { id: 'chk_list_payment', label: 'Proof of payment' },
+    { id: 'chk_list_other', label: 'Other document(s)' }
   ];
 
   return (
@@ -32,6 +33,16 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
       />
 
       <div className="space-y-4 pt-6 border-t border-[var(--eai-border)]">
+        {formData.chk_list_other && (
+          <FormField label="Other document(s) specify">
+            <input
+              value={formData.other_documents_text || ''}
+              onChange={(e) => handleInputChange('other_documents_text', e.target.value)}
+              className="apple-input"
+              placeholder="List other documents..."
+            />
+          </FormField>
+        )}
         <FormField label="Applicant signature name">
           <input
             value={formData.applicant_sign_day}

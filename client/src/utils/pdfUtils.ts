@@ -226,7 +226,10 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
         // those high-level methods trigger a GLOBAL updateAppearances() sweep across
         // ALL form fields, which crashes on any field containing Amharic text.
         if (field instanceof PDFTextField) {
-          setFieldDirect((field as any).acroField, value ? 'X' : '', timesRomanFontName, 10);
+          // Use checkmark symbol instead of X
+          const marker = '✓';
+          const fontToUse = amharicFontName || timesRomanFontName;
+          setFieldDirect((field as any).acroField, value ? marker : '', fontToUse, 12);
         } else if (field instanceof PDFCheckBox) {
           const acroField = (field as any).acroField;
           // Get the 'on' value name (usually 'Yes' or the export value like 'Checked')
@@ -374,6 +377,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['priority_right_declaration'], data.priority_right_declaration);
       setCheckbox(data.chk_priority_accompanies, ['chk_priority_accompanies']);
       setCheckbox(data.chk_priority_submitted_later, ['chk_priority_submitted_later']);
+      await fillField(['priority_filing_date_1'], data.priority_filing_date_1);
 
       // VI. Classification
       console.log('--- Section VI ---');
@@ -399,6 +403,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['applicant_sign_day'], data.applicant_sign_day);
       await fillField(['applicant_sign_month'], data.applicant_sign_month);
       await fillField(['applicant_sign_year_en'], data.applicant_sign_year_en);
+      await fillField(['applicant_sign_day_en'], data.applicant_sign_day_en);
     }
 
     // ===== NUCLEAR FINAL SWEEP =====
