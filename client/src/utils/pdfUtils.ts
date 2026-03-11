@@ -421,13 +421,14 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       // PDFButton fields are intentionally skipped to preserve their image AP stream
     });
 
-    // Flatten only if no Amharic content — form.flatten() calls updateAppearances on ALL fields
-    const hasAnyAmharic = Object.values(data).some(
-      v => typeof v === 'string' && /[\u1200-\u137F]/.test(v)
-    );
-    if (shouldFlatten && !hasAnyAmharic) {
-      try { form.flatten(); }
-      catch (e) { console.warn('flatten() failed:', e); }
+    // Flatten the form to make it non-editable
+    if (shouldFlatten) {
+      try {
+        form.flatten();
+        console.log('[PDF-ENGINE] Form flattened successfully');
+      } catch (e) {
+        console.warn('[PDF-ENGINE] flatten() failed:', e);
+      }
     }
 
     // Final: NeedAppearances = false so viewers use our DA+V, not Helvetica/WinAnsi auto-render.

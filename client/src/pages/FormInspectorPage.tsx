@@ -109,6 +109,7 @@ export default function FormInspectorPage() {
   const handleDownloadPdf = async () => {
     try {
       const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
+      // Pass true to flatten the PDF and make it non-editable
       const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, true);
 
       if (pdfBytes) {
