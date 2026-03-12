@@ -3,7 +3,7 @@ import fontkit from '@pdf-lib/fontkit'
 import countries from 'world-countries'
 
 // Pre-process countries for flag logic
-const countryList = countries.map((c: any) => ({
+const countryList = (countries as any).map((c: any) => ({
   name: c.name.common,
   value: c.name.common,
   code: c.cca2,

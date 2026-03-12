@@ -8,12 +8,12 @@ import { Input } from "@/components/ui/input"
 
 // Pre-process and sort countries
 const countryList = countries
-  .map(c => ({
+  .map((c: any) => ({
     name: c.name.common,
     value: c.name.common, // Using common name as the value (e.g., "Ethiopia")
     code: c.cca2,         // 2-letter ISO code for flags
   }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+  .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
 interface CountrySelectorProps {
   value: string
@@ -28,9 +28,9 @@ export function CountrySelector({ value, onChange, placeholder = "Select country
   const [search, setSearch] = React.useState("")
   const containerRef = React.useRef<HTMLDivElement>(null)
 
-  const selectedCountry = countryList.find((c) => c.value === value || c.name === value)
+  const selectedCountry = countryList.find((c: any) => c.value === value || c.name === value)
 
-  const filteredCountries = countryList.filter(c => 
+  const filteredCountries = countryList.filter((c: any) => 
     c.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -101,7 +101,7 @@ export function CountrySelector({ value, onChange, placeholder = "Select country
                 No country found.
               </div>
             ) : (
-              filteredCountries.map((country) => (
+              filteredCountries.map((country: any) => (
                 <button
                   key={country.code}
                   type="button"
