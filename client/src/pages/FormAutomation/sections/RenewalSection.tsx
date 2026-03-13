@@ -53,14 +53,14 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
     handleInputChange('renewal_mark_logo', '');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
-  const quickLoadTrigger = (
+  const quickLoadClientTrigger = (
     <div id="quick-client-select-renewal">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-9 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
             <Database size={16} className="text-[var(--eai-text-secondary)]" />
             <span className="text-[12px] font-bold">
-              {selectedClientId ? clients.find(c => c.id === selectedClientId)?.name : 'Quick load client'}
+              {selectedClientId ? clients.find(c => c.id === selectedClientId)?.name : 'Load Client'}
             </span>
             <ChevronDown size={14} className="text-[var(--eai-text-secondary)]" />
           </button>
@@ -87,10 +87,46 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
     </div>
   );
 
+  const quickLoadAgentTrigger = (
+    <div id="quick-agent-select-renewal">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-9 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
+            <Briefcase size={16} className="text-[var(--eai-text-secondary)]" />
+            <span className="text-[12px] font-bold">Load Agent</span>
+            <ChevronDown size={14} className="text-[var(--eai-text-secondary)]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64 rounded-xl border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl">
+          <DropdownMenuItem
+            onClick={() => {
+              handleInputChange('renewal_agent_name', 'East African Intellectual Property');
+              handleInputChange('renewal_agent_country', 'Ethiopia');
+              handleInputChange('renewal_agent_city', 'Addis Ababa');
+              handleInputChange('renewal_agent_subcity', 'Bole');
+              handleInputChange('renewal_agent_wereda', '03');
+              handleInputChange('renewal_agent_house_no', 'New');
+              handleInputChange('renewal_agent_telephone', '+251 11 661 2911');
+              handleInputChange('renewal_agent_email', 'info@eastafricanip.com');
+              handleInputChange('renewal_agent_pobox', '1234');
+              handleInputChange('renewal_agent_fax', '');
+            }}
+            className="px-4 py-2.5 text-[13px] font-medium cursor-pointer flex flex-col items-start gap-0.5 hover:bg-[var(--eai-bg)] text-[var(--eai-text)]"
+          >
+            <span className="font-bold">EAIP (Main Office)</span>
+            <span className="text-[10px] tracking-wider text-[var(--eai-text-secondary)]">
+              Default Firm Details
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* I. Applicant Name */}
-      <FormSection title="I. Applicant Name" icon={User} rightElement={quickLoadTrigger}>
+      <FormSection title="I. Applicant Name" icon={User} rightElement={quickLoadClientTrigger}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Applicant Name (English)">
             <input
@@ -262,7 +298,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       </FormSection>
 
       {/* Agent Details */}
-      <FormSection title="Agent Details" icon={Briefcase}>
+      <FormSection title="Agent Details" icon={Briefcase} rightElement={quickLoadAgentTrigger}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Agent Name">
             <input
