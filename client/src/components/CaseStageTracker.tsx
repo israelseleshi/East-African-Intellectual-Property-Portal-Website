@@ -43,8 +43,7 @@ interface CaseStageTrackerProps {
 }
 
 const STAGES: { key: CaseFlowStage; label: string; description: string; icon: typeof FileText; actionLabel?: string }[] = [
-  { key: 'DATA_COLLECTION', label: 'Data Collection', description: 'Gathering client and mark information', icon: FileText, actionLabel: 'Ready to File' },
-  { key: 'READY_TO_FILE', label: 'Ready to File', description: 'Form complete and reviewed', icon: CheckCircle, actionLabel: 'Record Filing' },
+  { key: 'DATA_COLLECTION', label: 'Data Collection', description: 'Gathering client and mark information', icon: FileText, actionLabel: 'Record Filing' },
   { key: 'FILED', label: 'Filed', description: 'Application submitted to registry', icon: FileText, actionLabel: 'Proceed to Exam' },
   { key: 'FORMAL_EXAM', label: 'Formal Exam', description: 'Paperwork review by registry', icon: ShieldCheck, actionLabel: 'Pass Formalities' },
   { key: 'SUBSTANTIVE_EXAM', label: 'Substantive Exam', description: 'Uniqueness review (20 days)', icon: ShieldCheck, actionLabel: 'Record Result' },
@@ -170,27 +169,7 @@ export default function CaseStageTracker({
               </span>
             </div>
           )}
-          {currentStage === 'READY_TO_FILE' && (
-            <div className="mt-4 p-4 bg-white border border-[var(--eai-border)]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                   <div className="p-2 bg-[var(--eai-bg)] text-[var(--eai-primary)]">
-                       <FileText size={20} />
-                   </div>
-                   <div>
-                       <div className="text-[14px] font-bold">Filing application form</div>
-                       <div className="text-[11px] text-[var(--eai-text-secondary)] font-black">Ready to download & sign</div>
-                   </div>
-                </div>
-                <Button
-                   onClick={() => onDownloadForm ? onDownloadForm() : window.open(`/api/cases/${(STAGES as any).id}/download`, '_blank')}
-                   className="apple-button-secondary h-8 px-4 text-[11px]"
-                >
-                   Download Filled Form
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Filing form UI was here */}
         </div>
 
         {/* Horizontal Timeline (Wave UI) */}

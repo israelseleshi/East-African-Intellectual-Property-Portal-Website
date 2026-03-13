@@ -38,14 +38,14 @@ interface ActionConfig {
 }
 
 const ACTION_CONFIGS: Partial<Record<CaseFlowStage, ActionConfig>> = {
-    READY_TO_FILE: {
-        title: 'Record Filing Details',
-        description: 'Enter the official filing information from the registry.',
+    DATA_COLLECTION: {
+        title: 'Record Official Filing',
+        description: 'Enter the official filing number and date received from the registry receipt.',
         buttonLabel: 'Complete Filing',
         fields: [
             { key: 'filingNumber', label: 'Filing Number', type: 'text', placeholder: 'e.g. ET/TM/2026/1234', required: true },
             { key: 'triggerDate', label: 'Filing Date', type: 'date', defaultValue: new Date().toISOString().split('T')[0], required: true },
-            { key: 'notes', label: 'Internal Notes', type: 'textarea', placeholder: 'Add any specific notes about the filing process...' }
+            { key: 'notes', label: 'Filing Notes', type: 'textarea', placeholder: 'Add any specific notes about the filing process...' }
         ]
     },
     SUBSTANTIVE_EXAM: {

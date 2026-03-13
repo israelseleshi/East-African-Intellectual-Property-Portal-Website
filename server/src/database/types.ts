@@ -55,10 +55,9 @@ export interface ClientRow {
 
 export type Jurisdiction = 'ER' | 'DJ' | 'SO' | 'SL' | 'KE' | 'TZ' | 'UG' | 'RW' | 'BI' | 'SD' | 'ET';
 
-// Complete 10-Stage Case Flow System
+// Complete 9-Stage Case Flow System
 export const CASE_FLOW_STAGES = [
   'DATA_COLLECTION',
-  'READY_TO_FILE',
   'FILED',
   'FORMAL_EXAM',
   'SUBSTANTIVE_EXAM',

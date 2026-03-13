@@ -107,7 +107,6 @@ export default function CaseFlowDemoPage() {
     
     const stages: CaseFlowStage[] = [
       'DATA_COLLECTION',
-      'READY_TO_FILE',
       'FILED',
       'FORMAL_EXAM',
       'SUBSTANTIVE_EXAM',

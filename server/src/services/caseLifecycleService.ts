@@ -199,7 +199,6 @@ export const caseLifecycleService = {
 
       switch (input.stage) {
         case 'DATA_COLLECTION':
-        case 'READY_TO_FILE':
           updates.status = 'DRAFT';
           break;
         case 'FILED': {
