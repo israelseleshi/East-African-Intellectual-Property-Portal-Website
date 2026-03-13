@@ -19,7 +19,7 @@ database_dump.sql
 
 # Internal Documentation
 docs/
-README.md
+
 
 # Deployment and Temporary files
 deploy_tmp/

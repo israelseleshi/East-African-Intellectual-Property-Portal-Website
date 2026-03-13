@@ -1,234 +1,188 @@
-# EAIP Trade Mark Practice Management System (TPMS)
+# EAIP Trademark Practice Management System (TPMS)
 
-![TPMS Header](https://images.unsplash.com/photo-1589254065878-42c9da997008?q=80&w=2070&auto=format&fit=crop)
-
-## 🏛 Elevating Intellectual Property Management in East Africa
-
-The **East African IP Practice Management System (TPMS)** is a state-of-the-art, enterprise-grade platform designed specifically for law firms and IP professionals operating in the Ethiopian and Kenyan jurisdictions. Built with a focus on precision, automation, and statutory compliance, TPMS transforms the complex trademark lifecycle into a streamlined, digital workflow.
-
----
-
-## 🚀 Core Value Proposition
-
-In the traditional IP landscape, managing hundreds of trademarks across multiple jurisdictions leads to "Deadline Anxiety," manual errors in form filling, and fragmented communication. TPMS solves this by providing:
-
-1.  **Statutory Certainty**: Automated deadline calculation based on the specific laws of Ethiopia (Proclamation 501/2006) and Kenya (Trade Marks Act Cap 506).
-2.  **Workflow Automation**: One-click generation of official EIPA (Ethiopian Intellectual Property Authority) forms, reducing filing time from hours to minutes.
-3.  **Proactive Intelligence**: A unified "Deadlines Engine" that ensures you never miss a renewal or an opposition window.
-4.  **Financial Transparency**: Database-driven fee schedules with automatic invoice generation per jurisdiction and stage.
-5.  **Collaborative Notes**: Threaded case discussions with privacy controls for internal strategy discussions.
-6.  **Opposition Tracking**: Full lifecycle management of third-party oppositions with automatic deadline alerts.
+<div align="center">
+  <img src="client/public/eaip-logo.png" width="320" alt="EAIP Logo" />
+  <p><strong>Premium Intellectual Property Management for the Modern Legal Enterprise</strong></p>
+  <p><em>Built with Precision for the East African Legal Landscape</em></p>
+</div>
 
 ---
 
-## 🛠 Technology Stack
+## 🏛️ Executive Summary
+The EAIP Trademark Practice Management System (TPMS) is a mission-critical, enterprise-grade platform specifically engineered for legal professionals managing intellectual property across East Africa. By fusing the **Apple Pro UI** philosophy with rigorous legal logic, the TPMS delivers an unparalleled experience in case tracking, document automation, and financial oversight.
 
-TPMS is built using a modern, scalable, and secure stack:
-
--   **Frontend**: React 19 with TypeScript, architected for performance and maintainable UI components.
--   **Styling**: High-fidelity "Aesthetic" design system using Vanilla CSS and Tailwind for utility, featuring a premium glassmorphic interface.
--   **Backend**: Node.js & Express with a robust modular routing architecture.
--   **Database**: MySQL (hosted on enterprise-grade infrastructure) for relational data integrity.
--   **Security**: JWT-based authentication with OTP (One-Time Password) verification for critical actions.
--   **Testing**: End-to-end automation with Cypress, ensuring the "EIPA Form Automation" flow is always production-ready.
+This platform is not merely a tracking tool; it is a high-performance engine designed to handle the complexities of multi-jurisdictional filings, statutory deadline management, and high-fidelity form automation with surgical precision.
 
 ---
 
-## 📦 Key Functional Modules
+## 💎 Design Philosophy: Apple Pro UI
+The platform is designed following the **Apple Human Interface Guidelines (HIG)**, prioritizing hierarchy, harmony, and clarity.
 
-### 📋 1. EIPA Form Automation (The "Automator")
-The crown jewel of our system. It features a digital twin of the official **EIPA Form 01**.
--   **Live Integration**: As you type applicant and mark data, the official PDF preview updates in real-time.
--   **Nice Class Intelligence**: Built-in picker for the International Classification of Goods and Services (Nice Classification).
--   **Data Synchronization**: Once a form is submitted, it automatically creates a new Trademark Docket and Client record, eliminating double entry.
+### Visual Architecture
+- **Glassmorphism**: Extensive use of `backdrop-blur` and semi-transparent surfaces to create a sense of depth and focus.
+- **Hierarchy**: A clear information hierarchy using weighted typography and color-coding to emphasize mission-critical data.
+- **Harmony**: Custom tailored color palette (`#0F2652` primary) that balances authority with modern accessibility.
+- **Clarity**: Subtle shadows and premium rounded corners (`rounded-xl` to `rounded-3xl`) that reduce cognitive load during high-density data entry.
 
-### 🔄 2. The 10-Stage Case Lifecycle
-We have codified the trademark journey into 10 distinct, traceable stages:
-1.  **Data Collection**: Gathering initial client instructions.
-2.  **Ready to File**: Internal review completed.
-3.  **Filed**: Official submission recorded with Filing Number.
-4.  **Formal Exam**: Cleanliness check by the registry.
-5.  **Substantive Exam**: Uniqueness check by the examiner.
-6.  **Amendment Pending (Office Action)**: Handling registry objections.
-7.  **Published**: Navigating the "Opposition Window."
-8.  **Certificate Request**: Final steps after successful publication.
-9.  **Registered**: Post-grant tracking.
-10. **Renewal**: Long-term maintenance (7 years for ET, 10 years for KE).
-
-### 📅 3. Smart Deadline Engine
-The engine that runs the firm. It calculates dates automatically:
--   **Opposition Windows**: 60 days for Ethiopia, 60 days for Kenya.
--   **Renewal Tracking**: Automatic 6-month pre-expiry alerts.
--   **Context-Aware**: Updates deadlines instantly when a case moves from one stage to another.
--   **Jurisdiction Rules**: Configurable rules per jurisdiction (opposition periods, renewal years, currencies).
-
-### 💰 4. Fee Schedule Management
-Database-driven financial management:
--   **Jurisdiction-Specific Fees**: Separate official and professional fees for ET, KE, EAC, ARIPO, WIPO.
--   **Stage-Based Billing**: Automatic fee calculation as cases progress through stages.
--   **Multi-Currency**: Support for ETB, KES, USD.
--   **Historical Tracking**: Fee schedule versioning with effective dates.
-
-### 📝 5. Case Notes & Collaboration
-Threaded discussion system for case management:
--   **Note Types**: General, Client Communication, Phone Call, Internal, Strategy.
--   **Threaded Replies**: Reply to notes for organized conversations.
--   **Privacy Controls**: Private notes visible only to internal staff.
--   **Pinning**: Pin important notes to the top of the case file.
-
-### ⚠️ 6. Opposition Tracking
-Manage third-party oppositions against your client's marks:
--   **Opponent Details**: Record opponent name, address, representative.
--   **Grounds Documentation**: Store legal grounds for opposition.
--   **Automatic Deadlines**: System calculates response deadlines based on jurisdiction rules.
--   **Status Workflow**: PENDING → RESPONDED → RESOLVED/WITHDRAWN.
--   **Deadline Alerts**: Visual warnings for approaching deadlines.
-
-### 🔔 7. Notification System
-Real-time notification system:
--   **Notification Types**: Deadline reminders, status changes, opposition alerts, invoice due.
--   **Delivery Channels**: In-app, email, SMS (configurable).
--   **Read Tracking**: Track notification delivery and read status.
--   **Bell Icon**: Header notification bell with unread badge.
-
-### 🗑️ 8. Soft Delete & Trash
-Data protection with recovery options:
--   **Soft Delete**: Records marked as deleted but recoverable.
--   **Trash Bin**: View and restore deleted items.
--   **Permanent Delete**: Option to permanently remove after confirmation.
--   **30-Day Retention**: Automatic cleanup policies.
+### Interaction Model
+- **macOS Style Layout**: A sophisticated "Sidebar + Main Detail" architecture providing immediate access to critical tools without context switching.
+- **Hit Targets**: Precision-engineered touch targets (minimum 44pt) for fluid interaction.
+- **Feedback Systems**: Integrated toast notifications and high-fidelity loading states ensuring the user is never left guessing.
 
 ---
 
-## 📂 Project Structure
+## 🚀 Key Performance Pillars
+
+### 1. Advanced Case Lifecycle Management
+The heart of TPMS is a sophisticated 9-stage state machine that mirrors the actual legal journey of a trademark in East Africa.
+
+#### The 9-Stage State Machine
+1.  **DATA_COLLECTION**: Gathering client DNA and mark specifications.
+2.  **FILED**: The transition from internal preparation to official registry record.
+3.  **FORMAL_EXAM**: Tracking the initial administrative review.
+4.  **SUBSTANTIVE_EXAM**: Monitoring the deep legal uniqueness review.
+5.  **PUBLISHED**: The high-stakes opposition window monitoring.
+6.  **CERTIFICATE_REQUEST**: Managing the post-publication request phase.
+7.  **CERTIFICATE_ISSUED**: Recording the receipt of official protection.
+8.  **REGISTERED**: The active protection and monitoring phase.
+9.  **RENEWAL**: Long-term maintenance and protection extension.
+
+#### Intelligence-Driven Transitions
+- **Contextual Modals**: Dynamic action modals that adapt their fields based on the specific stage transition.
+- **Validation**: Strict enforcement of required fields (e.g., Filing Number is required to move to `FILED`).
+- **Wave UI**: A custom horizontal timeline providing a macro-view of the matter's progress.
+
+### 2. Strategic Deadline Engine
+The TPMS Deadline Engine is mission-critical, ensuring no firm ever misses a statutory window.
+
+#### Interactive Calendar System
+- **Full Navigation**: Month-to-month browsing with immediate day-specific task breakdowns.
+- **Visual Indicators**: Red-dot deadline markers on the calendar view for rapid identification of busy periods.
+- **Filtering**: Intelligent auto-suppression of `COMPLETED` or `SUPERSEDED` tasks to maintain absolute focus on what's next.
+
+#### Jurisdiction-Specific Intelligence
+- **Ethiopia (EIPA)**: Automatic calculation of the 60-day opposition window post-publication.
+- **Renewal Cycles**: Precision tracking of the 7-year maintenance cycle for active registrations.
+- **Urgency Matrix**:
+    - **CRITICAL (Red)**: < 7 days remaining.
+    - **WARNING (Orange)**: < 30 days remaining.
+    - **STABLE (Green)**: > 30 days remaining.
+
+### 3. Form Automation & PDF Intelligence
+TPMS eliminates the manual burden of government filings through high-fidelity automation.
+
+#### High-Fidelity Generation
+- **EIPA Form 01**: One-click generation of the official Ethiopian application form.
+- **Mapping Precision**: Surgical mapping of database fields to PDF coordinates, including multi-line goods/services lists and Nice class checkboxes.
+- **Signing Date Logic**: Localized format support (DD MMM YY) for professional physical signature lines.
+
+#### Digital Asset Vault
+- **Asset Categorization**: Specialized storage for Logos, Powers of Attorney (POA), Priority Documents, and Certificates.
+- **Security**: Assets are served through an authenticated proxy layer, never exposed directly.
+- **Persistence**: Complex form states are preserved across sessions, allowing for meticulous review before final generation.
+
+### 4. Enterprise Financial Ledger
+A robust billing system designed for law firms, providing a 360-degree view of firm revenue.
+
+#### Professional Invoicing
+- **Layout**: High-end PDF invoices with centered EAIP branding and professional typography.
+- **Categorization**: Grouped sections for Client Details, Billing Schedules, and Financial Summaries.
+- **Customization**: Support for multiple currencies (USD, ETB, KES) and automated exchange rate calculations.
+
+#### Revenue Management
+- **Dashboard**: Real-time visualization of Total Revenue, Outstanding Balances (AR), and Monthly Paid totals.
+- **Payment Tracking**: Granular recording of payments with support for Bank Transfer, Cash, Check, and Mobile Money.
+- **Status Automation**: Automatic invoice status updates based on payment recording.
+
+---
+
+## 🛠️ Technical Architecture
+
+### Frontend Excellence
+- **Framework**: React 19 (Modern functional components with Hooks)
+- **Engine**: Vite (Lightning-fast development and optimized production builds)
+- **Styling**: Tailwind CSS + custom premium design tokens
+- **Components**: `shadcn/ui` + `cult-ui` (The pinnacle of React component design)
+- **Icons**: `Phosphor Icons` (Duotone weight for professional depth)
+- **Typography**: `SF Pro` / `Inter` / `System-UI` hierarchy
+
+### Backend Performance
+- **Runtime**: Node.js (Scalable event-driven architecture)
+- **Server**: Express.js (High-performance API routing)
+- **Database**: MySQL (falolega_tpms) with optimized indexing for fuzzy searching
+- **Validation**: `Zod` (Strict schema validation for all I/O)
+- **Authentication**: Secure JWT strategies with sliding expiration
+
+### Security & Integrity
+- **CSRF Protection**: Comprehensive middleware for state-mutating actions.
+- **Soft Deletion**: Universal implementation to prevent irreversible data loss.
+- **Audit Logging**: Immutable history logs for every critical case modification.
+- **Input Sanitization**: Multi-layer protection against XSS and SQL Injection.
+
+---
+
+## 📈 Data Mobility & Enterprise Exports
+Data ownership is a priority. TPMS provides comprehensive export capabilities.
+
+### 👥 Client CRM Export
+- **Full Metadata**: Export every column including Local Name, Nationality, Type, and contact info.
+- **Format**: Optimized CSV for Excel/Numbers integration.
+- **Accessibility**: One-click export directly from the high-density client list.
+
+### 📑 Matter Docket Export
+- **Operational View**: Export the entire trademark docket with current stages, filing numbers, and next action dates.
+- **Contextual Search**: Exported data respects active filters and search queries.
+
+---
+
+## 📂 System Directory Structure
 
 ```text
-TPMS/
-├── apps/
-│   ├── api/                # Node.js backend
-│   │   ├── src/
-│   │   │   ├── routes/     # Modular API endpoints
-│   │   │   │   ├── cases.ts
-│   │   │   │   ├── jurisdictions.ts  # Jurisdiction config
-│   │   │   │   ├── notes.ts            # Case notes
-│   │   │   │   ├── oppositions.ts      # Opposition tracking
-│   │   │   │   ├── fees.ts             # Fee schedules
-│   │   │   │   └── notifications.ts    # Notifications
-│   │   │   ├── database/   # MySQL connection pool
-│   │   │   └── utils/      # Statutory date calculators
-│   └── web/                # React/TypeScript frontend
-│       ├── src/
-│       │   ├── pages/      # Dashboard & forms
-│       │   ├── components/ # Reusable UI components
-│       │   │   ├── JurisdictionSelector.tsx
-│       │   │   ├── CaseNotesTab.tsx
-│       │   │   ├── OppositionSection.tsx
-│       │   │   ├── FeeCalculator.tsx
-│       │   │   ├── NotificationBell.tsx
-│       │   │   └── ...
-│       │   ├── hooks/      # Custom hooks (useApi)
-│       │   └── utils/      # Formatters & helpers
-├── docs/                   # Documentation
-├── migration.sql           # Database schema
-└── .env                    # Environment configuration
+├── client/                 # React 19 Frontend
+│   ├── src/
+│   │   ├── api/            # Configured axios instances & endpoints
+│   │   ├── components/     # High-fidelity Apple Pro UI components
+│   │   ├── hooks/          # Custom business logic & data hooks
+│   │   ├── pages/          # Mission-critical application views
+│   │   ├── shared/         # Universal types and constants
+│   │   └── utils/          # PDF generation & date-fns engines
+├── server/                 # Express.js Backend
+│   ├── src/
+│   │   ├── database/       # Schema definitions & DB connectors
+│   │   ├── middleware/     # Security, Auth & Validation layers
+│   │   ├── repositories/   # Data access logic (MySQL)
+│   │   ├── routes/         # API endpoint definitions
+│   │   ├── services/       # Core business & lifecycle logic
+│   │   └── utils/          # Logging, Mailing & PDF logic
+├── docs/                   # Platform documentation & Migration logs
+├── scripts/                # PowerShell deployment & backup automation
+└── README.md               # Executive documentation
 ```
 
 ---
 
-## 🛠 Setup & Installation
+## 🚀 Deployment & Sustainability
 
-### Prerequisites
--   Node.js (v18+)
--   pnpm (v8+)
--   MySQL Instance
+### Infrastructure
+- **Production Host**: `eastafricanip.com`
+- **Process Manager**: Phusion Passenger
+- **Reliability**: Keep-warm cron jobs ensuring zero cold-start latency.
+- **Backups**: Daily automated SQL dumps for data integrity.
 
-### Local Development
-1.  **Clone the Repository**:
-    ```bash
-    git clone https://github.com/your-org/tpms.git
-    cd tpms
-    ```
-
-2.  **Install Dependencies**:
-    ```bash
-    pnpm install
-    ```
-
-3.  **Environment Setup**:
-    Configure your `.env` in the root and `apps/api/` directories. Use the provided `.env.production` as a reference.
-
-4.  **Database Setup**:
-    ```bash
-    # Run the migration SQL
-    mysql -u your_user -p your_database < migration.sql
-    ```
-
-5.  **Run the System**:
-    ```bash
-    pnpm dev:all
-    ```
-    This launches the API on port 3001 and the Web UI on port 5173.
+### Sync Workflow
+1.  **Stage**: `npm run build`
+2.  **Commit**: `git commit -m "feat: refinement"`
+3.  **Sync**: `git push origin main`
+4.  **Deploy**: `./scripts/deploy.ps1` (One-click SSH-powered deployment)
 
 ---
 
-## 🛡 Security & Compliance
-
-TPMS is built with legal confidentiality in mind:
--   **Audit Logging**: Every stage change and date modification is recorded in `case_history` with a timestamp and the acting user's ID.
--   **Soft Deletes**: Data is never permanently lost accidentally.
--   **Data Segregation**: Multi-tenancy ready to ensure firm-wide data integrity.
--   **Environment Protection**: Critical credentials (SMTP, DB passwords) are strictly managed via environment variables.
--   **Private Notes**: Internal discussions can be marked private, hidden from client views.
+## ⚖️ Legal & Compliance
+This software is proprietary and purpose-built for **East African Intellectual Property**. It adheres to the specific legal workflows of the Ethiopian Intellectual Property Authority (EIPA) and surrounding jurisdictions.
 
 ---
-
-## 📈 Roadmap
-
-### ✅ Completed Phases
-- [x] **Phase 1**: Foundation (Soft Deletes, Jurisdictions)
-- [x] **Phase 2**: Core Features (Case Notes, Opposition Tracking)
-- [x] **Phase 3**: Financial & Notifications (Fee Schedules, Notification System)
-- [x] **Phase 4**: Frontend UI Components
-
-### 🚧 Upcoming Phases
-- [ ] **Phase 5**: Client Portal (Client-facing status updates)
-- [ ] **Phase 6**: Advanced Search (AI-powered similarity checking)
-- [ ] **Phase 7**: Document Management (Template system, version control)
-- [ ] **Phase 8**: Multi-Firm Support (Multi-tenancy)
+**EAIP Trademark Practice Management System**
+*Digital Precision for the Future of African IP*
 
 ---
-
-## 📱 User Interface Features
-
-### New Components (Phase 4)
-- **JurisdictionSelector**: Smart dropdown showing jurisdiction rules
-- **CaseNotesTab**: Threaded discussions with privacy controls
-- **OppositionSection**: Full opposition lifecycle management
-- **FeeCalculator**: Real-time fee estimation per case
-- **NotificationBell**: Real-time notification center
-- **TrashPage**: Soft delete management
-
-### Page Updates
-- **Case Detail Page**: Now includes Notes and Oppositions tabs
-- **TopBar**: Notification bell with unread count
-- **Notifications Page**: Full notification history
-- **Help Page**: Comprehensive tutorials for all features
-
----
-
-## 🤝 Contribution Guidelines
-
-We maintain a high standard of code quality. Prior to submission:
-1.  Verify the Cypress automation passes: `pnpm cypress:run`.
-2.  Ensure TypeScript types are strict and documented.
-3.  Maintain the "Aesthetic" design system tokens.
-
----
-
-## 📄 License
-
-Proprietary Software - Developed for **East African IP Professionals**.
-
----
-
-> *"The future of Intellectual Property in Africa is digital, automated, and precise. TPMS is the engine of that future."*
+*(Documentation refined Mar 13, 2026 - v2.4.0)*
