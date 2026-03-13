@@ -106,7 +106,8 @@ export default function FormInspectorPage() {
         niceClasses,
         markImage: uploadedMarkImagePath,
         clientId: selectedClientId,
-        status: 'DRAFT',
+        status: formType === 'RENEWAL' ? 'RENEWAL' : 'DRAFT',
+        flowStage: formType === 'RENEWAL' ? 'RENEWAL_DUE' : 'DATA_COLLECTION',
       };
 
       const response = await trademarkService.createCase(payload) as { id?: string; data?: { id?: string } };

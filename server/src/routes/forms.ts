@@ -57,8 +57,8 @@ const submitSchema = z.object({
     ])).optional(),
     markImage: z.string().optional(),
     pdfBase64: z.string().optional(),
-    jurisdiction: z.string().optional()
-    ,
+    jurisdiction: z.string().optional(),
+    flowStage: z.string().optional(),
     eipaFormData: z.record(z.unknown()).optional(),
     formData: z.record(z.unknown()).optional()
 }).passthrough();
@@ -128,6 +128,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
             
             // Metadata
             jurisdiction = 'ET',
+            flowStage,
 
             // Full EIPA Form payload (optional)
             eipaFormData,
@@ -244,6 +245,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
         const chkListOther = Boolean(pickBoolean(['chk_list_other']));
 
         const userId = (req as unknown as { user: { id: string } }).user.id || null;
+        const normalizedStatus = data.status || (mergedForm.formType === 'RENEWAL' ? 'RENEWAL' : 'DRAFT');
+        const normalizedFlowStage = flowStage || (mergedForm.formType === 'RENEWAL' ? 'RENEWAL_DUE' : 'DATA_COLLECTION');
 
         // Validate required fields
         if (!existingClientId && !normalizedApplicantName) {
@@ -316,7 +319,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
             // 2. Create trademark case
             const caseId = crypto.randomUUID();
             
-            await connection.execute(
+            await (connection as any).execute(
                 `INSERT INTO trademark_cases (
                     id, client_id, jurisdiction, mark_name, mark_type, 
                     color_indication, status, filing_number, priority,
@@ -335,8 +338,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     normalizedMarkName,
                     normalizedMarkType,
                     normalizedColorIndication,
-                    'DRAFT',
-                    null, // No filing number on intake
+                    normalizedStatus,
+                    null as string | null, // No filing number on intake
                     normalizedPriority,
                     normalizedPriorityCountry,
                     normalizedPriorityFilingDate,
@@ -349,22 +352,17 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     normalizedThreeDimFeatures,
                     normalizedIsThreeDimensional,
                     normalizedDisclaimer,
-                    chkListCopies,
-                    chkListStatus,
-                    chkListPoa,
-                    chkListPriorityDocs,
-                    chkListDrawing,
-                    chkListPayment,
-                    chkListOther,
-                    null, // client_instructions
-                    null, // remark
-                    'DATA_COLLECTION',
-                    userId,
-                    JSON.stringify({
-                        applicant_sign_day,
-                        applicant_sign_month,
-                        applicant_sign_year_en
-                    })
+                    chkListCopies ? 1 : 0,
+                    chkListStatus ? 1 : 0,
+                    chkListPoa ? 1 : 0,
+                    chkListPriorityDocs ? 1 : 0,
+                    chkListDrawing ? 1 : 0,
+                    chkListPayment ? 1 : 0,
+                    chkListOther ? 1 : 0,
+                    null as string | null, // client_instructions
+                    null as string | null, // remark
+                    normalizedFlowStage,
+                    userId
                 ]
             );
 
