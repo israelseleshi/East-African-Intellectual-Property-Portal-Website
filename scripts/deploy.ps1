@@ -73,6 +73,7 @@ try {
   }
   # Ensure we don't package local uploads
   if (Test-Path "deploy_tmp/backend/uploads") { Remove-Item -Recurse -Force "deploy_tmp/backend/uploads" }
+  if (Test-Path "deploy_tmp/backend/forms-upload") { Remove-Item -Recurse -Force "deploy_tmp/backend/forms-upload" }
   Compress-Archive -Path "deploy_tmp/frontend/*" -DestinationPath "deploy_tmp/frontend.zip" -Force
   Compress-Archive -Path "deploy_tmp/backend/*" -DestinationPath "deploy_tmp/backend.zip" -Force
 
@@ -86,7 +87,7 @@ try {
 
   # 5. Extract and Restart on Server
   Write-Host "Extracting files and restarting application on server..."
-  $REMOTE_COMMAND = "cd /home/$USER/$REMOTE_FRONTEND_DIR && echo '--- Extracting Frontend ---' && unzip -o frontend.zip; echo 'Frontend extracted.'; rm frontend.zip && cd /home/$USER/$REMOTE_BACKEND_DIR && echo '--- Extracting Backend ---' && if [ -d 'uploads' ]; then rm -rf ../uploads_backup && mv uploads ../uploads_backup; fi && if [ -d 'forms-upload' ]; then rm -rf ../forms-upload_backup && mv forms-upload ../forms-upload_backup; fi && echo 'Extracting backend.zip...' && unzip -o backend.zip; echo 'Backend extracted.' && if [ -d '../uploads_backup' ]; then rm -rf uploads && mv ../uploads_backup uploads; fi && if [ -d '../forms-upload_backup' ]; then rm -rf forms-upload && mv ../forms-upload_backup forms-upload; fi && rm -f backend.zip && echo '--- Restarting Node.js ---' && mkdir -p tmp && touch tmp/restart.txt && echo '--- Server Tasks Done ---'"
+  $REMOTE_COMMAND = "cd /home/$USER/$REMOTE_FRONTEND_DIR && echo '--- Extracting Frontend ---' && unzip -o frontend.zip; echo 'Frontend extracted.'; rm frontend.zip && cd /home/$USER/$REMOTE_BACKEND_DIR && echo '--- Extracting Backend ---' && if [ -d 'uploads' ]; then rm -rf ../uploads_backup && mv uploads ../uploads_backup; fi && if [ -d 'forms-upload' ]; then rm -rf ../forms-upload_backup && mv forms-upload ../forms-upload_backup; fi && echo 'Extracting backend.zip...' && unzip -o backend.zip; echo 'Backend extracted.' && if [ -d '../uploads_backup' ]; then rm -rf uploads && mv ../uploads_backup uploads; fi && if [ -d '../forms-upload_backup' ]; then rm -rf forms-upload && mv ../forms-upload_backup forms-upload; fi && mkdir -p uploads/marks forms-upload && rm -f backend.zip && echo '--- Restarting Node.js ---' && mkdir -p tmp && touch tmp/restart.txt && echo '--- Server Tasks Done ---'"
   ssh -i $SSH_KEY -p $SSH_PORT -o ConnectTimeout=12 -o StrictHostKeyChecking=no ${USER}@${HOST_NAME} $REMOTE_COMMAND
   if ($LASTEXITCODE -ne 0) { throw "Remote extract/restart failed (ssh exit $LASTEXITCODE)." }
 

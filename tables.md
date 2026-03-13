@@ -47,7 +47,9 @@ CREATE TABLE `agents` (
 
 ### Data
 
-*This table is empty.*
+| id | name | country | city | subcity | woreda | house_no | telephone | email | po_box | fax | created_at |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| c26bdfa4-31eb-4cc4-a775-a6a22c145007 | Fikadu Asfaw | Ethiopia | Addis Ababa | Bole | 02 | *NULL* | +25112131415 | fikadu@gmail.com | 1000 | +251115839201 | 2026-03-13 09:51:08 |
 
 ## Table: case_history
 
@@ -76,6 +78,7 @@ CREATE TABLE `case_history` (
 | 0c1920ea-a0bb-449e-a89c-1b3edb3cb629 | d1bf977e-f396-4399-8749-de604dc226d4 | 76bdc2a3-270f-4321-a75b-708f826da333 | STAGE_CHANGE: PUBLISHED -> CERTIFICATE_REQUEST | {"flow_stage":"PUBLISHED"} | {"flow_stage":"CERTIFICATE_REQUEST","deadlines":{"flow_stage":"CERTIFICATE_REQUEST","next_action_date":"2026-04-03T00:00:00.000Z","status":"PUBLISHED"}} | 2026-03-09 11:23:47 | *NULL* |
 | 5bf0dd23-71b0-420a-84e0-a704c343764f | d1bf977e-f396-4399-8749-de604dc226d4 | 76bdc2a3-270f-4321-a75b-708f826da333 | STAGE_CHANGE: FORMAL_EXAM -> SUBSTANTIVE_EXAM | {"flow_stage":"FORMAL_EXAM"} | {"flow_stage":"SUBSTANTIVE_EXAM","deadlines":{"flow_stage":"SUBSTANTIVE_EXAM","next_action_date":"2026-03-30T00:00:00.000Z","status":"SUBSTANTIVE_EXAM"}} | 2026-03-09 11:23:30 | *NULL* |
 | 777d4369-4f0b-4301-9724-e1251b424dbc | d1bf977e-f396-4399-8749-de604dc226d4 | 76bdc2a3-270f-4321-a75b-708f826da333 | STAGE_CHANGE: READY_TO_FILE -> FILED | {"flow_stage":"READY_TO_FILE"} | {"flow_stage":"FILED","deadlines":{"flow_stage":"FILED","filing_number":"ET/TM/2026/1234","filing_date":"2026-03-10T00:00:00.000Z","next_action_date":"2026-03-30T00:00:00.000Z","status":"FILED"},"notes":"SUBSTANTIATIVE test"} | 2026-03-08 12:41:35 | *NULL* |
+| 96665d8a-505d-4865-8b8e-f9d22230b185 | d010a200-f68a-4537-8a21-8d722026ec91 | 76bdc2a3-270f-4321-a75b-708f826da333 | FORM_SUBMITTED | {"status":"NEW"} | {"status":"DRAFT","applicantName":"Cypress QA Client 1773419130103","markName":"Cypress Test","hasMarkImage":true} | 2026-03-13 09:51:10 | *NULL* |
 | a4017711-b21b-4311-931e-25385f8f4a0b | d1bf977e-f396-4399-8749-de604dc226d4 | 76bdc2a3-270f-4321-a75b-708f826da333 | STAGE_CHANGE: DATA_COLLECTION -> READY_TO_FILE | {"flow_stage":"DATA_COLLECTION"} | {"flow_stage":"READY_TO_FILE","deadlines":{"flow_stage":"READY_TO_FILE","status":"DRAFT"},"notes":"filing note"} | 2026-03-08 12:39:56 | *NULL* |
 | a5021ef4-bc69-4614-8ad5-2ed27f2fa5ed | d1bf977e-f396-4399-8749-de604dc226d4 | 76bdc2a3-270f-4321-a75b-708f826da333 | STAGE_CHANGE: FILED -> FORMAL_EXAM | {"flow_stage":"FILED"} | {"flow_stage":"FORMAL_EXAM","deadlines":{"flow_stage":"FORMAL_EXAM","next_action_date":"2026-04-08T00:00:00.000Z","status":"FORMAL_EXAM"}} | 2026-03-08 12:42:16 | *NULL* |
 | aafe44bb-5b2a-4a64-a908-abbcf28654d0 | 0bc67627-52c3-4248-b52b-624f68350955 | 76bdc2a3-270f-4321-a75b-708f826da333 | FORM_SUBMITTED | {"status":"NEW"} | {"status":"DRAFT","formPath":"C:\\Users\\israe\\OneDrive\\Documents\\Websites\\TPMS\\TPMS\\server\\src\\forms-upload\\draft_0bc67627-52c3-4248-b52b-624f68350955.pdf","applicantName":"Sara Teklehaimanot","markName":"Sara Industries","hasPdf":true} | 2026-03-12 02:35:05 | *NULL* |
@@ -384,6 +387,7 @@ CREATE TABLE `mark_assets` (
 | id | case_id | type | file_path | is_active | created_at | deleted_at |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2aba9d22-75a3-4e58-b9f9-811b6c7c3866 | 0bc67627-52c3-4248-b52b-624f68350955 | POA | /forms-download/draft_0bc67627-52c3-4248-b52b-624f68350955.pdf | 1 | 2026-03-12 02:35:04 | *NULL* |
+| b1b79d17-c5b9-4dea-a30d-76b8e6b94f34 | d010a200-f68a-4537-8a21-8d722026ec91 | LOGO | /uploads/file-1773420666416-831974020.png | 1 | 2026-03-13 09:51:09 | *NULL* |
 | c4055d3e-4b64-44da-b28a-07738dc6fc66 | d1bf977e-f396-4399-8749-de604dc226d4 | LOGO | /forms-download/mark_ethio_telecom_corporation_ethio_connect_5g_mixed_mark_d1bf977e.png | 1 | 2026-03-08 12:39:04 | *NULL* |
 | f82891ff-75a1-448b-9bea-04324739adca | 0bc67627-52c3-4248-b52b-624f68350955 | LOGO | /forms-download/mark_sara_teklehaimanot_sara_industries_0bc67627.png | 1 | 2026-03-12 02:35:04 | *NULL* |
 
@@ -403,7 +407,7 @@ CREATE TABLE `nice_class_mappings` (
   KEY `class_no` (`class_no`),
   CONSTRAINT `nice_class_mappings_ibfk_1` FOREIGN KEY (`case_id`) REFERENCES `trademark_cases` (`id`) ON DELETE CASCADE,
   CONSTRAINT `nice_class_mappings_ibfk_2` FOREIGN KEY (`class_no`) REFERENCES `nice_classes` (`class_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
 ### Data
@@ -413,6 +417,7 @@ CREATE TABLE `nice_class_mappings` (
 | 46 | d1bf977e-f396-4399-8749-de604dc226d4 | 9 | Telecommunications services, internet service provider, and networking hardware for 5G connectivity. | *NULL* |
 | 47 | d1bf977e-f396-4399-8749-de604dc226d4 | 38 | Telecommunications services, internet service provider, and networking hardware for 5G connectivity. | *NULL* |
 | 49 | 0bc67627-52c3-4248-b52b-624f68350955 | 42 |  | *NULL* |
+| 50 | d010a200-f68a-4537-8a21-8d722026ec91 | 45 | Security Service | *NULL* |
 
 ## Table: nice_classes
 
@@ -610,6 +615,7 @@ CREATE TABLE `trademark_cases` (
 | id | client_id | agent_id | jurisdiction | mark_name | translation | mark_transliteration | mark_language_requiring_traslation | transliteration | transliteration_lang | mark_type | is_three_dimensional | mark_has_three_dim_features | disclaimer | mark_image | mark_description | color_indication | status | filing_number | certificate_number | filing_date | registration_dt | client_expiry_date | expiry_date | next_action_date | priority | priority_country | priority_filing_date | goods_prev_application | priority_declaration | client_instructions | remark | created_at | updated_at | user_id | representative_name | flow_stage | deleted_at | chk_list_copies | chk_list_status | chk_list_poa | chk_list_priority_docs | chk_list_drawing | chk_list_payment | chk_list_other | mark_translation_lang | is_figurative | is_word | is_mixed | is_three_dim | priority_country_name | priority_date_val |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0bc67627-52c3-4248-b52b-624f68350955 | b18e8dac-4cbc-45a0-b941-5b16b3319b15 | *NULL* | ET | Sara Industries | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | COMBINED | 0 | N/A | *NULL* | /forms-download/mark_sara_teklehaimanot_sara_industries_0bc67627.png | Sara Industries | N/A | DRAFT | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | YES | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | 2026-03-12 02:35:03 | 2026-03-12 03:08:47 | 76bdc2a3-270f-4321-a75b-708f826da333 | *NULL* | DATA_COLLECTION | *NULL* | 0 | 0 | 0 | 0 | 0 | 0 | 0 | *NULL* | 0 | 0 | 0 | 0 | *NULL* | *NULL* |
+| d010a200-f68a-4537-8a21-8d722026ec91 | dfd82081-d60f-42bd-a3a3-f62426a10873 | c26bdfa4-31eb-4cc4-a775-a6a22c145007 | ET | Cypress Test | Nothing | *NULL* | *NULL* | *NULL* | *NULL* | WORD | 0 | *NULL* | AM: N/A EN: N/A | /uploads/file-1773420666416-831974020.png | Cypress Test | *NULL* | DRAFT | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | YES | Ethiopia | 2026-03-13 21:00:00 | Priority goods & services | Declaration | *NULL* | *NULL* | 2026-03-13 09:51:09 | 2026-03-13 09:51:09 | 76bdc2a3-270f-4321-a75b-708f826da333 | Fikadu Asfaw | DATA_COLLECTION | *NULL* | 1 | 0 | 0 | 1 | 0 | 0 | 0 | *NULL* | 0 | 0 | 0 | 0 | *NULL* | *NULL* |
 | d1bf977e-f396-4399-8749-de604dc226d4 | 58509e7c-1d98-4ea1-9804-29302073437a | *NULL* | ET | ETHIO-CONNECT 5G Mixed Mark | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | MIXED | 0 | *NULL* | *NULL* | /api/forms-download/mark_ethio_telecom_corporation_ethio_connect_5g_mixed_mark_d1bf977e.png | ETHIO-CONNECT 5G Mixed Mark | Blue, Orange, and White | PUBLISHED | ET/TM/2026/1234 | *NULL* | 2026-03-09 21:00:00 | *NULL* | *NULL* | *NULL* | 2026-04-02 21:00:00 | YES | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | *NULL* | 2026-03-08 12:39:04 | 2026-03-09 11:23:47 | 76bdc2a3-270f-4321-a75b-708f826da333 | *NULL* | CERTIFICATE_REQUEST | *NULL* | 0 | 0 | 0 | 0 | 0 | 0 | 0 | *NULL* | 0 | 0 | 0 | 0 | *NULL* | *NULL* |
 
 ## Table: trademark_cases_backup_20260313

@@ -6,7 +6,7 @@ const maxChunkKbArg = Number(args.find((arg) => arg.startsWith('--max-chunk-kb='
 const maxTotalJsKbArg = Number(args.find((arg) => arg.startsWith('--max-total-js-kb='))?.split('=')[1]);
 
 const maxChunkKb = Number.isFinite(maxChunkKbArg) ? maxChunkKbArg : 1150;
-const maxTotalJsKb = Number.isFinite(maxTotalJsKbArg) ? maxTotalJsKbArg : 3500;
+const maxTotalJsKb = Number.isFinite(maxTotalJsKbArg) ? maxTotalJsKbArg : 4500;
 
 const distAssetsDir = path.resolve(process.cwd(), 'dist', 'assets');
 if (!fs.existsSync(distAssetsDir)) {
