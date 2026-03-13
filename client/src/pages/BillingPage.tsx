@@ -190,66 +190,169 @@ export default function BillingPage() {
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
       const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
-      const marginLeft = 48
-      let y = 790
+      const marginLeft = 50
+      const marginRight = 545
+      let y = 800
 
+      // 1. Logo & Header
+      try {
+        const logoUrl = '/eaip-logo.png'
+        const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer())
+        const logoImage = await pdfDoc.embedPng(logoImageBytes)
+        const logoDims = logoImage.scale(0.125)
+        page.drawImage(logoImage, {
+          x: (595.28 - logoDims.width) / 2,
+          y: y - logoDims.height,
+          width: logoDims.width,
+          height: logoDims.height,
+        })
+        y -= (logoDims.height + 15)
+      } catch (e) {
+        console.warn('Could not load logo for PDF', e)
+        y -= 40
+      }
+
+      // Company Info (Centered)
+      const companyInfo = [
+        'EAST AFRICAN INTELLECTUAL PROPERTY',
+        'Addis Ababa, Ethiopia',
+        'Email: info@eastafricanip.com | Web: www.eastafricanip.com'
+      ]
+      companyInfo.forEach((line, i) => {
+        const fontSize = i === 0 ? 14 : 9
+        const font = i === 0 ? boldFont : regularFont
+        const textWidth = font.widthOfTextAtSize(line, fontSize)
+        page.drawText(line, {
+          x: (595.28 - textWidth) / 2,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0.1, 0.1, 0.1)
+        })
+        y -= (fontSize + 5)
+      })
+
+      y -= 30
+      page.drawLine({
+        start: { x: marginLeft, y },
+        end: { x: marginRight, y },
+        thickness: 1,
+        color: rgb(0.8, 0.8, 0.8)
+      })
+      y -= 40
+
+      // 2. Invoice Title & Basic Info
       page.drawText('INVOICE', {
         x: marginLeft,
         y,
-        size: 26,
+        size: 24,
         font: boldFont,
         color: rgb(0.08, 0.16, 0.32)
       })
-      y -= 38
+      
+      const invoiceNo = `No: ${tx.invoiceNumber || tx.id}`
+      const invNoWidth = boldFont.widthOfTextAtSize(invoiceNo, 12)
+      page.drawText(invoiceNo, {
+        x: marginRight - invNoWidth,
+        y: y + 5,
+        size: 12,
+        font: boldFont
+      })
+      y -= 50
 
-      const rows: Array<[string, string]> = [
-        ['Invoice No', tx.invoiceNumber || tx.id],
-        ['Client', tx.clientName || 'Client'],
-        ['Matter', tx.markName || 'Trademark'],
-        ['Purpose (Stage)', tx.type || 'INVOICE'],
-        ['Issue Date', tx.issueDate ? new Date(tx.issueDate).toLocaleDateString() : tx.date],
-        ['Due Date', tx.dueDate ? new Date(tx.dueDate).toLocaleDateString() : '—'],
-        ['Status', tx.status || 'DRAFT'],
-        ['Amount', `${tx.currency || 'ETB'} ${Number(tx.amount || 0).toLocaleString()}`],
-        ['Payment Method', tx.method || 'Bank Transfer']
-      ]
-
-      rows.forEach(([label, value]) => {
-        page.drawText(`${label}:`, {
+      // 3. Categorized Sections
+      const drawSectionTitle = (title: string, yPos: number) => {
+        page.drawText(title.toUpperCase(), {
           x: marginLeft,
-          y,
-          size: 11,
+          y: yPos,
+          size: 10,
           font: boldFont,
-          color: rgb(0.12, 0.12, 0.12)
+          color: rgb(0.4, 0.4, 0.4)
         })
-        page.drawText(value, {
-          x: marginLeft + 130,
-          y,
-          size: 11,
-          font: regularFont,
-          color: rgb(0.15, 0.15, 0.15)
-        })
-        y -= 22
+        return yPos - 20
+      }
+
+      // Section A: Client & Trademark Details
+      y = drawSectionTitle('Client & Trademark Details', y)
+      
+      // Determine the correct trademark display name
+      // Use mark description if it exists and is different from client name, otherwise markName
+      const trademarkDisplay = (tx.notes && tx.notes.includes('Auto-generated for')) 
+        ? (tx.markName !== tx.clientName ? tx.markName : 'New Trademark') 
+        : (tx.markName || 'Trademark');
+
+      const detailRows: Array<[string, string]> = [
+        ['Client Name', tx.clientName || 'Client'],
+        ['Trademark', trademarkDisplay],
+        ['Service Stage', tx.type || 'Filing Service']
+      ]
+      detailRows.forEach(([label, value]) => {
+        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
+        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
+        y -= 18
       })
 
-      if (tx.notes) {
-        y -= 6
-        page.drawText('Notes:', {
-          x: marginLeft,
-          y,
-          size: 11,
-          font: boldFont,
-          color: rgb(0.12, 0.12, 0.12)
-        })
+      y -= 20
+      // Section B: Billing Schedule
+      y = drawSectionTitle('Billing Schedule', y)
+      const billingRows: Array<[string, string]> = [
+        ['Issue Date', tx.issueDate ? new Date(tx.issueDate).toLocaleDateString() : tx.date],
+        ['Due Date', tx.dueDate ? new Date(tx.dueDate).toLocaleDateString() : '—'],
+        ['Payment Method', tx.method || 'Bank Transfer'],
+        ['Current Status', tx.status || 'DRAFT']
+      ]
+      billingRows.forEach(([label, value]) => {
+        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
+        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
         y -= 18
-        page.drawText(tx.notes.slice(0, 140), {
-          x: marginLeft,
-          y,
-          size: 10,
-          font: regularFont,
-          color: rgb(0.2, 0.2, 0.2)
-        })
-      }
+      })
+
+      y -= 30
+      // 4. Financial Summary Table
+      page.drawRectangle({
+        x: marginLeft,
+        y: y - 10,
+        width: marginRight - marginLeft,
+        height: 40,
+        color: rgb(0.96, 0.97, 0.98)
+      })
+      
+      page.drawText('TOTAL AMOUNT DUE', {
+        x: marginLeft + 15,
+        y: y + 5,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.08, 0.16, 0.32)
+      })
+
+      const amountText = `${tx.currency || 'ETB'} ${Number(tx.amount || 0).toLocaleString()}`
+      const amountWidth = boldFont.widthOfTextAtSize(amountText, 16)
+      page.drawText(amountText, {
+        x: marginRight - amountWidth - 15,
+        y: y + 3,
+        size: 16,
+        font: boldFont,
+        color: rgb(0.08, 0.16, 0.32)
+      })
+      
+      y -= 60
+
+      // 5. Signature Section
+      y -= 40
+      page.drawLine({
+        start: { x: marginRight - 180, y },
+        end: { x: marginRight, y },
+        thickness: 1,
+        color: rgb(0.1, 0.1, 0.1)
+      })
+      y -= 12
+      page.drawText('Authorized Signature', {
+        x: marginRight - 145,
+        y,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1)
+      })
 
       const pdfBytes = await pdfDoc.save()
       const stableBytes = new Uint8Array(pdfBytes.length)

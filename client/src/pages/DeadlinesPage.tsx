@@ -3,6 +3,7 @@ import {
   CaretRight,
   Funnel,
   CaretDown,
+  CaretLeft,
 } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
@@ -72,8 +73,49 @@ export default function DeadlinesPage() {
   const [filter, setFilter] = useState('ALL')
   const [trademarkFilter, setTrademarkFilter] = useState('ALL')
   const [clientFilter, setClientFilter] = useState('ALL')
-  const [deadlines, setDeadlines] = useState<Array<{ id?: string; due_date?: string; type?: string; priority?: string; case_id?: string; mark?: string; jurisdiction?: string; client?: string }>>([])
+  const [deadlines, setDeadlines] = useState<Array<{ id?: string; due_date?: string; type?: string; priority?: string; case_id?: string; mark?: string; jurisdiction?: string; client?: string; status?: string }>>([])
   const [loading, setLoading] = useState(true)
+
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
+    if (direction === 'prev') {
+      newMonth.setMonth(newMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(newMonth.getMonth() + 1);
+    }
+    setCurrentMonth(newMonth);
+  };
+
+  const daysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const startDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const isDeadlineOnDate = (day: number) => {
+    const checkDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const dateStr = checkDate.toISOString().split('T')[0];
+    return deadlines.some(d => d.due_date === dateStr);
+  };
+
+  const isSelected = (day: number) => {
+    if (!selectedDate) return false;
+    return selectedDate.getDate() === day &&
+           selectedDate.getMonth() === currentMonth.getMonth() &&
+           selectedDate.getFullYear() === currentMonth.getFullYear();
+  };
+
+  const isToday = (day: number) => {
+    const today = new Date();
+    return day === today.getDate() &&
+           currentMonth.getMonth() === today.getMonth() &&
+           currentMonth.getFullYear() === today.getFullYear();
+  };
 
   // Extract unique trademarks and clients from deadlines
   const uniqueTrademarks = Array.from(new Set(deadlines.map(d => d.mark).filter(Boolean))).sort()
@@ -85,10 +127,10 @@ export default function DeadlinesPage() {
         const cases = await trademarkService.getCases()
 
         // Flatten deadlines from all cases
-        const allDeadlines = cases.flatMap((c: { deadlines?: Array<{ id?: string; due_date?: string; type?: string; priority?: string; status?: string }>; mark_name?: string; markName?: string; jurisdiction?: string; client_name?: string }) =>
+        const allDeadlines = cases.flatMap((c: any) =>
           (c.deadlines || [])
-            .filter((d: { status?: string }) => d.status !== 'COMPLETED' && d.status !== 'SUPERSEDED')
-            .map((d: { id?: string; due_date?: string; type?: string; priority?: string; status?: string }) => ({
+            .filter((d: any) => d.status !== 'COMPLETED' && d.status !== 'SUPERSEDED')
+            .map((d: any) => ({
             ...d,
             mark: c.mark_name || c.markName,
             jurisdiction: c.jurisdiction,
@@ -325,27 +367,74 @@ export default function DeadlinesPage() {
         {/* Sidebar Calendar/Stats */}
         <div className="space-y-6">
           <div className="apple-card p-6">
-            <h3 className="text-[15px] font-bold mb-4 flex items-center gap-2 text-[var(--eai-text)]">
-              <CalendarIcon size={20} weight="duotone" className="text-[var(--eai-primary)]" />
-              {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-bold flex items-center gap-2 text-[var(--eai-text)]">
+                <CalendarIcon size={20} weight="duotone" className="text-[var(--eai-primary)]" />
+                {currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+              </h3>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => navigateMonth('prev')}
+                  className="p-1.5 hover:bg-[var(--eai-bg)] rounded-full transition-colors text-[var(--eai-text-secondary)]"
+                >
+                  <CaretLeft size={16} weight="bold" />
+                </button>
+                <button
+                  onClick={() => navigateMonth('next')}
+                  className="p-1.5 hover:bg-[var(--eai-bg)] rounded-full transition-colors text-[var(--eai-text-secondary)]"
+                >
+                  <CaretRight size={16} weight="bold" />
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-7 gap-1 text-center text-[12px]">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
                 <div key={day} className="font-bold text-[var(--eai-text-secondary)] py-2">{day}</div>
               ))}
-              {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
-                <div
-                  key={day}
-                  className={[
-                    "py-2 rounded-none transition-all cursor-default",
-                    day === new Date().getDate() ? "bg-[var(--eai-primary)] text-white font-bold shadow-lg shadow-[var(--eai-primary)]/20" :
-                      "hover:bg-[var(--eai-bg)] text-[var(--eai-text)]"
-                  ].join(' ')}
-                >
-                  {day}
-                </div>
+              {/* Empty cells for start of month */}
+              {Array.from({ length: startDayOfMonth(currentMonth) }).map((_, i) => (
+                <div key={`empty-${i}`} className="py-2" />
               ))}
+              {/* Day cells */}
+              {Array.from({ length: daysInMonth(currentMonth) }, (_, i) => i + 1).map(day => {
+                const hasDeadline = isDeadlineOnDate(day);
+                return (
+                  <div
+                    key={day}
+                    onClick={() => setSelectedDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))}
+                    className={[
+                      "py-2 rounded-lg transition-all cursor-pointer relative",
+                      isToday(day) ? "bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] font-bold" :
+                      isSelected(day) ? "bg-[var(--eai-primary)] text-white font-bold shadow-md" :
+                      "hover:bg-[var(--eai-bg)] text-[var(--eai-text)]",
+                      hasDeadline && !isSelected(day) ? "after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-red-500 after:rounded-full" : ""
+                    ].join(' ')}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
             </div>
+            {selectedDate && (
+              <div className="mt-6 pt-4 border-t border-[var(--eai-border)]">
+                <div className="text-[11px] font-black uppercase tracking-widest text-[var(--eai-text-secondary)] mb-2">
+                  Selected: {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </div>
+                <div className="space-y-2">
+                  {deadlines
+                    .filter(d => d.due_date === selectedDate.toISOString().split('T')[0])
+                    .map(d => (
+                      <div key={d.id} className="p-2 bg-[var(--eai-bg)]/50 rounded-lg text-[12px] border border-[var(--eai-border)]">
+                        <div className="font-bold truncate">{d.mark}</div>
+                        <div className="text-[10px] text-[var(--eai-text-secondary)] truncate">{d.type?.replace(/_/g, ' ')}</div>
+                      </div>
+                    ))}
+                  {deadlines.filter(d => d.due_date === selectedDate.toISOString().split('T')[0]).length === 0 && (
+                    <div className="text-[12px] text-[var(--eai-text-secondary)] italic">No deadlines</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
