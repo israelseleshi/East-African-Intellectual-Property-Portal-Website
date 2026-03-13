@@ -74,6 +74,15 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(csrfTokenSetter);
 
+// Ensure upload directories exist
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+const MARKS_UPLOAD_DIR = path.resolve(uploadDir, 'marks');
+if (!fs.existsSync(MARKS_UPLOAD_DIR)) {
+  fs.mkdirSync(MARKS_UPLOAD_DIR, { recursive: true });
+}
+
 // Serve uploads from both /uploads and /api/uploads for production compatibility
 app.use('/uploads', express.static(uploadDir));
 app.use('/api/uploads', express.static(uploadDir));
@@ -91,7 +100,6 @@ const formsUploadCandidates = [
 ].filter((v): v is string => Boolean(v));
 
 const FORMS_UPLOAD_DIR = formsUploadCandidates.find((dir) => fs.existsSync(dir)) || formsUploadCandidates[0];
-const MARKS_UPLOAD_DIR = path.resolve(uploadDir, 'marks');
 logger.info('boot-forms-upload-dir', { formsUploadDir: FORMS_UPLOAD_DIR });
 app.use('/forms-download', express.static(FORMS_UPLOAD_DIR));
 app.use('/api/forms-download', express.static(FORMS_UPLOAD_DIR));

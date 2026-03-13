@@ -59,4 +59,6 @@ export const FEE_SCHEDULE: Record<string, any> = {
 };
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-prod';
-export const uploadDir = path.resolve(process.cwd(), 'uploads');
+export const uploadDir = process.env.UPLOAD_DIR 
+    ? path.resolve(process.env.UPLOAD_DIR) 
+    : path.resolve(process.cwd(), 'uploads');
