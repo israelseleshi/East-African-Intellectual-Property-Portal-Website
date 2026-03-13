@@ -38,15 +38,6 @@ export function FormHeader({
         <Button
           variant="outline"
           size="sm"
-          onClick={onRefresh}
-          className="gap-2"
-        >
-          <RefreshCcw className="h-4 w-4" />
-          Refresh
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
           id="inspect-tags-button"
           onClick={onToggleFields}
           className={`gap-2 ${showFields ? 'bg-[var(--eai-bg)]' : ''}`}
@@ -76,7 +67,7 @@ export function FormHeader({
           ) : (
             <Briefcase className="h-4 w-4" />
           )}
-          {isSubmitting ? 'Submitting...' : 'Submit to Docket'}
+          {isSubmitting ? 'Submitting...' : 'Submit Application'}
         </Button>
       </div>
     </div>

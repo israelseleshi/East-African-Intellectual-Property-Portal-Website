@@ -163,36 +163,27 @@ export default function NewClientPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-[var(--eai-text)]">Gender</Label>
-                <div className="flex gap-2">
-                  {(['MALE', 'FEMALE', 'OTHER'] as const).map((gender) => (
-                    <button
-                      key={gender}
-                      type="button"
-                      onClick={() => handleChange('gender', gender)}
-                      className={`flex-1 py-2 px-3 text-[13px] font-bold border rounded-none transition-all ${
-                        formData.gender === gender
-                          ? 'bg-[var(--eai-primary)] text-white border-[var(--eai-primary)]'
-                          : 'bg-[var(--eai-bg)] text-[var(--eai-text)] border-[var(--eai-border)] hover:border-[var(--eai-primary)]'
-                      }`}
-                    >
-                      {gender.charAt(0) + gender.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => handleChange('gender', '')}
-                    className={`flex-1 py-2 px-3 text-[13px] font-bold border rounded-none transition-all ${
-                      !formData.gender
-                        ? 'bg-[var(--eai-primary)] text-white border-[var(--eai-primary)]'
-                        : 'bg-[var(--eai-bg)] text-[var(--eai-text)] border-[var(--eai-border)] hover:border-[var(--eai-primary)]'
-                    }`}
-                  >
-                    N/A
-                  </button>
+              {formData.type === 'INDIVIDUAL' && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-[var(--eai-text)]">Gender</Label>
+                  <div className="flex gap-2">
+                    {(['MALE', 'FEMALE'] as const).map((gender) => (
+                      <button
+                        key={gender}
+                        type="button"
+                        onClick={() => handleChange('gender', gender)}
+                        className={`flex-1 py-2 px-3 text-[13px] font-bold border rounded-none transition-all ${
+                          formData.gender === gender
+                            ? 'bg-[var(--eai-primary)] text-white border-[var(--eai-primary)]'
+                            : 'bg-[var(--eai-bg)] text-[var(--eai-text)] border-[var(--eai-border)] hover:border-[var(--eai-primary)]'
+                        }`}
+                      >
+                        {gender.charAt(0) + gender.slice(1).toLowerCase()}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-[var(--eai-text)]">Nationality</Label>

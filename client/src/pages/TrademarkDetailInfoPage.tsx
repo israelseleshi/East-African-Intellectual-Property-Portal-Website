@@ -1001,31 +1001,19 @@ export default function TrademarkDetailInfoPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Applicant signature name</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('applicant_signature') || '')}
-                          onChange={(e) => handleEipaFieldChange('applicant_signature', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('applicant_signature') ? String(eipaField('applicant_signature')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
                       <Label className="text-micro text-[var(--eai-text-secondary)]">Signed date (Day/Month/Year)</Label>
                       {isEditing ? (
                         <div className="flex gap-2">
                           <Input
                             placeholder="Day"
-                            value={String(eipaField('applicant_sign_day_en') || '')}
-                            onChange={(e) => handleEipaFieldChange('applicant_sign_day_en', e.target.value)}
+                            value={String(eipaField('applicant_sign_day') || '')}
+                            onChange={(e) => handleEipaFieldChange('applicant_sign_day', e.target.value)}
                             className="apple-input h-8 text-body font-medium w-16"
                           />
                           <Input
                             placeholder="Month"
-                            value={String(eipaField('applicant_sign_month_en') || '')}
-                            onChange={(e) => handleEipaFieldChange('applicant_sign_month_en', e.target.value)}
+                            value={String(eipaField('applicant_sign_month') || '')}
+                            onChange={(e) => handleEipaFieldChange('applicant_sign_month', e.target.value)}
                             className="apple-input h-8 text-body font-medium w-24"
                           />
                           <Input
@@ -1037,8 +1025,8 @@ export default function TrademarkDetailInfoPage() {
                         </div>
                       ) : (
                         <div className="text-body font-medium text-[var(--eai-text)]">
-                          {eipaField('applicant_sign_day_en') || eipaField('applicant_sign_month_en') || eipaField('applicant_sign_year_en')
-                            ? `${String(eipaField('applicant_sign_day_en') || '')} ${String(eipaField('applicant_sign_month_en') || '')} ${String(eipaField('applicant_sign_year_en') || '')}`.trim()
+                          {eipaField('applicant_sign_day') || eipaField('applicant_sign_month') || eipaField('applicant_sign_year_en')
+                            ? `${String(eipaField('applicant_sign_day') || '')} ${String(eipaField('applicant_sign_month') || '')} ${String(eipaField('applicant_sign_year_en') || '')}`.trim()
                             : '—'}
                         </div>
                       )}
