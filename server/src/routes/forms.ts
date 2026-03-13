@@ -206,6 +206,16 @@ router.post('/submit', authenticateToken, async (req, res) => {
         const normalizedColorIndication = colorIndication || pickString(['mark_color_indication']) || 'Black & White';
         const normalizedPriorityCountry = priorityCountry || pickString(['priority_country']) || null;
         const normalizedPriorityFilingDate = pickDate(['priority_filing_date', 'priority_application_filing_date']);
+        
+        // Add signing date components from eipaFormData if available
+        const applicant_sign_day = pickString(['applicant_sign_day']);
+        const applicant_sign_month = pickString(['applicant_sign_month']);
+        let applicant_sign_year_en = pickString(['applicant_sign_year_en']);
+        
+        // Convert YYYY to YY for signing year as requested
+        if (applicant_sign_year_en && applicant_sign_year_en.length === 4) {
+            applicant_sign_year_en = applicant_sign_year_en.slice(-2);
+        }
         const normalizedGoodsPrevApplication = pickString(['goods_and_services_covered_by_the_previous_application', 'priority_goods_services']) || null;
         const normalizedPriorityDeclaration = pickString(['priority_right_declaration']) || null;
         const normalizedTranslation = pickString(['mark_translation']) || null;
@@ -349,7 +359,12 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     null, // client_instructions
                     null, // remark
                     'DATA_COLLECTION',
-                    userId
+                    userId,
+                    JSON.stringify({
+                        applicant_sign_day,
+                        applicant_sign_month,
+                        applicant_sign_year_en
+                    })
                 ]
             );
 

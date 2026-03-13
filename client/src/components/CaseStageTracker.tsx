@@ -217,10 +217,13 @@ export default function CaseStageTracker({
           {STAGES.map((stage, index) => {
             const isCompleted = index < currentIndex;
             const isCurrent = index === currentIndex;
-            if (!isCurrent && !isCompleted && index > currentIndex + 1) return null; // Only show context
+            const isNext = index === currentIndex + 1;
+            
+            // Show the stage if it's completed, current, or the immediate next one
+            if (!isCurrent && !isCompleted && !isNext) return null;
 
-            const deadline = getStageDeadline(stage.key);
             const Icon = stage.icon;
+            const deadline = getStageDeadline(stage.key);
 
             return (
               <div
@@ -236,13 +239,13 @@ export default function CaseStageTracker({
                   <div className={`h-8 w-8 flex items-center justify-center ${isCompleted ? 'text-[#34C759]' : 'text-[var(--eai-primary)]'}`}>
                     {isCompleted ? <CheckCircle size={20} weight="bold" /> : <Icon size={20} />}
                   </div>
-                  {isCurrent && isEditable && (
+                  {(isCurrent || (isNext && isEditable)) && (
                     <Button
-                      onClick={handleAdvanceClick}
+                      onClick={() => isCurrent ? handleAdvanceClick() : onStageChange(stage.key)}
                       disabled={isAdvancing}
                       className="apple-button-primary h-7 px-3 text-[10px]"
                     >
-                      {isAdvancing ? '...' : (stage.actionLabel || 'Next Stage')}
+                      {isAdvancing ? '...' : (isCurrent ? (stage.actionLabel || 'Next Stage') : `Start ${stage.label}`)}
                     </Button>
                   )}
                 </div>
