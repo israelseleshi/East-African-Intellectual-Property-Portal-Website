@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { trademarkService } from '../utils/api';
+import { api, trademarkService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
 import {
   RefreshCcw,
@@ -45,6 +45,8 @@ export default function FormInspectorPage() {
     setNiceClasses,
     markImageBase64,
     setMarkImageBase64,
+    markImageFile,
+    setMarkImageFile,
     previewUrl,
     previewLoading,
     previewError,
@@ -79,21 +81,46 @@ export default function FormInspectorPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      let uploadedMarkImagePath: string | null = markImageBase64;
+
+      if (markImageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', markImageFile);
+        uploadFormData.append('type', 'LOGO');
+
+        const uploadResponse = await api.post('/documents/upload', uploadFormData);
+        const filePath = uploadResponse?.data?.filePath;
+        uploadedMarkImagePath = typeof filePath === 'string' ? filePath : null;
+      }
+
+      const normalizedFormData: Record<string, unknown> = { ...formData };
+      if (
+        typeof normalizedFormData.renewal_mark_logo === 'string'
+        && normalizedFormData.renewal_mark_logo.startsWith('data:')
+      ) {
+        normalizedFormData.renewal_mark_logo = uploadedMarkImagePath || '';
+      }
+
       const payload = {
-        ...formData,
+        ...normalizedFormData,
         niceClasses,
-        markImage: markImageBase64,
+        markImage: uploadedMarkImagePath,
         clientId: selectedClientId,
         status: 'DRAFT',
       };
 
-      const response = await trademarkService.createCase(payload);
+      const response = await trademarkService.createCase(payload) as { id?: string; data?: { id?: string } };
+      const caseId = response?.id || response?.data?.id;
+      if (!caseId) {
+        throw new Error('Case was created but no case id was returned by the API.');
+      }
+
       addToast({
         title: 'Success',
         description: 'Trademark case created successfully.',
         type: 'success',
       });
-      navigate(`/trademarks/${response.data.id}`);
+      navigate(`/trademarks/${caseId}`);
     } catch (error) {
       console.error('Submission error:', error);
       addToast({
@@ -215,6 +242,7 @@ export default function FormInspectorPage() {
               niceClasses={niceClasses}
               markImageBase64={markImageBase64}
               onImageChange={setMarkImageBase64}
+              onImageFileChange={setMarkImageFile}
               showFields={showFields}
               availableFields={availableFields}
             />

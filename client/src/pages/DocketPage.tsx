@@ -18,7 +18,7 @@ import {
   CaretDown,
   CaretUp
 } from '@phosphor-icons/react'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -357,16 +357,39 @@ export default function DocketPage() {
       }
 
       // 2. Prepare data for filling
+      const rawEipaForm = (typeof caseData.eipaForm === 'object' && caseData.eipaForm)
+        ? caseData.eipaForm as Record<string, unknown>
+        : {};
+
       const fillData = {
+        ...rawEipaForm,
         ...caseData,
-        applicant_name: caseData.client?.name || caseData.client_name,
-        address_street: caseData.client?.addressStreet || caseData.client_address_street,
-        city_name: caseData.client?.city || caseData.client_city,
-        nationality: caseData.client?.nationality || caseData.client_nationality,
-        email: caseData.client?.email || caseData.client_email,
-        mark_description: caseData.mark_name || caseData.markName,
-        filing_number: caseData.filing_number || caseData.filingNumber,
-        registration_no: caseData.registration_no || caseData.registrationNo,
+        applicant_name_english: rawEipaForm.applicant_name_english || caseData.client?.name || caseData.client_name || '',
+        applicant_name_amharic: rawEipaForm.applicant_name_amharic || caseData.client?.localName || caseData.client_local_name || '',
+        address_street: rawEipaForm.address_street || caseData.client?.addressStreet || caseData.client_address_street || '',
+        address_zone: rawEipaForm.address_zone || caseData.client?.addressZone || caseData.client_address_zone || '',
+        city_name: rawEipaForm.city_name || caseData.client?.city || caseData.client_city || '',
+        city_code: rawEipaForm.city_code || caseData.client?.cityCode || caseData.client_city_code || '',
+        state_name: rawEipaForm.state_name || caseData.client?.stateName || caseData.client_state_name || '',
+        state_code: rawEipaForm.state_code || caseData.client?.stateCode || caseData.client_state_code || '',
+        zip_code: rawEipaForm.zip_code || caseData.client?.zipCode || caseData.client_zip_code || '',
+        house_no: rawEipaForm.house_no || caseData.client?.houseNo || caseData.client_house_no || '',
+        wereda: rawEipaForm.wereda || caseData.client?.wereda || caseData.client_wereda || '',
+        po_box: rawEipaForm.po_box || caseData.client?.poBox || caseData.client_po_box || '',
+        telephone: rawEipaForm.telephone || caseData.client?.phone || caseData.client_telephone || '',
+        email: rawEipaForm.email || caseData.client?.email || caseData.client_email || '',
+        fax: rawEipaForm.fax || caseData.client?.fax || caseData.client_fax || '',
+        nationality: rawEipaForm.nationality || caseData.client?.nationality || caseData.client_nationality || '',
+        residence_country: rawEipaForm.residence_country || caseData.client?.residenceCountry || caseData.client_residence_country || '',
+        mark_description: rawEipaForm.mark_description || caseData.mark_description || caseData.mark_name || caseData.markName || '',
+        mark_translation: rawEipaForm.mark_translation || caseData.translation || '',
+        mark_transliteration: rawEipaForm.mark_transliteration || caseData.mark_transliteration || '',
+        mark_language_requiring_traslation: rawEipaForm.mark_language_requiring_traslation || caseData.mark_language_requiring_traslation || '',
+        mark_has_three_dim_features: rawEipaForm.mark_has_three_dim_features || caseData.mark_has_three_dim_features || '',
+        mark_color_indication: rawEipaForm.mark_color_indication || caseData.color_indication || caseData.colorIndication || '',
+        image_field: rawEipaForm.image_field || caseData.mark_image || caseData.markImage || '',
+        filing_number: rawEipaForm.filing_number || caseData.filing_number || caseData.filingNumber || '',
+        registration_no: rawEipaForm.registration_no || caseData.registration_no || caseData.registrationNo || '',
         jurisdiction: caseData.jurisdiction,
       };
 
@@ -379,7 +402,7 @@ export default function DocketPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `EIPA_FORM_01_${fillData.applicant_name || 'Trademark'}_${caseId.substring(0, 8)}.pdf`;
+      link.download = `EIPA_FORM_01_${fillData.applicant_name_english || 'Trademark'}_${caseId.substring(0, 8)}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -400,81 +423,87 @@ export default function DocketPage() {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
-      const exportData = sortedRows.map(c => ({
-        'Mark Name': c.markName || c.mark_name || '—',
-        'Filing Number': c.filing_number || c.filingNumber || 'PENDING',
-        'Jurisdiction': JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction,
-        'Status': STATUS_NAMES[c.status || 'DRAFT'] || c.status,
-        'Client': c.client_name || c.client?.name || '—',
-        'Client Type': c.client_type || c.client?.type || '—',
-        'Mark Type': c.markType || 'WORD',
-        'Color Indication': c.colorIndication || 'B&W',
-        'Application Date': c.filing_date || c.filingDate || '—',
-        'Publication Date': (c as any).publication_date || (c as any).publicationDate || '—',
-        'Registration Date': c.registration_dt || c.registrationDt || '—',
-        'Expiry Date': (c as any).expiry_date || (c as any).expiryDate || '—',
-        'Next Action Date': c.next_action_date || c.nextActionDate || '—',
-        'Priority': c.priority || 'NO',
-        'Nice Classes': (c as any).nice_classes || (c as any).niceClasses?.join(', ') || '—',
-        'Goods & Services': (c as any).goods_services || (c as any).goodsServices || '—',
-        'Client Instructions': (c as any).client_instructions || (c as any).clientInstructions || '—',
-        'Remarks': (c as any).remark || '—',
-        'Created At': c.created_at || '—',
-        'Updated At': c.updated_at || '—'
-      }));
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Trademarks');
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      
-      // Professional Styling (Column Widths)
-      const wscols = [
-        { wch: 35 }, // Mark Name
-        { wch: 22 }, // Filing Number
-        { wch: 18 }, // Jurisdiction
-        { wch: 18 }, // Status
-        { wch: 30 }, // Client
-        { wch: 18 }, // Client Type
-        { wch: 18 }, // Mark Type
-        { wch: 22 }, // Color
-        { wch: 20 }, // App Date
-        { wch: 20 }, // Pub Date
-        { wch: 20 }, // Reg Date
-        { wch: 20 }, // Exp Date
-        { wch: 20 }, // Next Action
-        { wch: 12 }, // Priority
-        { wch: 18 }, // Classes
-        { wch: 60 }, // Goods/Services
-        { wch: 45 }, // Instructions
-        { wch: 45 }, // Remarks
-        { wch: 22 }, // Created
-        { wch: 22 }  // Updated
+      // Add Headers
+      const headers = [
+        'Mark Name', 'Filing Number', 'Jurisdiction', 'Status', 'Client', 'Client Type',
+        'Mark Type', 'Color Indication', 'Application Date', 'Publication Date',
+        'Registration Date', 'Expiry Date', 'Next Action Date', 'Priority',
+        'Nice Classes', 'Goods & Services', 'Client Instructions', 'Remarks',
+        'Created At', 'Updated At'
       ];
-      ws['!cols'] = wscols;
+      const headerRow = worksheet.addRow(headers);
 
-      // Add modern styling to headers
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:T1');
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const address = XLSX.utils.encode_col(C) + '1';
-        if (!ws[address]) continue;
-        ws[address].s = {
-          fill: { fgColor: { rgb: "0F2652" } }, // Dark Blue (EAI Primary)
-          font: { color: { rgb: "FFFFFF" }, bold: true, sz: 12, name: 'Segoe UI' },
-          alignment: { horizontal: "center", vertical: "center" },
-          border: {
-            top: { style: 'thin', color: { rgb: "000000" } },
-            bottom: { style: 'thin', color: { rgb: "000000" } },
-            left: { style: 'thin', color: { rgb: "000000" } },
-            right: { style: 'thin', color: { rgb: "000000" } }
-          }
+      // Style Headers
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: '0F2652' } // Dark Blue (EAI Primary)
         };
-      }
+        cell.font = {
+          color: { argb: 'FFFFFF' },
+          bold: true,
+          size: 12,
+          name: 'Segoe UI'
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Trademarks');
-      
+      // Add Data Rows
+      sortedRows.forEach(c => {
+        worksheet.addRow([
+          markLabel(c),
+          c.filing_number || c.filingNumber || 'PENDING',
+          JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction,
+          STATUS_NAMES[c.status || 'DRAFT'] || c.status,
+          c.client_name || c.client?.name || '—',
+          c.client_type || c.client?.type || '—',
+          c.markType || 'WORD',
+          c.colorIndication || 'B&W',
+          c.filing_date || c.filingDate || '—',
+          (c as any).publication_date || (c as any).publicationDate || '—',
+          c.registration_dt || c.registrationDt || '—',
+          (c as any).expiry_date || (c as any).expiryDate || '—',
+          c.next_action_date || c.nextActionDate || '—',
+          c.priority || 'NO',
+          (c as any).nice_classes || (c as any).niceClasses?.join(', ') || '—',
+          (c as any).goods_services || (c as any).goodsServices || '—',
+          (c as any).client_instructions || (c as any).clientInstructions || '—',
+          (c as any).remark || '—',
+          c.created_at || '—',
+          c.updated_at || '—'
+        ]);
+      });
+
+      // Column Widths
+      worksheet.columns = [
+        { width: 35 }, { width: 22 }, { width: 18 }, { width: 18 }, { width: 30 },
+        { width: 18 }, { width: 18 }, { width: 22 }, { width: 20 }, { width: 20 },
+        { width: 20 }, { width: 20 }, { width: 20 }, { width: 12 }, { width: 18 },
+        { width: 60 }, { width: 45 }, { width: 45 }, { width: 22 }, { width: 22 }
+      ];
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
       const dateStr = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `EIPA_TPMS_Docket_${dateStr}.xlsx`);
+      
+      link.href = url;
+      link.download = `EIPA_TPMS_Docket_${dateStr}.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
 
       addToast({
         title: 'Export Successful',

@@ -10,6 +10,9 @@
     "build": "npm run build --prefix client && npm run build --prefix server",
     "typecheck": "npm run typecheck --prefix client && npm run typecheck --prefix server",
     "lint": "npm run lint --prefix client && npm run lint --prefix server",
+    "migrate:mark-image-base64": "npm run migrate:mark-image-base64 --prefix server",
+    "migrate:mark-image-base64:dry": "npm run migrate:mark-image-base64:dry --prefix server",
+    "healthcheck:mark-image-schema": "npm run healthcheck:mark-image-schema --prefix server",
     "sync:tables": "node server/generate_tables.js",
     "audit:structure": "node scripts/audit-structure.js"
   },

@@ -11,6 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sync:tables": "node generate_tables.js",
+    "migrate:mark-image-base64": "tsx --env-file=.env scripts/migrate-mark-image-base64.ts",
+    "migrate:mark-image-base64:dry": "tsx --env-file=.env scripts/migrate-mark-image-base64.ts --dry-run",
+    "healthcheck:mark-image-schema": "tsx --env-file=.env scripts/healthcheck-mark-image-and-schema.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint src --ext .ts,.js --fix"
