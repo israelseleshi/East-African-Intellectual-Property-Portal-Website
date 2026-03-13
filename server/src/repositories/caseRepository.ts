@@ -17,15 +17,34 @@ export interface DeadlineRow extends RowDataPacket {
 export interface CaseDetailRow extends RowDataPacket {
   client_id_ref: string;
   client_name: string;
+  client_local_name: string | null;
   client_type: string;
+  client_gender: string | null;
   client_nationality: string | null;
+  client_residence_country: string | null;
   client_email: string | null;
   client_address_street: string | null;
+  client_address_zone: string | null;
+  client_wereda: string | null;
+  client_house_no: string | null;
   client_city: string | null;
+  client_state_name: string | null;
+  client_city_code: string | null;
+  client_state_code: string | null;
   client_zip_code: string | null;
+  client_po_box: string | null;
   client_telephone: string | null;
   client_fax: string | null;
-  eipa_form_json?: unknown;
+  agent_name: string | null;
+  agent_country: string | null;
+  agent_city: string | null;
+  agent_subcity: string | null;
+  agent_woreda: string | null;
+  agent_house_no: string | null;
+  agent_telephone: string | null;
+  agent_email: string | null;
+  agent_po_box: string | null;
+  agent_fax: string | null;
   [key: string]: unknown;
 }
 
@@ -91,16 +110,37 @@ export const caseRepository = {
       SELECT tc.*,
         c.id as client_id_ref,
         c.name as client_name,
+        c.local_name as client_local_name,
         c.type as client_type,
+        c.gender as client_gender,
         c.nationality as client_nationality,
+        c.residence_country as client_residence_country,
         c.email as client_email,
         c.address_street as client_address_street,
+        c.address_zone as client_address_zone,
+        c.wereda as client_wereda,
+        c.house_no as client_house_no,
         c.city as client_city,
+        c.state_name as client_state_name,
+        c.city_code as client_city_code,
+        c.state_code as client_state_code,
         c.zip_code as client_zip_code,
+        c.po_box as client_po_box,
         c.telephone as client_telephone,
-        c.fax as client_fax
+        c.fax as client_fax,
+        a.name as agent_name,
+        a.country as agent_country,
+        a.city as agent_city,
+        a.subcity as agent_subcity,
+        a.woreda as agent_woreda,
+        a.house_no as agent_house_no,
+        a.telephone as agent_telephone,
+        a.email as agent_email,
+        a.po_box as agent_po_box,
+        a.fax as agent_fax
       FROM trademark_cases tc
       JOIN clients c ON tc.client_id = c.id
+      LEFT JOIN agents a ON tc.agent_id = a.id
       WHERE tc.id = ?
       `,
       [caseId]

@@ -439,7 +439,7 @@ export default function DocketPage() {
       const headerRow = worksheet.addRow(headers);
 
       // Style Headers
-      headerRow.eachCell((cell) => {
+      headerRow.eachCell((cell: any) => {
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',

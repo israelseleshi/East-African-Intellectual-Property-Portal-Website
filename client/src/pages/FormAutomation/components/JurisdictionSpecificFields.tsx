@@ -20,6 +20,7 @@ interface JurisdictionSpecificFieldsProps {
   niceClasses: number[];
   markImageBase64: string | null;
   onImageChange: (base64: string | null) => void;
+  onImageFileChange: (file: File | null) => void;
   showFields: boolean;
   availableFields: string[];
 }
@@ -35,6 +36,7 @@ export function JurisdictionSpecificFields({
   niceClasses,
   markImageBase64,
   onImageChange,
+  onImageFileChange,
   showFields,
   availableFields
 }: JurisdictionSpecificFieldsProps) {
@@ -53,6 +55,7 @@ export function JurisdictionSpecificFields({
           handleClientSelect={onClientChange}
           markImage={markImageBase64}
           onImageChange={onImageChange}
+          onImageFileChange={onImageFileChange}
         />
       </div>
     );
@@ -83,6 +86,7 @@ export function JurisdictionSpecificFields({
         handleInputChange={handleInputChange}
         markImage={markImageBase64}
         onImageChange={onImageChange}
+        onImageFileChange={onImageFileChange}
       />
 
       <NiceClassificationSection

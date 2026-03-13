@@ -8,6 +8,7 @@ interface MarkSpecificationSectionProps {
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
   markImage: string | null;
   onImageChange: (base64: string | null) => void;
+  onImageFileChange: (file: File | null) => void;
 }
 
 export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> = ({
@@ -15,15 +16,20 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
   handleInputChange,
   markImage,
   onImageChange,
+  onImageFileChange,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      onImageFileChange(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        onImageChange(reader.result as string);
+        const base64 = reader.result as string;
+        onImageChange(base64);
+        // CRITICAL: Update image_field so pdfUtils.ts picks it up for application_form.pdf
+        handleInputChange('image_field', base64);
       };
       reader.readAsDataURL(file);
     }
@@ -31,6 +37,8 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
 
   const removeImage = () => {
     onImageChange(null);
+    onImageFileChange(null);
+    handleInputChange('image_field', '');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
   const markTypeOptions = [

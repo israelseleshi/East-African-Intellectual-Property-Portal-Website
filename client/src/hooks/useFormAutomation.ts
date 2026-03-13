@@ -23,6 +23,7 @@ export function useFormAutomation() {
   const [showFields, setShowFields] = useState(false);
   const [niceClasses, setNiceClasses] = useState<number[]>([]);
   const [markImageBase64, setMarkImageBase64] = useState<string | null>(null);
+  const [markImageFile, setMarkImageFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState<EipaFormData>({
     applicant_name_english: '',
@@ -245,6 +246,8 @@ export function useFormAutomation() {
     setNiceClasses,
     markImageBase64,
     setMarkImageBase64,
+    markImageFile,
+    setMarkImageFile,
     previewUrl,
     previewLoading,
     previewError,

@@ -43,14 +43,6 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
             />
           </FormField>
         )}
-        <FormField label="Applicant signature name">
-          <input
-            value={formData.applicant_sign_day}
-            onChange={(e) => handleInputChange('applicant_sign_day', e.target.value)}
-            className="apple-input"
-            placeholder="Type name for digital signature"
-          />
-        </FormField>
         <div className="grid grid-cols-3 gap-4">
           <FormField label="Day">
             <input

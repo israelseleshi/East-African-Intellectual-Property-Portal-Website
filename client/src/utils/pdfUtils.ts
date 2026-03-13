@@ -310,10 +310,8 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       console.log('--- Filling Application Form ---');
       // I. Applicant Details
       console.log('--- Section I ---');
-      await fillField(['applicant_name_english'], data.applicant_name_english);
-      
       const appAmharicName = data.applicant_name_amharic || (data as any).renewal_applicant_name_amharic;
-      console.log('[PDF-ENGINE] Filling applicant_name_amharic with:', appAmharicName);
+      await fillField(['applicant_name_english', 'applicant_name_english_2'], data.applicant_name_english);
       await fillField(['applicant_name_amharic'], appAmharicName, 11);
       
       await fillField(['address_street'], data.address_street);
@@ -341,7 +339,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['agent_name'], data.agent_name);
       await fillField(['agent_country'], data.agent_country);
       await fillField(['agent_city'], data.agent_city);
-      await fillField(['agent subcity', 'agent_subcity'], data.agent_subcity);
+      await fillField(['agent_subcity'], data.agent_subcity);
       await fillField(['agent_woreda'], data.agent_woreda);
       await fillField(['agent_house_no'], data.agent_house_no);
       await fillField(['agent_telephone'], data.agent_telephone);
@@ -364,10 +362,16 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['mark_description'], data.mark_description);
       await fillField(['mark_translation'], data.mark_translation);
       await fillField(['mark_transliteration'], data.mark_transliteration);
-      await fillField(['mark_language_requiring_traslation'], data.mark_language_requiring_traslation);
+      await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation'], data.mark_language_requiring_traslation);
       await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
       await fillField(['mark_color_indication'], data.mark_color_indication);
-      await fillField(['image_field'], data.image_field);
+      
+      // Fix image field mapping - template uses 'image_field'
+      // Try both possible data properties
+      const markImage = data.image_field || (data as any).mark_image || (data as any).markImage || (data as any).renewal_mark_logo;
+      if (markImage) {
+        await fillField(['image_field'], markImage);
+      }
 
       // V. Priority Right
       console.log('--- Section V ---');
@@ -393,7 +397,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       // VII. Checklist & Signature
       console.log('--- Section VII ---');
       setCheckbox(data.chk_list_copies, ['chk_list_copies']);
-      setCheckbox(data.chk_list_status, ['chk_list_status']);
+      setCheckbox(data.chk_list_status, ['chk_list_status', 'chk_list_statutes']);
       setCheckbox(data.chk_list_poa, ['chk_list_poa']);
       setCheckbox(data.chk_list_priority_docs, ['chk_list_priority_docs']);
       setCheckbox(data.chk_list_drawing, ['chk_list_drawing']);

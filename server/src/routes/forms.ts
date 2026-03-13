@@ -134,17 +134,116 @@ router.post('/submit', authenticateToken, async (req, res) => {
             formData
         } = data;
 
+        const mergedForm = ((eipaFormData || formData || {}) as Record<string, unknown>);
+        const pickString = (keys: string[]): string | undefined => {
+            for (const key of keys) {
+                const value = mergedForm[key];
+                if (typeof value === 'string') {
+                    const normalized = value.trim();
+                    if (normalized) return normalized;
+                }
+            }
+            return undefined;
+        };
+        const pickBoolean = (keys: string[]): boolean | undefined => {
+            for (const key of keys) {
+                const value = mergedForm[key];
+                if (typeof value === 'boolean') return value;
+                if (typeof value === 'string') {
+                    const normalized = value.trim().toLowerCase();
+                    if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+                    if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+                }
+                if (typeof value === 'number') {
+                    if (value === 1) return true;
+                    if (value === 0) return false;
+                }
+            }
+            return undefined;
+        };
+        const pickDate = (keys: string[]): string | null => {
+            for (const key of keys) {
+                const value = mergedForm[key];
+                if (typeof value !== 'string') continue;
+                const normalized = value.trim();
+                if (!normalized) return null;
+                const parsed = new Date(normalized);
+                if (Number.isNaN(parsed.getTime())) return null;
+                return parsed.toISOString().split('T')[0];
+            }
+            return null;
+        };
+
+        const normalizedApplicantName = applicantName || pickString(['applicant_name_english']) || '';
+        const normalizedApplicantAmharic = applicantNameAmharic || pickString(['applicant_name_amharic']) || null;
+        const normalizedApplicantType = applicantType
+            || (pickBoolean(['chk_company']) ? 'COMPANY' : 'INDIVIDUAL');
+        const normalizedNationality = nationality || pickString(['nationality']) || null;
+        const normalizedResidenceCountry = pickString(['residence_country']) || null;
+        const normalizedEmail = email || pickString(['email']) || null;
+        const normalizedTelephone = telephone || pickString(['telephone']) || null;
+        const normalizedAddressStreet = addressStreet || pickString(['address_street']) || null;
+        const normalizedAddressZone = addressZone || pickString(['address_zone']) || null;
+        const normalizedWereda = wereda || pickString(['wereda']) || null;
+        const normalizedCity = city || pickString(['city_name']) || null;
+        const normalizedHouseNo = houseNo || pickString(['house_no']) || null;
+        const normalizedState = state || pickString(['state_name']) || null;
+        const normalizedZipCode = zipCode || pickString(['zip_code']) || null;
+        const normalizedPoBox = poBox || pickString(['po_box']) || null;
+        const normalizedFax = fax || pickString(['fax']) || null;
+
+        const normalizedMarkDescription = markDescription || pickString(['mark_description']) || null;
+        const normalizedMarkName = markName || normalizedMarkDescription || 'New Mark';
+        const normalizedMarkType = markType
+            || (pickBoolean(['mark_type_three_dim', 'type_thre'])
+                ? 'THREE_DIMENSION'
+                : pickBoolean(['mark_type_mixed', 'k_type_mi'])
+                    ? 'MIXED'
+                    : pickBoolean(['mark_type_figurative', 'type_figur'])
+                        ? 'LOGO'
+                        : 'WORD');
+        const normalizedIsThreeDimensional = normalizedMarkType === 'THREE_DIMENSION' ? 1 : 0;
+        const normalizedColorIndication = colorIndication || pickString(['mark_color_indication']) || 'Black & White';
+        const normalizedPriorityCountry = priorityCountry || pickString(['priority_country']) || null;
+        const normalizedPriorityFilingDate = pickDate(['priority_filing_date', 'priority_application_filing_date']);
+        const normalizedGoodsPrevApplication = pickString(['goods_and_services_covered_by_the_previous_application', 'priority_goods_services']) || null;
+        const normalizedPriorityDeclaration = pickString(['priority_right_declaration']) || null;
+        const normalizedTranslation = pickString(['mark_translation']) || null;
+        const normalizedMarkTransliteration = pickString(['mark_transliteration']) || null;
+        const normalizedMarkLanguage = pickString(['mark_language_requiring_traslation', 'mark_language_requiring_translation']) || null;
+        const normalizedThreeDimFeatures = pickString(['mark_has_three_dim_features']) || null;
+        const disclaimerAmharic = pickString(['disclaimer_text_amharic']);
+        const disclaimerEnglish = pickString(['disclaimer_text_english']);
+        const normalizedDisclaimer = [
+            disclaimerAmharic ? `AM: ${disclaimerAmharic}` : null,
+            disclaimerEnglish ? `EN: ${disclaimerEnglish}` : null
+        ].filter((part): part is string => Boolean(part)).join('\n') || null;
+
+        const normalizedPriority = (priority === 'YES' || priority === 'NO')
+            ? priority
+            : (normalizedPriorityCountry || normalizedPriorityFilingDate || normalizedPriorityDeclaration || pickBoolean(['chk_priority_accompanies', 'chk_priority_submitted_later']))
+                ? 'YES'
+                : 'NO';
+
+        const chkListCopies = Boolean(pickBoolean(['chk_list_copies']));
+        const chkListStatus = Boolean(pickBoolean(['chk_list_status', 'chk_list_statutes']));
+        const chkListPoa = Boolean(pickBoolean(['chk_list_poa']));
+        const chkListPriorityDocs = Boolean(pickBoolean(['chk_list_priority_docs']));
+        const chkListDrawing = Boolean(pickBoolean(['chk_list_drawing']));
+        const chkListPayment = Boolean(pickBoolean(['chk_list_payment']));
+        const chkListOther = Boolean(pickBoolean(['chk_list_other']));
+
         const userId = (req as unknown as { user: { id: string } }).user.id || null;
 
         // Validate required fields
-        if (!existingClientId && !applicantName) {
+        if (!existingClientId && !normalizedApplicantName) {
             return sendApiError(req, res, 400, {
                 code: 'MISSING_APPLICANT',
                 message: 'Missing required fields',
                 details: 'Either select an existing client or provide an applicant name'
             });
         }
-        if (!markName) {
+        if (!normalizedMarkName) {
             return sendApiError(req, res, 400, {
                 code: 'MISSING_MARK_NAME',
                 message: 'Missing required fields',
@@ -172,29 +271,34 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 clientId = existingClientId;
             } else {
                 // Create new client from form data
-                if (!applicantName) {
+                if (!normalizedApplicantName) {
                     throw new Error('Applicant name is required when no existing client is selected');
                 }
                 clientId = crypto.randomUUID();
                 await connection.execute(
-                    `INSERT INTO clients (id, name, local_name, type, nationality, email, address_street, city, zip_code, address_zone, wereda, house_no, po_box, telephone, fax, created_at, updated_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                    `INSERT INTO clients (
+                        id, name, local_name, type, nationality, residence_country, email,
+                        address_street, city, state_name, zip_code, address_zone, wereda,
+                        house_no, po_box, telephone, fax, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                     [
                         clientId,
-                        applicantName,
-                        applicantNameAmharic || null,
-                        applicantType === 'COMPANY' ? 'COMPANY' : 'INDIVIDUAL',
-                        nationality || null,
-                        email || '',
-                        addressStreet || '',
-                        city || null,
-                        zipCode || '',
-                        addressZone || '',
-                        wereda || '',
-                        houseNo || '',
-                        poBox || '',
-                        telephone || '',
-                        fax || ''
+                        normalizedApplicantName,
+                        normalizedApplicantAmharic,
+                        normalizedApplicantType === 'COMPANY' ? 'COMPANY' : 'INDIVIDUAL',
+                        normalizedNationality,
+                        normalizedResidenceCountry,
+                        normalizedEmail,
+                        normalizedAddressStreet,
+                        normalizedCity,
+                        normalizedState,
+                        normalizedZipCode,
+                        normalizedAddressZone,
+                        normalizedWereda,
+                        normalizedHouseNo,
+                        normalizedPoBox,
+                        normalizedTelephone,
+                        normalizedFax
                     ]
                 );
             }
@@ -206,24 +310,44 @@ router.post('/submit', authenticateToken, async (req, res) => {
                 `INSERT INTO trademark_cases (
                     id, client_id, jurisdiction, mark_name, mark_type, 
                     color_indication, status, filing_number, priority,
-                    mark_description, client_instructions, remark,
-                    eipa_form_json,
+                    priority_country, priority_filing_date, goods_prev_application, priority_declaration,
+                    mark_description, translation, mark_transliteration, mark_language_requiring_traslation,
+                    mark_has_three_dim_features, is_three_dimensional, disclaimer,
+                    chk_list_copies, chk_list_status, chk_list_poa, chk_list_priority_docs,
+                    chk_list_drawing, chk_list_payment, chk_list_other,
+                    client_instructions, remark,
                     flow_stage, user_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                     caseId,
                     clientId,
                     jurisdiction || 'ET',
-                    markName,
-                    markType || 'WORD',
-                    colorIndication || 'Black & White',
+                    normalizedMarkName,
+                    normalizedMarkType,
+                    normalizedColorIndication,
                     'DRAFT',
                     null, // No filing number on intake
-                    priority === 'YES' ? 'YES' : 'NO',
-                    markDescription || null,
+                    normalizedPriority,
+                    normalizedPriorityCountry,
+                    normalizedPriorityFilingDate,
+                    normalizedGoodsPrevApplication,
+                    normalizedPriorityDeclaration,
+                    normalizedMarkDescription,
+                    normalizedTranslation,
+                    normalizedMarkTransliteration,
+                    normalizedMarkLanguage,
+                    normalizedThreeDimFeatures,
+                    normalizedIsThreeDimensional,
+                    normalizedDisclaimer,
+                    chkListCopies,
+                    chkListStatus,
+                    chkListPoa,
+                    chkListPriorityDocs,
+                    chkListDrawing,
+                    chkListPayment,
+                    chkListOther,
                     null, // client_instructions
                     null, // remark
-                    JSON.stringify(eipaFormData || formData || {}),
                     'DATA_COLLECTION',
                     userId
                 ]
@@ -237,7 +361,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     const classNo = typeof nc === 'object' ? nc.classNo : nc;
                     const description = typeof nc === 'object'
                         ? (nc.description || '')
-                        : String(formDataRecord?.goods_services_list || eipaFormRecord?.goods_services_list || '');
+                        : String(formDataRecord?.goods_services_list || eipaFormRecord?.goods_services_list || [1, 2, 3, 4, 5, 6].map((idx) => mergedForm[`goods_services_list_${idx}`]).filter(Boolean).join('\n') || '');
                     
                     await connection.execute(
                         'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
@@ -313,8 +437,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     JSON.stringify({ 
                         status: 'DRAFT', 
                         formPath: pdfPath,
-                        applicantName,
-                        markName,
+                        applicantName: normalizedApplicantName,
+                        markName: normalizedMarkName,
                         hasPdf: !!pdfBase64
                     })
                 ]

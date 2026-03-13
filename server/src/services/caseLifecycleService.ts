@@ -44,6 +44,68 @@ const getSafeId = () => {
   }
 };
 
+const pickString = (record: Record<string, unknown>, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized) return normalized;
+    }
+  }
+  return undefined;
+};
+
+const pickOptionalString = (record: Record<string, unknown>, keys: string[]): string | null | undefined => {
+  for (const key of keys) {
+    if (!(key in record)) continue;
+    const value = record[key];
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim();
+    return normalized ? normalized : null;
+  }
+  return undefined;
+};
+
+const pickBoolean = (record: Record<string, unknown>, keys: string[]): boolean | undefined => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+      if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+    }
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+  }
+  return undefined;
+};
+
+const pickDate = (record: Record<string, unknown>, keys: string[]): string | null | undefined => {
+  for (const key of keys) {
+    if (!(key in record)) continue;
+    const value = record[key];
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim();
+    if (!normalized) return null;
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString().split('T')[0];
+  }
+  return undefined;
+};
+
+const mapMarkTypeFromEipa = (record: Record<string, unknown>): { markType: string; isThreeDimensional: number } | null => {
+  const isThreeDim = Boolean(pickBoolean(record, ['mark_type_three_dim', 'type_thre']));
+  if (isThreeDim) return { markType: 'THREE_DIMENSION', isThreeDimensional: 1 };
+  if (pickBoolean(record, ['mark_type_mixed', 'k_type_mi'])) return { markType: 'MIXED', isThreeDimensional: 0 };
+  if (pickBoolean(record, ['mark_type_figurative', 'type_figur'])) return { markType: 'LOGO', isThreeDimensional: 0 };
+  if (pickBoolean(record, ['mark_type_word', 'type_word'])) return { markType: 'WORD', isThreeDimensional: 0 };
+  return null;
+};
+
 export const caseLifecycleService = {
   async updateCaseStatus(input: UpdateCaseStatusInput): Promise<{ id: string; status: string } | null> {
     const oldCase = await caseRepository.findCaseById(input.caseId);
@@ -333,7 +395,114 @@ export const caseLifecycleService = {
       if (data.markDescription !== undefined) caseUpdates.mark_description = data.markDescription;
       if (data.clientInstructions !== undefined) caseUpdates.client_instructions = data.clientInstructions;
       if (data.remark !== undefined) caseUpdates.remark = data.remark;
-      if (data.eipaForm !== undefined) caseUpdates.eipa_form_json = JSON.stringify(data.eipaForm);
+
+      const eipaForm = (typeof data.eipaForm === 'object' && data.eipaForm !== null)
+        ? data.eipaForm as Record<string, unknown>
+        : null;
+
+      if (eipaForm) {
+        if (data.markDescription === undefined) {
+          const markDescription = pickOptionalString(eipaForm, ['mark_description']);
+          if (markDescription !== undefined) caseUpdates.mark_description = markDescription;
+        }
+
+        if (data.markName === undefined) {
+          const markName = pickOptionalString(eipaForm, ['mark_description', 'mark_name']);
+          if (markName !== undefined) caseUpdates.mark_name = markName;
+        }
+
+        const translation = pickOptionalString(eipaForm, ['mark_translation', 'translation']);
+        if (translation !== undefined) caseUpdates.translation = translation;
+
+        const markTransliteration = pickOptionalString(eipaForm, ['mark_transliteration']);
+        if (markTransliteration !== undefined) caseUpdates.mark_transliteration = markTransliteration;
+
+        const markLanguage = pickOptionalString(eipaForm, ['mark_language_requiring_traslation', 'mark_language_requiring_translation']);
+        if (markLanguage !== undefined) caseUpdates.mark_language_requiring_traslation = markLanguage;
+
+        const markThreeDimFeatures = pickOptionalString(eipaForm, ['mark_has_three_dim_features']);
+        if (markThreeDimFeatures !== undefined) caseUpdates.mark_has_three_dim_features = markThreeDimFeatures;
+
+        if (data.colorIndication === undefined) {
+          const colorIndication = pickOptionalString(eipaForm, ['mark_color_indication']);
+          if (colorIndication !== undefined) caseUpdates.color_indication = colorIndication;
+        }
+
+        if (data.priority === undefined) {
+          const priority = pickString(eipaForm, ['priority']);
+          if (priority === 'YES' || priority === 'NO') {
+            caseUpdates.priority = priority;
+          } else {
+            const inferredPriority = Boolean(
+              pickString(eipaForm, ['priority_country']) ||
+              pickString(eipaForm, ['priority_filing_date', 'priority_application_filing_date']) ||
+              pickBoolean(eipaForm, ['chk_priority_accompanies', 'chk_priority_submitted_later'])
+            );
+            caseUpdates.priority = inferredPriority ? 'YES' : 'NO';
+          }
+        }
+
+        const priorityCountry = pickOptionalString(eipaForm, ['priority_country']);
+        if (priorityCountry !== undefined) caseUpdates.priority_country = priorityCountry;
+
+        const priorityFilingDate = pickDate(eipaForm, ['priority_filing_date', 'priority_application_filing_date']);
+        if (priorityFilingDate !== undefined) caseUpdates.priority_filing_date = priorityFilingDate;
+
+        const goodsPrevApplication = pickOptionalString(eipaForm, ['goods_and_services_covered_by_the_previous_application', 'priority_goods_services', 'goods_prev_application']);
+        if (goodsPrevApplication !== undefined) caseUpdates.goods_prev_application = goodsPrevApplication;
+
+        const priorityDeclaration = pickOptionalString(eipaForm, ['priority_right_declaration', 'priority_declaration']);
+        if (priorityDeclaration !== undefined) caseUpdates.priority_declaration = priorityDeclaration;
+
+        const disclaimerEnglish = pickOptionalString(eipaForm, ['disclaimer_text_english']);
+        const disclaimerAmharic = pickOptionalString(eipaForm, ['disclaimer_text_amharic']);
+        const disclaimer = pickOptionalString(eipaForm, ['disclaimer']);
+        if (disclaimer !== undefined) {
+          caseUpdates.disclaimer = disclaimer;
+        } else if (disclaimerEnglish !== undefined || disclaimerAmharic !== undefined) {
+          const parts = [
+            typeof disclaimerAmharic === 'string' && disclaimerAmharic ? `AM: ${disclaimerAmharic}` : null,
+            typeof disclaimerEnglish === 'string' && disclaimerEnglish ? `EN: ${disclaimerEnglish}` : null
+          ].filter((item): item is string => Boolean(item));
+          caseUpdates.disclaimer = parts.length > 0 ? parts.join('\n') : null;
+        }
+
+        const listCopies = pickBoolean(eipaForm, ['chk_list_copies']);
+        if (listCopies !== undefined) caseUpdates.chk_list_copies = listCopies;
+
+        const listStatus = pickBoolean(eipaForm, ['chk_list_status', 'chk_list_statutes']);
+        if (listStatus !== undefined) caseUpdates.chk_list_status = listStatus;
+
+        const listPoa = pickBoolean(eipaForm, ['chk_list_poa']);
+        if (listPoa !== undefined) caseUpdates.chk_list_poa = listPoa;
+
+        const listPriorityDocs = pickBoolean(eipaForm, ['chk_list_priority_docs']);
+        if (listPriorityDocs !== undefined) caseUpdates.chk_list_priority_docs = listPriorityDocs;
+
+        const listDrawing = pickBoolean(eipaForm, ['chk_list_drawing']);
+        if (listDrawing !== undefined) caseUpdates.chk_list_drawing = listDrawing;
+
+        const listPayment = pickBoolean(eipaForm, ['chk_list_payment']);
+        if (listPayment !== undefined) caseUpdates.chk_list_payment = listPayment;
+
+        const listOther = pickBoolean(eipaForm, ['chk_list_other']);
+        if (listOther !== undefined) caseUpdates.chk_list_other = listOther;
+
+        if (data.markType === undefined) {
+          const markTypeInfo = mapMarkTypeFromEipa(eipaForm);
+          if (markTypeInfo) {
+            caseUpdates.mark_type = markTypeInfo.markType;
+            caseUpdates.is_three_dimensional = markTypeInfo.isThreeDimensional;
+          }
+        }
+
+        if (data.remark === undefined) {
+          const otherDocumentsText = pickOptionalString(eipaForm, ['other_documents_text']);
+          if (typeof otherDocumentsText === 'string' && otherDocumentsText) {
+            caseUpdates.remark = `Other documents: ${otherDocumentsText}`;
+          }
+        }
+      }
 
       const markImage = data.mark_image;
       if (typeof markImage === 'string' && markImage.startsWith('data:image')) {

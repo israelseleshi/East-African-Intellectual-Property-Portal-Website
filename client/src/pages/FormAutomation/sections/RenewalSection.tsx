@@ -18,6 +18,7 @@ interface RenewalSectionProps {
   handleClientSelect: (clientId: string) => void;
   markImage: string | null;
   onImageChange: (base64: string | null) => void;
+  onImageFileChange: (file: File | null) => void;
 }
 
 export const RenewalSection: React.FC<RenewalSectionProps> = ({
@@ -28,12 +29,14 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
   handleClientSelect,
   markImage,
   onImageChange,
+  onImageFileChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      onImageFileChange(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
@@ -46,6 +49,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
 
   const removeImage = () => {
     onImageChange(null);
+    onImageFileChange(null);
     handleInputChange('renewal_mark_logo', '');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
