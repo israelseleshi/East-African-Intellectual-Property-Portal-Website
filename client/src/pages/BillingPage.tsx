@@ -557,7 +557,7 @@ export default function BillingPage() {
       </div>
       {/* Payment Recording Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="apple-card max-w-md border-none p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogContent className="apple-card max-w-md border-none p-0 overflow-hidden flex flex-col max-h-[90vh] !translate-y-[-50%]">
           <DialogHeader className="p-6 bg-[var(--eai-bg)]/30 border-b border-[var(--eai-border)] shrink-0">
             <DialogTitle className="text-h3 flex items-center gap-2">
               <Bank size={20} className="text-[var(--eai-primary)]" weight="duotone" />

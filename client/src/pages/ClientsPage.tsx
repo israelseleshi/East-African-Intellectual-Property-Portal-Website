@@ -168,13 +168,33 @@ export default function ClientsPage() {
   const handleExportCSV = () => {
     if ((clients || []).length === 0) return;
     
-    const headers = ['Name', 'Type', 'Email', 'City', 'Nationality'];
+    const headers = [
+      'Name', 'Local Name', 'Type', 'Gender', 'Nationality', 'Residence Country', 
+      'Email', 'Address Street', 'Address Zone', 'Wereda', 'City', 'House No', 
+      'State Name', 'City Code', 'State Code', 'Zip Code', 'PO Box', 'Telephone', 'Fax', 
+      'Created At'
+    ];
     const csvData = clients.map(c => [
       `"${c.name}"`,
+      `"${(c as any).local_name || ''}"`,
       c.type,
+      (c as any).gender || '',
+      c.nationality || '',
+      `"${(c as any).residence_country || ''}"`,
       c.email,
+      `"${c.address_street || ''}"`,
+      `"${(c as any).address_zone || ''}"`,
+      `"${(c as any).wereda || ''}"`,
       `"${c.city || ''}"`,
-      c.nationality || ''
+      `"${(c as any).house_no || ''}"`,
+      `"${(c as any).state_name || ''}"`,
+      `"${(c as any).city_code || ''}"`,
+      `"${(c as any).state_code || ''}"`,
+      c.zip_code || '',
+      `"${(c as any).po_box || ''}"`,
+      `"${(c as any).telephone || ''}"`,
+      `"${(c as any).fax || ''}"`,
+      c.created_at
     ].join(','));
     
     const csvContent = [headers.join(','), ...csvData].join('\n');

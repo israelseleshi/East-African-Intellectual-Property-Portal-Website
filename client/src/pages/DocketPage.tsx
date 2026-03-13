@@ -423,101 +423,52 @@ export default function DocketPage() {
     }
   };
 
-  const handleExportExcel = async () => {
-    try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Trademarks');
-
-      // Add Headers
-      const headers = [
-        'Mark Name', 'Filing Number', 'Jurisdiction', 'Status', 'Client', 'Client Type',
-        'Mark Type', 'Color Indication', 'Application Date', 'Publication Date',
-        'Registration Date', 'Expiry Date', 'Next Action Date', 'Priority',
-        'Nice Classes', 'Goods & Services', 'Client Instructions', 'Remarks',
-        'Created At', 'Updated At'
-      ];
-      const headerRow = worksheet.addRow(headers);
-
-      // Style Headers
-      headerRow.eachCell((cell: any) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: '0F2652' } // Dark Blue (EAI Primary)
-        };
-        cell.font = {
-          color: { argb: 'FFFFFF' },
-          bold: true,
-          size: 12,
-          name: 'Segoe UI'
-        };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        };
-      });
-
-      // Add Data Rows
-      sortedRows.forEach(c => {
-        worksheet.addRow([
-          markLabel(c),
-          c.filing_number || c.filingNumber || 'PENDING',
-          JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction,
-          STATUS_NAMES[c.status || 'DRAFT'] || c.status,
-          c.client_name || c.client?.name || '—',
-          c.client_type || c.client?.type || '—',
-          c.markType || 'WORD',
-          c.colorIndication || 'B&W',
-          c.filing_date || c.filingDate || '—',
-          (c as any).publication_date || (c as any).publicationDate || '—',
-          c.registration_dt || c.registrationDt || '—',
-          (c as any).expiry_date || (c as any).expiryDate || '—',
-          c.next_action_date || c.nextActionDate || '—',
-          c.priority || 'NO',
-          (c as any).nice_classes || (c as any).niceClasses?.join(', ') || '—',
-          (c as any).goods_services || (c as any).goodsServices || '—',
-          (c as any).client_instructions || (c as any).clientInstructions || '—',
-          (c as any).remark || '—',
-          c.created_at || '—',
-          c.updated_at || '—'
-        ]);
-      });
-
-      // Column Widths
-      worksheet.columns = [
-        { width: 35 }, { width: 22 }, { width: 18 }, { width: 18 }, { width: 30 },
-        { width: 18 }, { width: 18 }, { width: 22 }, { width: 20 }, { width: 20 },
-        { width: 20 }, { width: 20 }, { width: 20 }, { width: 12 }, { width: 18 },
-        { width: 60 }, { width: 45 }, { width: 45 }, { width: 22 }, { width: 22 }
-      ];
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      const dateStr = new Date().toISOString().split('T')[0];
-      
-      link.href = url;
-      link.download = `EIPA_TPMS_Docket_${dateStr}.xlsx`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-
-      addToast({
-        title: 'Export Successful',
-        description: 'Comprehensive docket data exported with professional formatting.',
-        type: 'success'
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-      addToast({
-        title: 'Export Failed',
-        description: 'Could not generate Excel file.',
-        type: 'error'
-      });
-    }
+  const handleExportCSV = () => {
+    if ((sortedRows || []).length === 0) return;
+    
+    const headers = [
+      'Mark Name', 'Filing Number', 'Jurisdiction', 'Status', 'Client', 'Client Type',
+      'Mark Type', 'Color Indication', 'Application Date', 'Publication Date',
+      'Registration Date', 'Expiry Date', 'Next Action Date', 'Priority',
+      'Nice Classes', 'Goods & Services', 'Client Instructions', 'Remarks',
+      'Created At', 'Updated At'
+    ];
+    
+    const csvData = sortedRows.map(c => [
+      `"${markLabel(c)}"`,
+      `"${c.filing_number || c.filingNumber || 'PENDING'}"`,
+      `"${JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction}"`,
+      `"${STATUS_NAMES[c.status || 'DRAFT'] || c.status}"`,
+      `"${c.client_name || c.client?.name || '—'}"`,
+      `"${c.client_type || c.client?.type || '—'}"`,
+      `"${c.markType || 'WORD'}"`,
+      `"${c.colorIndication || 'B&W'}"`,
+      `"${c.filing_date || c.filingDate || '—'}"`,
+      `"${(c as any).publication_date || (c as any).publicationDate || '—'}"`,
+      `"${c.registration_dt || c.registrationDt || '—'}"`,
+      `"${(c as any).expiry_date || (c as any).expiryDate || '—'}"`,
+      `"${c.next_action_date || c.nextActionDate || '—'}"`,
+      `"${c.priority || 'NO'}"`,
+      `"${(c as any).nice_classes || (c as any).niceClasses?.join(', ') || '—'}"`,
+      `"${((c as any).goods_services || (c as any).goodsServices || '—').replace(/"/g, '""')}"`,
+      `"${((c as any).client_instructions || (c as any).clientInstructions || '—').replace(/"/g, '""')}"`,
+      `"${((c as any).remark || '—').replace(/"/g, '""')}"`,
+      `"${c.created_at || '—'}"`,
+      `"${c.updated_at || '—'}"`
+    ].join(','));
+    
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const dateStr = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `trademarks_export_${dateStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -526,11 +477,11 @@ export default function DocketPage() {
         <h1 className="text-h1 text-[var(--eai-text)]">Trademarks</h1>
         <div className="flex items-center gap-2">
            <button 
-             onClick={handleExportExcel}
+             onClick={handleExportCSV}
              className="apple-button-secondary flex items-center gap-2 text-label h-10 px-4"
            >
              <DownloadSimple size={18} weight="bold" />
-             <span>Export xlsx</span>
+             <span>Export CSV</span>
            </button>
            <button 
              onClick={() => navigate('/case-intake')}
