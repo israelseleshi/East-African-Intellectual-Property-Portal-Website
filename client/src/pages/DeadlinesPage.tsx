@@ -85,8 +85,10 @@ export default function DeadlinesPage() {
         const cases = await trademarkService.getCases()
 
         // Flatten deadlines from all cases
-        const allDeadlines = cases.flatMap((c: { deadlines?: Array<{ id?: string; due_date?: string; type?: string; priority?: string }>; mark_name?: string; markName?: string; jurisdiction?: string; client_name?: string }) =>
-          (c.deadlines || []).map((d: { id?: string; due_date?: string; type?: string; priority?: string }) => ({
+        const allDeadlines = cases.flatMap((c: { deadlines?: Array<{ id?: string; due_date?: string; type?: string; priority?: string; status?: string }>; mark_name?: string; markName?: string; jurisdiction?: string; client_name?: string }) =>
+          (c.deadlines || [])
+            .filter((d: { status?: string }) => d.status !== 'COMPLETED' && d.status !== 'SUPERSEDED')
+            .map((d: { id?: string; due_date?: string; type?: string; priority?: string; status?: string }) => ({
             ...d,
             mark: c.mark_name || c.markName,
             jurisdiction: c.jurisdiction,
