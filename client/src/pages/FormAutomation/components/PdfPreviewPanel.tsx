@@ -64,8 +64,7 @@ export function PdfPreviewPanel({
       </div>
 
       <div 
-        className="relative bg-[var(--eai-surface)] rounded-2xl overflow-hidden border-2 border-[var(--eai-border)] shadow-inner min-h-[600px] group"
-        style={{ height: 'calc(100vh - 250px)' }}
+        className="relative bg-[var(--eai-surface)] rounded-2xl overflow-hidden border-2 border-[var(--eai-border)] shadow-inner group"
       >
         <AnimatePresence mode="wait">
           {previewLoading && (
@@ -96,14 +95,15 @@ export function PdfPreviewPanel({
             </Button>
           </div>
         ) : previewUrl ? (
-          <div className="w-full h-full overflow-auto flex justify-center bg-[var(--eai-bg)] p-4 custom-scrollbar">
+          <div className="w-full h-fit flex justify-center bg-[var(--eai-bg)] p-4">
             <iframe
               src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-              className="w-full h-full bg-white shadow-2xl origin-top transition-transform duration-200"
+              className="w-full aspect-[1/1.414] bg-white shadow-2xl origin-top transition-transform duration-200"
               style={{ 
                 transform: `scale(${zoom})`,
                 width: zoom > 1 ? `${100 * zoom}%` : '100%',
-                height: zoom > 1 ? `${100 * zoom}%` : '100%'
+                height: 'auto',
+                minHeight: '1200px'
               }}
               title="PDF Preview"
             />
