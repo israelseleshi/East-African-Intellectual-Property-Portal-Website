@@ -26,7 +26,7 @@ export function PdfPreviewPanel({
   onTogglePreview
 }: PdfPreviewPanelProps) {
   return (
-    <div className="lg:sticky lg:top-8 h-fit space-y-4">
+    <div>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold flex items-center gap-2 text-[var(--eai-text)]">
           <Eye className="h-5 w-5 text-[var(--eai-primary)]" />
