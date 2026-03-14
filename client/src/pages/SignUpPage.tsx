@@ -57,8 +57,8 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--eai-bg)] p-4 font-sans">
-      <div className="w-full max-w-[420px] space-y-8">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--eai-bg)] p-4 font-sans overflow-y-auto py-12">
+      <div className="w-full max-w-[420px] space-y-8 my-auto">
         <div className="text-center space-y-4">
           <img src="/eaip-logo.png" alt="EAIP Logo" className="mx-auto h-20 w-auto" />
           <div className="space-y-1">
@@ -218,9 +218,6 @@ export default function SignUpPage() {
               <Link to="/login" className="text-[var(--eai-primary)] font-semibold hover:underline underline-offset-4">
                 Sign In
               </Link>
-            </p>
-            <p className="text-[11px] font-bold text-[var(--eai-text-secondary)] tracking-widest opacity-60">
-              Authorized legal access only
             </p>
           </CardFooter>
         </Card>

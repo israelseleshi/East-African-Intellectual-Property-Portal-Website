@@ -154,9 +154,6 @@ export default function LoginPage() {
                 Sign Up
               </Link>
             </p>
-            <p className="text-[11px] font-bold text-[var(--eai-text-secondary)] tracking-widest opacity-60">
-              Authorized legal access only
-            </p>
           </CardFooter>
         </Card>
       </div>

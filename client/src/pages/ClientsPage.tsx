@@ -14,7 +14,9 @@ import {
   Square,
   CaretLeft,
   CaretRight,
-  ArrowsMerge
+  ArrowsMerge,
+  CaretUp,
+  CaretDown
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton'
@@ -66,7 +68,13 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
-  const pageSize = 12;
+  const pageSize = 5;
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Client | 'location';
+    direction: 'asc' | 'desc';
+  } | null>(null);
 
   // Bulk operations state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -127,6 +135,35 @@ export default function ClientsPage() {
       setSelectedIds(new Set((clients || []).map(c => c.id)));
     }
   };
+
+  const handleSort = (key: keyof Client | 'location') => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedClients = useMemo(() => {
+    if (!sortConfig) return clients;
+
+    return [...clients].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      if (sortConfig.key === 'location') {
+        aValue = [a.city, a.nationality].filter(Boolean).join(', ');
+        bValue = [b.city, b.nationality].filter(Boolean).join(', ');
+      } else {
+        aValue = a[sortConfig.key as keyof Client];
+        bValue = b[sortConfig.key as keyof Client];
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [clients, sortConfig]);
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0 || !confirm(`Are you sure you want to delete ${selectedIds.size} clients?`)) return;
@@ -425,7 +462,7 @@ export default function ClientsPage() {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {clients.map((client) => {
+            {sortedClients.map((client) => {
               const Icon = CLIENT_TYPE_ICONS[client.type] || Building;
               const isSelected = selectedIds.has(client.id);
               return (
@@ -497,14 +534,54 @@ export default function ClientsPage() {
                         )}
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-label">Client</th>
-                    <th className="px-6 py-4 text-label">Type</th>
-                    <th className="px-6 py-4 text-label">Email</th>
-                    <th className="px-6 py-4 text-label">Location</th>
+                    <th className="px-6 py-4 text-label">
+                      <button 
+                        onClick={() => handleSort('name')}
+                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
+                      >
+                        Client
+                        {sortConfig?.key === 'name' && (
+                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-label">
+                      <button 
+                        onClick={() => handleSort('type')}
+                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
+                      >
+                        Type
+                        {sortConfig?.key === 'type' && (
+                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-label">
+                      <button 
+                        onClick={() => handleSort('email')}
+                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
+                      >
+                        Email
+                        {sortConfig?.key === 'email' && (
+                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-label">
+                      <button 
+                        onClick={() => handleSort('location')}
+                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
+                      >
+                        Location
+                        {sortConfig?.key === 'location' && (
+                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
+                        )}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--eai-border)]">
-                  {clients.map((client) => {
+                  {sortedClients.map((client) => {
                     const Icon = CLIENT_TYPE_ICONS[client.type] || Building;
                     const isSelected = selectedIds.has(client.id);
                     return (
