@@ -93,9 +93,11 @@ export default function BillingPage() {
   const fetchClients = async () => {
     try {
       const result = await clientService.getClients({ page: 1, limit: 500 })
-      setClients(result.clients || result || [])
+      const clientList = Array.isArray(result) ? result : (result?.data || [])
+      setClients(clientList)
     } catch (error) {
       console.error('Failed to fetch clients:', error)
+      setClients([])
     }
   }
 
