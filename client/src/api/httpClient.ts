@@ -1,8 +1,21 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 const API_URL = import.meta.env.PROD
   ? '/api'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+
+const AUTH_ERROR_CODES = ['AUTH_TOKEN_REQUIRED', 'AUTH_TOKEN_INVALID', 'REFRESH_TOKEN_MISSING', 'REFRESH_TOKEN_INVALID', 'REFRESH_TOKEN_EXPIRED', 'REFRESH_TOKEN_REVOKED', 'REFRESH_FAILED', 'USER_NOT_FOUND'];
+
+const isAuthError = (error: unknown): boolean => {
+  const err = error as { response?: { status?: number; data?: { code?: string } } };
+  return err.response?.status === 401 || AUTH_ERROR_CODES.includes(err.response?.data?.code || '');
+};
+
+const handleAuthFailure = () => {
+  useAuthStore.getState().logout();
+  window.location.href = '/login';
+};
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -30,7 +43,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !(original as any)._retry) {
+    if (isAuthError(error) && !(original as any)._retry) {
       if (isRefreshing) {
         return Promise.reject(error);
       }
@@ -42,8 +55,12 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch (refreshErr) {
         isRefreshing = false;
+        handleAuthFailure();
         return Promise.reject(refreshErr);
       }
+    }
+    if (isAuthError(error)) {
+      handleAuthFailure();
     }
     return Promise.reject(error);
   }
