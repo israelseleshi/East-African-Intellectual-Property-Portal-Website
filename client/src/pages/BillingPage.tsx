@@ -28,21 +28,35 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
-const EIPO_FEE_CATEGORIES = [
-  'OFFICIAL_FEE',
-  'FILING',
-  'EXAMINATION',
-  'PUBLICATION',
-  'REGISTRATION',
-  'RENEWAL',
-  'AMENDMENT',
-  'OPPOSITION',
-  'LICENSE',
-  'TRANSFER',
-  'CERTIFICATE',
-  'SEARCH',
-  'LEGAL',
-  'OTHER'
+const EIPO_FEES = [
+  { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
+  { code: 'AMENDMENT_APPLICATION', description: 'Amendment Of Application For Registration Trademark', amount: 350 },
+  { code: 'OPPOSITION', description: 'Opposition To Registration Of A Trademark', amount: 1500 },
+  { code: 'REGISTRATION', description: 'Registration Of Trade Mark', amount: 3000 },
+  { code: 'RENEWAL_APPLICATION', description: 'Application For Renewal Of Registration Of A Trademark', amount: 1300 },
+  { code: 'RENEWAL', description: 'Renewal Of Registration Of A Trademark', amount: 2200 },
+  { code: 'AMENDMENT_REGISTRATION', description: 'Amendment Of Registration Of A Trademark', amount: 360 },
+  { code: 'SUBSTITUTE_CERTIFICATE', description: 'Substitute Certificate Of Registration Of A Trademark', amount: 495 },
+  { code: 'CANCELLATION', description: 'Application For The Cancellation Or Invalidation Of The Registration Of A Trademark', amount: 2600 },
+  { code: 'TRANSFER', description: 'Registration Of Transfer Of Ownership Of A Trademark', amount: 1300 },
+  { code: 'LICENSE', description: 'Registration Of License Contract Of A Trademark', amount: 1300 },
+  { code: 'LICENSE_CANCELLATION', description: 'Registration Of Cancellation Of License Contract Of A Trademark', amount: 450 },
+  { code: 'DIVISION', description: 'Division Of Application For Registration Of Trade Mark', amount: 350 },
+  { code: 'MERGER', description: 'Merger Of Registration Or Application For Registration Of Trade Mark', amount: 350 },
+  { code: 'AGENT_APPLICATION', description: 'Application For Registration Of A Trade Mark Agent', amount: 315 },
+  { code: 'AGENT_ASSESSMENT', description: "Trade Mark Agent's Competence Assessment", amount: 270 },
+  { code: 'AGENT_REGISTRATION', description: 'Registration Of A Trade Mark Agent', amount: 1350 },
+  { code: 'AGENT_RENEWAL', description: 'Renewal Of Registration Of A Trade Mark Agent', amount: 1125 },
+  { code: 'EXTENSION', description: 'Application For Extension Of A Time Limit', amount: 500 },
+  { code: 'SEARCH', description: 'Search For Registered Trademarks', amount: 450 },
+  { code: 'INSPECTION', description: 'Inspection Of Records And Documents Of The Office', amount: 150 },
+  { code: 'COPIES', description: 'Copies Of Records And Documents Of The Office (Per Page)', amount: 10 },
+  { code: 'FILING', description: 'Filing Fee', amount: 0 },
+  { code: 'EXAMINATION', description: 'Examination Fee', amount: 0 },
+  { code: 'PUBLICATION', description: 'Publication Fee', amount: 0 },
+  { code: 'REGISTRATION_FEE', description: 'Registration Fee', amount: 0 },
+  { code: 'LEGAL', description: 'Legal Service Fee', amount: 0 },
+  { code: 'OTHER', description: 'Other Fee', amount: 0 }
 ]
 
 export default function BillingPage() {
@@ -108,7 +122,7 @@ export default function BillingPage() {
   }, [isCreateInvoiceModalOpen])
 
   const addLineItem = () => {
-    setLineItems([...lineItems, { description: '', category: 'OFFICIAL_FEE', amount: '' }])
+    setLineItems([...lineItems, { description: '', category: '', amount: '' }])
   }
 
   const removeLineItem = (index: number) => {
@@ -120,6 +134,16 @@ export default function BillingPage() {
   const updateLineItem = (index: number, field: string, value: string) => {
     const updated = [...lineItems]
     updated[index] = { ...updated[index], [field]: value }
+    
+    if (field === 'category' && value) {
+      const selectedFee = EIPO_FEES.find(fee => fee.code === value)
+      if (selectedFee) {
+        updated[index].description = selectedFee.description
+        updated[index].amount = selectedFee.amount.toString()
+        updated[index].category = 'OFFICIAL_FEE'
+      }
+    }
+    
     setLineItems(updated)
   }
 
@@ -852,48 +876,60 @@ export default function BillingPage() {
                 </button>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {lineItems.map((item, index) => (
-                  <div key={index} className="flex gap-2 items-start p-3 bg-[var(--eai-bg)]/30 rounded-lg">
-                    <div className="flex-1 space-y-2">
-                      <Input 
-                        placeholder="Description (e.g., Application For Registration Of Trade Mark)"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                        className="apple-input"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <Select 
-                          value={item.category}
-                          onValueChange={(val) => updateLineItem(index, 'category', val)}
-                        >
-                          <SelectTrigger className="apple-input">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {EIPO_FEE_CATEGORIES.map((cat) => (
-                              <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--eai-text-secondary)] font-bold text-sm">
-                            {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
-                          </span>
-                          <Input 
-                            type="number"
-                            placeholder="Amount"
-                            value={item.amount}
-                            onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
-                            className="apple-input pl-12"
-                          />
+                  <div key={index} className="flex gap-3 items-start p-4 bg-[var(--eai-bg)]/30 rounded-lg border border-[var(--eai-border)]">
+                    <div className="flex-1 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-micro text-[var(--eai-text-secondary)]">Fee Type *</Label>
+                          <Select 
+                            value={item.category}
+                            onValueChange={(val) => updateLineItem(index, 'category', val)}
+                          >
+                            <SelectTrigger className="apple-input">
+                              <SelectValue placeholder="Select a fee..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EIPO_FEES.map((fee) => (
+                                <SelectItem key={fee.code} value={fee.code}>
+                                  {fee.description} ({fee.amount.toLocaleString()} ETB)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-micro text-[var(--eai-text-secondary)]">Amount ({newInvoice.currency})</Label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--eai-text-secondary)] font-bold text-base pointer-events-none">
+                              {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
+                            </span>
+                            <Input 
+                              type="number"
+                              placeholder="0.00"
+                              value={item.amount}
+                              onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
+                              className="apple-input !pl-14 text-right font-bold text-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-micro text-[var(--eai-text-secondary)]">Description</Label>
+                        <Input 
+                          placeholder="Description will auto-fill when you select a fee type"
+                          value={item.description}
+                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                          className="apple-input bg-white/50"
+                        />
                       </div>
                     </div>
                     {lineItems.length > 1 && (
                       <button
                         onClick={() => removeLineItem(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="mt-7 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Remove item"
                       >
                         <Trash size={18} weight="bold" />
                       </button>
