@@ -1,7 +1,7 @@
 import { Transaction } from '@/shared/database'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { invoiceService } from '../utils/api'
+import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
 import { useToast } from '../components/ui/toast'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
@@ -16,7 +16,9 @@ import {
   Download,
   Receipt,
   CheckCircle,
-  Bank
+  Bank,
+  Plus,
+  Trash
 } from '@phosphor-icons/react'
 
 import { useSearchParams } from 'react-router-dom'
@@ -25,6 +27,23 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+
+const EIPO_FEE_CATEGORIES = [
+  'OFFICIAL_FEE',
+  'FILING',
+  'EXAMINATION',
+  'PUBLICATION',
+  'REGISTRATION',
+  'RENEWAL',
+  'AMENDMENT',
+  'OPPOSITION',
+  'LICENSE',
+  'TRANSFER',
+  'CERTIFICATE',
+  'SEARCH',
+  'LEGAL',
+  'OTHER'
+]
 
 export default function BillingPage() {
   const navigate = useNavigate()
@@ -36,6 +55,7 @@ export default function BillingPage() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [paymentData, setPaymentData] = useState({
     amount: '',
@@ -44,6 +64,17 @@ export default function BillingPage() {
     referenceNumber: '',
     notes: ''
   })
+  const [clients, setClients] = useState<any[]>([])
+  const [creatingInvoice, setCreatingInvoice] = useState(false)
+  const [newInvoice, setNewInvoice] = useState({
+    clientId: '',
+    currency: 'USD',
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    notes: ''
+  })
+  const [lineItems, setLineItems] = useState([
+    { description: '', category: 'OFFICIAL_FEE', amount: '' }
+  ])
   
   const [stats, setStats] = useState<{
     totalRevenue: number
@@ -58,6 +89,87 @@ export default function BillingPage() {
     clientCount: 0,
     overdueCount: 0
   })
+
+  const fetchClients = async () => {
+    try {
+      const result = await clientService.getClients({ page: 1, limit: 500 })
+      setClients(result.clients || result || [])
+    } catch (error) {
+      console.error('Failed to fetch clients:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (isCreateInvoiceModalOpen) {
+      fetchClients()
+    }
+  }, [isCreateInvoiceModalOpen])
+
+  const addLineItem = () => {
+    setLineItems([...lineItems, { description: '', category: 'OFFICIAL_FEE', amount: '' }])
+  }
+
+  const removeLineItem = (index: number) => {
+    if (lineItems.length > 1) {
+      setLineItems(lineItems.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateLineItem = (index: number, field: string, value: string) => {
+    const updated = [...lineItems]
+    updated[index] = { ...updated[index], [field]: value }
+    setLineItems(updated)
+  }
+
+  const handleCreateInvoice = async () => {
+    if (!newInvoice.clientId) {
+      addToast({ title: 'Error', description: 'Please select a client.', type: 'error' })
+      return
+    }
+    
+    const validItems = lineItems.filter(item => item.description && item.amount)
+    if (validItems.length === 0) {
+      addToast({ title: 'Error', description: 'Please add at least one line item.', type: 'error' })
+      return
+    }
+
+    setCreatingInvoice(true)
+    try {
+      await financialsApi.createInvoice({
+        clientId: newInvoice.clientId,
+        items: validItems.map(item => ({
+          description: item.description,
+          category: item.category,
+          amount: Number(item.amount)
+        })),
+        currency: newInvoice.currency,
+        dueDate: newInvoice.dueDate,
+        notes: newInvoice.notes
+      })
+
+      addToast({
+        title: 'Invoice Created',
+        description: 'The invoice has been created successfully.',
+        type: 'success'
+      })
+
+      setIsCreateInvoiceModalOpen(false)
+      setNewInvoice({
+        clientId: '',
+        currency: 'USD',
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        notes: ''
+      })
+      setLineItems([{ description: '', category: 'OFFICIAL_FEE', amount: '' }])
+      fetchTransactions()
+    } catch (error) {
+      addToast({ title: 'Error', description: 'Failed to create invoice.', type: 'error' })
+    } finally {
+      setCreatingInvoice(false)
+    }
+  }
+
+  const totalInvoiceAmount = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
 
   
 
@@ -378,8 +490,19 @@ export default function BillingPage() {
   return (
     <div className="w-full">
       <header className="flex flex-col gap-1">
-        <h1 className="text-h1 text-[var(--eai-text)]">Billing & Ledger</h1>
-        <p className="text-body text-[var(--eai-text-secondary)] font-medium">Professional invoicing and financial fee management.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-h1 text-[var(--eai-text)]">Billing & Ledger</h1>
+            <p className="text-body text-[var(--eai-text-secondary)] font-medium">Professional invoicing and financial fee management.</p>
+          </div>
+          <button
+            onClick={() => setIsCreateInvoiceModalOpen(true)}
+            className="apple-button-primary rounded-xl flex items-center gap-2"
+          >
+            <Plus size={18} weight="bold" />
+            Create Invoice
+          </button>
+        </div>
       </header>
 
       {/* Apple Wallet Style Cards */}
@@ -640,6 +763,168 @@ export default function BillingPage() {
               className="apple-button-primary rounded-xl"
             >
               Post Payment
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Invoice Modal */}
+      <Dialog open={isCreateInvoiceModalOpen} onOpenChange={setIsCreateInvoiceModalOpen}>
+        <DialogContent className="apple-card max-w-2xl border-none p-0 overflow-hidden flex flex-col max-h-[90vh] !translate-y-[-50%]">
+          <DialogHeader className="p-6 bg-[var(--eai-bg)]/30 border-b border-[var(--eai-border)] shrink-0">
+            <DialogTitle className="text-h3 flex items-center gap-2">
+              <Receipt size={20} className="text-[var(--eai-primary)]" weight="duotone" />
+              Create New Invoice
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-micro text-[var(--eai-text-secondary)]">Client *</Label>
+                <Select 
+                  value={newInvoice.clientId}
+                  onValueChange={(val) => setNewInvoice({...newInvoice, clientId: val})}
+                >
+                  <SelectTrigger className="apple-input">
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-micro text-[var(--eai-text-secondary)]">Currency</Label>
+                <Select 
+                  value={newInvoice.currency}
+                  onValueChange={(val) => setNewInvoice({...newInvoice, currency: val})}
+                >
+                  <SelectTrigger className="apple-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD - US Dollars</SelectItem>
+                    <SelectItem value="ETB">ETB - Ethiopian Birr</SelectItem>
+                    <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-micro text-[var(--eai-text-secondary)]">Due Date</Label>
+                <Input 
+                  type="date"
+                  value={newInvoice.dueDate}
+                  onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
+                  className="apple-input"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-micro text-[var(--eai-text-secondary)]">Total Amount</Label>
+                <div className="apple-input bg-[var(--eai-bg)] flex items-center h-10 px-3">
+                  <span className="text-[var(--eai-text-secondary)] font-bold mr-2">
+                    {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
+                  </span>
+                  <span className="text-[var(--eai-text)] font-bold">{totalInvoiceAmount.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-[var(--eai-text-secondary)]">Line Items *</Label>
+                <button
+                  onClick={addLineItem}
+                  className="text-micro text-[var(--eai-primary)] hover:underline flex items-center gap-1"
+                >
+                  <Plus size={14} weight="bold" />
+                  Add Item
+                </button>
+              </div>
+              
+              <div className="space-y-2">
+                {lineItems.map((item, index) => (
+                  <div key={index} className="flex gap-2 items-start p-3 bg-[var(--eai-bg)]/30 rounded-lg">
+                    <div className="flex-1 space-y-2">
+                      <Input 
+                        placeholder="Description (e.g., Application For Registration Of Trade Mark)"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        className="apple-input"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select 
+                          value={item.category}
+                          onValueChange={(val) => updateLineItem(index, 'category', val)}
+                        >
+                          <SelectTrigger className="apple-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EIPO_FEE_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--eai-text-secondary)] font-bold text-sm">
+                            {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
+                          </span>
+                          <Input 
+                            type="number"
+                            placeholder="Amount"
+                            value={item.amount}
+                            onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
+                            className="apple-input pl-12"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {lineItems.length > 1 && (
+                      <button
+                        onClick={() => removeLineItem(index)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash size={18} weight="bold" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-micro text-[var(--eai-text-secondary)]">Notes (Optional)</Label>
+              <Textarea 
+                value={newInvoice.notes}
+                onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
+                placeholder="Internal notes or additional information..."
+                className="apple-input min-h-[60px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 bg-[var(--eai-bg)]/30 border-t border-[var(--eai-border)] shrink-0">
+            <button 
+              onClick={() => setIsCreateInvoiceModalOpen(false)}
+              className="apple-button-secondary rounded-xl"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleCreateInvoice}
+              disabled={creatingInvoice}
+              className="apple-button-primary rounded-xl disabled:opacity-50 flex items-center gap-2"
+            >
+              {creatingInvoice ? 'Creating...' : 'Create Invoice'}
             </button>
           </DialogFooter>
         </DialogContent>
