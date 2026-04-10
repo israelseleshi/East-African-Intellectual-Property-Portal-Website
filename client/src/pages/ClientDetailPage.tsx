@@ -94,7 +94,36 @@ export default function ClientDetailPage() {
     setSaving(true);
     try {
       console.log('[ClientDetailPage] handleSave - Starting save for client ID:', id, 'with data:', formData);
-      await clientService.updateClient(id, formData);
+      
+      const sanitizeField = (val: string | null | undefined): string | undefined => {
+        if (val === null || val === undefined) return undefined;
+        const trimmed = val.trim();
+        return trimmed || undefined;
+      };
+      
+      const cleanedData = {
+        name: sanitizeField(formData.name),
+        local_name: sanitizeField(formData.local_name),
+        type: formData.type,
+        gender: formData.gender,
+        nationality: sanitizeField(formData.nationality),
+        residence_country: sanitizeField(formData.residence_country),
+        email: sanitizeField(formData.email),
+        address_street: sanitizeField(formData.address_street),
+        address_zone: sanitizeField(formData.address_zone),
+        wereda: sanitizeField(formData.wereda),
+        city: sanitizeField(formData.city),
+        state_name: sanitizeField(formData.state_name),
+        city_code: sanitizeField(formData.city_code),
+        state_code: sanitizeField(formData.state_code),
+        house_no: sanitizeField(formData.house_no),
+        zip_code: sanitizeField(formData.zip_code),
+        po_box: sanitizeField(formData.po_box),
+        telephone: sanitizeField(formData.telephone),
+        fax: sanitizeField(formData.fax)
+      };
+      
+      await clientService.updateClient(id, cleanedData);
       console.log('[ClientDetailPage] handleSave - API call succeeded for client ID:', id);
       setClient({ ...client!, ...formData as Client });
       setIsEditing(false);
