@@ -30,6 +30,14 @@ export interface InvoiceItemInsert {
   amount: number;
 }
 
+export interface InvoiceUpdate {
+  currency?: string;
+  dueDate?: string;
+  notes?: string;
+  status?: string;
+  totalAmount?: number;
+}
+
 const toNumber = (value: unknown): number => {
   if (typeof value === 'number') return value;
   if (typeof value === 'string' && value.trim() !== '') return Number(value);
@@ -115,8 +123,89 @@ export const financialRepository = {
       SELECT i.*, c.name as client_name
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
+      WHERE i.deleted_at IS NULL
       ORDER BY i.created_at DESC
     `);
     return rows as RowDataPacket[];
+  },
+
+  async getInvoiceById(invoiceId: string): Promise<RowDataPacket | null> {
+    const [rows] = await pool.execute(
+      `SELECT i.*, c.name AS client_name,
+              tc.id AS trademark_id,
+              tc.mark_name
+       FROM invoices i
+       JOIN clients c ON c.id = i.client_id
+       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id AND ii.deleted_at IS NULL
+       LEFT JOIN trademark_cases tc ON tc.id = ii.case_id
+       WHERE i.id = ? AND i.deleted_at IS NULL
+       ORDER BY ii.id ASC
+       LIMIT 1`,
+      [invoiceId]
+    );
+    const data = (rows as RowDataPacket[])[0];
+    return data || null;
+  },
+
+  async listInvoiceItems(invoiceId: string): Promise<RowDataPacket[]> {
+    const [rows] = await pool.execute(
+      `SELECT ii.*
+       FROM invoice_items ii
+       WHERE ii.invoice_id = ? AND ii.deleted_at IS NULL
+       ORDER BY ii.id ASC`,
+      [invoiceId]
+    );
+    return rows as RowDataPacket[];
+  },
+
+  async updateInvoice(connection: PoolConnection, invoiceId: string, updates: InvoiceUpdate): Promise<void> {
+    const fields: string[] = [];
+    const values: Array<string | number> = [];
+
+    if (updates.currency !== undefined) {
+      fields.push('currency = ?');
+      values.push(updates.currency);
+    }
+    if (updates.dueDate !== undefined) {
+      fields.push('due_date = ?');
+      values.push(updates.dueDate);
+    }
+    if (updates.notes !== undefined) {
+      fields.push('notes = ?');
+      values.push(updates.notes);
+    }
+    if (updates.status !== undefined) {
+      fields.push('status = ?');
+      values.push(updates.status);
+    }
+    if (updates.totalAmount !== undefined) {
+      fields.push('total_amount = ?');
+      values.push(updates.totalAmount);
+    }
+
+    if (fields.length === 0) return;
+
+    values.push(invoiceId);
+    await connection.execute(
+      `UPDATE invoices SET ${fields.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
+      values
+    );
+  },
+
+  async softDeleteInvoice(connection: PoolConnection, invoiceId: string): Promise<void> {
+    await connection.execute('UPDATE invoice_items SET deleted_at = NOW() WHERE invoice_id = ? AND deleted_at IS NULL', [invoiceId]);
+    await connection.execute('UPDATE invoices SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL', [invoiceId]);
+  },
+
+  async replaceInvoiceItems(connection: PoolConnection, invoiceId: string, items: InvoiceItemInsert[]): Promise<void> {
+    await connection.execute('UPDATE invoice_items SET deleted_at = NOW() WHERE invoice_id = ? AND deleted_at IS NULL', [invoiceId]);
+
+    for (const item of items) {
+      await connection.execute(
+        `INSERT INTO invoice_items (id, invoice_id, case_id, description, category, amount)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [item.id, invoiceId, item.caseId ?? null, item.description, item.category, item.amount]
+      );
+    }
   }
 };

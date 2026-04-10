@@ -1,8 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 
 import AppShell from './AppShell'
-import { useAuthStore } from '../store/authStore'
+import { useAuthStore, canAccessFinance } from '../store/authStore'
 import ErrorPage from '../components/ErrorPage'
 
 const DashboardPage = lazy(() => import('../pages/DashboardPage'))
@@ -15,6 +15,7 @@ const CaseFlowDemoPage = lazy(() => import('../pages/CaseFlowDemoPage'))
 const TrademarkDetailInfoPage = lazy(() => import('../pages/TrademarkDetailInfoPage'))
 const DeadlinesPage = lazy(() => import('../pages/DeadlinesPage'))
 const BillingPage = lazy(() => import('../pages/BillingPage'))
+const InvoiceDetailPage = lazy(() => import('../pages/InvoiceDetailPage'))
 const LoginPage = lazy(() => import('../pages/LoginPage'))
 const SignUpPage = lazy(() => import('../pages/SignUpPage'))
 const VerifyOtpPage = lazy(() => import('../pages/VerifyOtpPage'))
@@ -33,12 +34,18 @@ const ProtectedRoute = () => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
 }
 
+const FinanceRoute = () => {
+  const user = useAuthStore((state) => state.user)
+  if (user && !canAccessFinance(user)) {
+    return <Navigate to="/" replace />
+  }
+  return <Outlet />
+}
+
 const VerifyOtpPageWrapper = () => {
-  const navigate = useNavigate()
   const email = useAuthStore((state) => state.email)
   if (!email) {
-    navigate('/signup');
-    return null;
+    return <Navigate to="/signup" replace />
   }
   return withRouteSuspense(<VerifyOtpPage />)
 }
@@ -51,6 +58,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/signup',
+    element: withRouteSuspense(<SignUpPage />),
+    errorElement: <ErrorPage />
+  },
+  {
+    path: '/signup/super_admin',
     element: withRouteSuspense(<SignUpPage />),
     errorElement: <ErrorPage />
   },
@@ -81,7 +93,14 @@ export const router = createBrowserRouter([
           { path: 'clients/:id', element: withRouteSuspense(<ClientDetailPage />) },
           { path: 'case-flow/:id', element: withRouteSuspense(<CaseFlowPage />) },
           { path: 'case-flow/demo', element: withRouteSuspense(<CaseFlowDemoPage />) },
-          { path: 'invoicing', element: withRouteSuspense(<BillingPage />) },
+          { 
+          path: 'invoicing', 
+          element: <FinanceRoute />,
+          children: [
+            { index: true, element: withRouteSuspense(<BillingPage />) },
+            { path: ':id', element: withRouteSuspense(<InvoiceDetailPage />) }
+          ]
+        },
           { path: 'trash', element: withRouteSuspense(<TrashPage />) },
           { path: 'help', element: withRouteSuspense(<HelpPage />) }
         ]

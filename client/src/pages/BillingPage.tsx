@@ -1,5 +1,4 @@
-import { Transaction } from '@/shared/database'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
@@ -18,10 +17,12 @@ import {
   CheckCircle,
   Bank,
   Plus,
-  Trash
+  Trash,
+  CaretLeft,
+  CaretRight,
+  X
 } from '@phosphor-icons/react'
 
-import { useSearchParams } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -62,10 +63,7 @@ const EIPO_FEES = [
 export default function BillingPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
-  const [searchParams, setSearchParams] = useSearchParams()
-   searchParams.get('tour') === 'true'
 
-  const [currency] = useState<'USD' | 'ETB'>('USD')
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -103,6 +101,15 @@ export default function BillingPage() {
     clientCount: 0,
     overdueCount: 0
   })
+
+  const [filters, setFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    status: '__all__',
+    client: '__all__'
+  })
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
   const fetchClients = async () => {
     try {
@@ -198,14 +205,6 @@ export default function BillingPage() {
   const totalInvoiceAmount = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
 
   
-
-  const handleTourCallback = (data: { status: string }) => {
-    const { status } = data
-    if (['finished', 'skipped'].includes(status)) {
-      searchParams.delete('tour')
-      setSearchParams(searchParams)
-    }
-  }
 
   const fetchTransactions = async () => {
     try {
@@ -303,11 +302,44 @@ export default function BillingPage() {
     }
   }
 
-  const formatAmount = (val: number) => {
-    if (currency === 'ETB') {
-      return (val * 120).toLocaleString() + ' ETB'
-    }
-    return '$' + val.toLocaleString()
+  const formatAmount = (val: number, txCurrency?: string) => {
+    if (val == null || isNaN(val)) return '—'
+    const currencyCode = txCurrency || 'USD'
+    const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', ETB: 'ETB ', KES: 'KES ' }
+    const symbol = symbols[currencyCode] || `${currencyCode} `
+    return symbol + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      const txDate = tx.issueDate || tx.date
+      const txDateObj = txDate ? new Date(txDate) : null
+      const fromOk = !filters.dateFrom || (txDateObj ? txDateObj >= new Date(filters.dateFrom) : true)
+      const toOk = !filters.dateTo || (txDateObj ? txDateObj <= new Date(`${filters.dateTo}T23:59:59`) : true)
+      const statusOk = filters.status === '__all__' || tx.status === filters.status
+      const clientOk = filters.client === '__all__' || tx.clientName === filters.client
+      return fromOk && toOk && statusOk && clientOk
+    })
+  }, [transactions, filters])
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage))
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters])
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    return filteredTransactions.slice(start, start + itemsPerPage)
+  }, [filteredTransactions, currentPage])
+
+  const resetFilters = () => {
+    setFilters({
+      dateFrom: '',
+      dateTo: '',
+      status: '__all__',
+      client: '__all__'
+    })
   }
 
   const downloadBlob = (blob: Blob, filename: string) => {
@@ -583,15 +615,67 @@ export default function BillingPage() {
 
       {/* Transaction Ledger */}
       <div className="apple-card overflow-hidden mt-8" id="billing-ledger">
-        <div className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-h3">Transaction History</h2>
-          <button
-            onClick={() => addToast({ title: 'Funnel clicked', type: 'info' })}
-            className="flex items-center gap-2 text-label hover:text-[var(--eai-text)] transition-colors"
-          >
-            <Funnel size={16} weight="bold" />
-            Funnel
-          </button>
+        <div className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30 px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-h3">Transaction History</h2>
+            <div className="flex items-center gap-2 text-label text-[var(--eai-text-secondary)]">
+              <Funnel size={16} weight="bold" />
+              <span>Filters</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
+            <Input
+              type="date"
+              value={filters.dateFrom}
+              onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+              className="apple-input"
+            />
+            <Input
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+              className="apple-input"
+            />
+            <Select
+              value={filters.status}
+              onValueChange={(val) => setFilters((prev) => ({ ...prev, status: val }))}
+            >
+              <SelectTrigger className="apple-input">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All statuses</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
+                <SelectItem value="OVERDUE">Overdue</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={filters.client}
+                onValueChange={(val) => setFilters((prev) => ({ ...prev, client: val }))}
+              >
+                <SelectTrigger className="apple-input">
+                  <SelectValue placeholder="All clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All clients</SelectItem>
+                  {Array.from(new Set(transactions.map((tx) => tx.clientName).filter(Boolean))).map((clientName) => (
+                    <SelectItem key={clientName} value={clientName}>{clientName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button
+                onClick={resetFilters}
+                className="apple-button-secondary rounded-xl px-3 flex items-center gap-1"
+                title="Clear filters"
+              >
+                <X size={14} weight="bold" />
+                Clear
+              </button>
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           {loading ? (
@@ -620,7 +704,7 @@ export default function BillingPage() {
                 </div>
               ))}
             </div>
-          ) : transactions.length === 0 ? (
+          ) : filteredTransactions.length === 0 ? (
             <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
               <div className="h-16 w-16 bg-[var(--eai-bg)] flex items-center justify-center rounded-2xl">
                 <Receipt size={32} className="text-[var(--eai-text-secondary)] opacity-50" />
@@ -631,6 +715,7 @@ export default function BillingPage() {
               </div>
             </div>
           ) : (
+            <>
             <table className="w-full border-collapse text-left">
               <thead className="bg-[var(--eai-bg)]/20 border-b border-[var(--eai-border)]">
                 <tr>
@@ -643,11 +728,11 @@ export default function BillingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--eai-border)]">
-                {transactions.map((tx) => (
+                {paginatedTransactions.map((tx, index) => (
                   <tr
                     key={tx.id}
                     className="group hover:bg-[var(--eai-bg)]/40 transition-colors cursor-pointer"
-                    onClick={() => tx.markId && navigate(`/trademarks/${tx.markId}`)}
+                    onClick={() => navigate(`/invoicing/${tx.id}`)}
                   >
                     <td className="px-6 py-5">
                       <div className="text-body font-bold text-[var(--eai-text)]">{tx.markName}</div>
@@ -656,7 +741,7 @@ export default function BillingPage() {
                     </td>
                     <td className="px-6 py-5 text-body font-medium">{tx.type}</td>
                     <td className="px-6 py-5 text-body text-[var(--eai-text-secondary)] font-medium">{tx.date}</td>
-                    <td className="px-6 py-5 text-body font-bold">{formatAmount(tx.amount)}</td>
+                    <td className="px-6 py-5 text-body font-bold">{formatAmount(tx.amount, tx.currency)}</td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
                         <span className={[
@@ -668,6 +753,7 @@ export default function BillingPage() {
                         ].join(' ')}>{tx.status}</span>
                         {tx.status !== 'PAID' && (
                           <button
+                            id={index === 0 ? 'record-payment-btn' : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedInvoice(tx);
@@ -701,6 +787,35 @@ export default function BillingPage() {
                 ))}
               </tbody>
             </table>
+            {filteredTransactions.length > 0 && (
+              <div className="flex items-center justify-between border-t border-[var(--eai-border)] bg-[var(--eai-bg)]/20 px-6 py-4">
+                <div className="text-body text-[var(--eai-text-secondary)]">
+                  Showing <span className="font-bold text-[var(--eai-text)]">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                  <span className="font-bold text-[var(--eai-text)]">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of{' '}
+                  <span className="font-bold text-[var(--eai-text)]">{filteredTransactions.length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--eai-border)] bg-white text-[var(--eai-text)] shadow-sm transition-all hover:bg-[var(--eai-bg)] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <CaretLeft size={16} weight="bold" />
+                  </button>
+                  <div className="text-label text-[var(--eai-text-secondary)] px-2">
+                    Page <span className="font-bold text-[var(--eai-text)]">{currentPage}</span> / <span className="font-bold text-[var(--eai-text)]">{totalPages}</span>
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--eai-border)] bg-white text-[var(--eai-text)] shadow-sm transition-all hover:bg-[var(--eai-bg)] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <CaretRight size={16} weight="bold" />
+                  </button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>

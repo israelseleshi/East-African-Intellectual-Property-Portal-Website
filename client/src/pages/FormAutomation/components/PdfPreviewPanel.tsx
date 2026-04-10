@@ -63,7 +63,8 @@ export function PdfPreviewPanel({
         </div>
       </div>
 
-      <div 
+      <div
+        id="preview-section"
         className="relative bg-[var(--eai-surface)] rounded-2xl overflow-hidden border-2 border-[var(--eai-border)] shadow-inner group"
       >
         <AnimatePresence mode="wait">

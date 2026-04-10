@@ -1,5 +1,5 @@
 import { apiClient } from './httpClient';
-import { getFinancial, postFinancial } from './financialResolver';
+import { deleteFinancial, getFinancial, patchFinancial, postFinancial } from './financialResolver';
 
 export interface PaymentPayload {
   invoiceId: string;
@@ -25,6 +25,18 @@ export const financialsApi = {
 
   async listInvoices() {
     return getFinancial('/invoices') as Promise<any[]>;
+  },
+
+  async getInvoice(invoiceId: string) {
+    return getFinancial(`/invoices/${invoiceId}`) as Promise<any>;
+  },
+
+  async updateInvoice(invoiceId: string, payload: Record<string, unknown>) {
+    return patchFinancial(`/invoices/${invoiceId}`, payload) as Promise<any>;
+  },
+
+  async deleteInvoice(invoiceId: string) {
+    return deleteFinancial(`/invoices/${invoiceId}`) as Promise<{ success: boolean }>;
   },
 
   async listFeesByCase(caseId: string) {

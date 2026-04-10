@@ -23,7 +23,7 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
       icon={ImageIcon}
     >
       <div className="space-y-6">
-        <div id="nice-classification">
+        <div id="nice-class-section">
           <NiceClassPicker
             selectedClasses={selectedClasses}
             onChange={onClassesChange}

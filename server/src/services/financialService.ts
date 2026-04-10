@@ -26,6 +26,15 @@ interface CreateInvoiceInput {
   notes?: string;
 }
 
+interface UpdateInvoiceInput {
+  id: string;
+  items?: InvoiceItemInput[];
+  currency?: string;
+  dueDate?: string;
+  notes?: string;
+  status?: string;
+}
+
 export const financialService = {
   async recordPayment(input: RecordPaymentInput): Promise<{ id: string; status: 'success' }> {
     const connection = await getConnection();
@@ -110,5 +119,84 @@ export const financialService = {
 
   async listInvoices() {
     return financialRepository.listInvoices();
+  },
+
+  async getInvoiceById(invoiceId: string) {
+    const invoice = await financialRepository.getInvoiceById(invoiceId);
+    if (!invoice) return null;
+
+    const [items, payments] = await Promise.all([
+      financialRepository.listInvoiceItems(invoiceId),
+      financialRepository.listPaymentsForInvoice(invoiceId)
+    ]);
+
+    const paidAmount = payments.reduce((sum, payment) => {
+      const raw = (payment as any).amount;
+      const amount = typeof raw === 'number' ? raw : Number(raw || 0);
+      return sum + amount;
+    }, 0);
+
+    return {
+      ...invoice,
+      items,
+      payments,
+      paid_amount: paidAmount,
+      outstanding_amount: Math.max(Number((invoice as any).total_amount || 0) - paidAmount, 0)
+    };
+  },
+
+  async updateInvoice(input: UpdateInvoiceInput) {
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+
+      let totalAmount: number | undefined;
+      if (input.items && input.items.length > 0) {
+        totalAmount = input.items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        await financialRepository.replaceInvoiceItems(
+          connection,
+          input.id,
+          input.items.map((item) => ({
+            id: crypto.randomUUID(),
+            invoiceId: input.id,
+            caseId: item.caseId ?? null,
+            description: item.description,
+            category: item.category,
+            amount: Number(item.amount)
+          }))
+        );
+      }
+
+      await financialRepository.updateInvoice(connection, input.id, {
+        currency: input.currency,
+        dueDate: input.dueDate,
+        notes: input.notes,
+        status: input.status,
+        totalAmount
+      });
+
+      await connection.commit();
+      return financialService.getInvoiceById(input.id);
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  },
+
+  async deleteInvoice(invoiceId: string) {
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      await financialRepository.softDeleteInvoice(connection, invoiceId);
+      await connection.commit();
+      return { success: true as const };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 };

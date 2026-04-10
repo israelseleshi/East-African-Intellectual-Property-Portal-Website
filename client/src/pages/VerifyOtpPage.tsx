@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,8 +84,7 @@ export default function VerifyOtpPage() {
   };
 
   if (!email) {
-    navigate('/signup');
-    return null;
+    return <Navigate to="/signup" replace />
   }
 
   return (

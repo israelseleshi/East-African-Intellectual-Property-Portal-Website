@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { MagnifyingGlass, Plus, Archive, Clock, FileText, CreditCard, BookOpen, House, Command, Users, ShieldCheck, Building, User, Trash } from '@phosphor-icons/react'
 import { clientService, trademarkService } from '../utils/api'
+import { useAuthStore, canAccessFinance } from '../store/authStore'
 
 type Props = {
   open: boolean
@@ -12,6 +13,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
   const [clients, setClients] = useState<Array<{ id: string; name: string; type?: string }>>([])
   const [trademarks, setTrademarks] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; jurisdiction?: string; client_name?: string; client?: { name?: string } }>>([])
   const [loading, setLoading] = useState(false)
+  const user = useAuthStore((state) => state.user)
 
   useEffect(() => {
     if (open) {
@@ -48,12 +50,12 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
       { label: 'Trademarks', path: '/trademarks', icon: Archive },
       { label: 'Deadlines & Alerts', path: '/deadlines', icon: Clock },
       { label: 'EIPA Forms', path: '/eipa-forms', icon: FileText },
-      { label: 'Invoicing', path: '/invoicing', icon: CreditCard },
+      ...(canAccessFinance(user) ? [{ label: 'Invoicing', path: '/invoicing', icon: CreditCard }] : []),
       { label: 'Clients', path: '/clients', icon: Users },
       { label: 'Trash', path: '/trash', icon: Trash },
       { label: 'Help & Support', path: '/help', icon: BookOpen }
     ],
-    []
+    [user]
   )
 
   const trimmedQuery = query.trim().toLowerCase()

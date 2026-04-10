@@ -484,7 +484,7 @@ export default function DocketPage() {
              <span>Export CSV</span>
            </button>
            <button 
-             onClick={() => navigate('/case-intake')}
+             onClick={() => navigate('/eipa-forms/application-form')}
              className="apple-button-primary flex items-center gap-2 text-label h-10 px-4"
              id="new-application-btn"
            >
@@ -620,7 +620,7 @@ export default function DocketPage() {
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8" id="docket-grid">
         {loading ? (
           <div className="w-full">
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">

@@ -35,3 +35,17 @@ export const getFinancial = async <T>(suffix: string): Promise<T> => {
     return response.data;
   });
 };
+
+export const patchFinancial = async <T>(suffix: string, payload: unknown): Promise<T> => {
+  return withFinancialEndpointFallback(async (basePath) => {
+    const response = await apiClient.patch<T>(`${basePath}${suffix}`, payload);
+    return response.data;
+  });
+};
+
+export const deleteFinancial = async <T>(suffix: string): Promise<T> => {
+  return withFinancialEndpointFallback(async (basePath) => {
+    const response = await apiClient.delete<T>(`${basePath}${suffix}`);
+    return response.data;
+  });
+};

@@ -111,15 +111,17 @@ export default function TrademarkDetailInfoPage() {
 
     const load = async () => {
       try {
+        console.log('[TrademarkDetailInfoPage] Fetching case details for ID:', id);
         const data = await trademarkService.getCase(id)
         if (!active) return
+        console.log('[TrademarkDetailInfoPage] Case loaded successfully, data keys:', Object.keys(data));
         setTm(data)
         setEditData(data)
         setMarkImageFailed(false)
         setOverrideTitle(data.markName || data.mark_name || 'Trademark')
       } catch (error) {
         if (!active) return
-        console.error('Failed to load trademark detail:', error)
+        console.error('[TrademarkDetailInfoPage] Failed to load trademark detail:', error)
         setTm(null)
       } finally {
         if (active) setLoading(false)
@@ -162,6 +164,7 @@ export default function TrademarkDetailInfoPage() {
   const handleSave = async () => {
     try {
       setLoading(true);
+      console.log('[TrademarkDetailInfoPage] handleSave - Starting save for case ID:', id, 'with payload:', editData);
       
       const payload = {
         markName: editData.markName || editData.mark_name,
@@ -179,6 +182,7 @@ export default function TrademarkDetailInfoPage() {
       };
 
       await casesApi.updateCase(id!, payload);
+      console.log('[TrademarkDetailInfoPage] handleSave - API call succeeded for case ID:', id);
       
       const updatedData = await trademarkService.getCase(id!);
       setTm(updatedData);
@@ -190,8 +194,9 @@ export default function TrademarkDetailInfoPage() {
         description: 'Trademark details updated successfully.',
         type: 'success'
       });
+      console.log('[TrademarkDetailInfoPage] handleSave - Save successful, toast shown');
     } catch (error: any) {
-      console.error('Failed to save changes:', error);
+      console.error('[TrademarkDetailInfoPage] handleSave - Failed to save:', error);
       addToast({
         title: 'Save failed',
         description: error?.response?.data?.error || 'Could not update trademark details.',

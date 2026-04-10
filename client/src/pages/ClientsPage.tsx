@@ -520,7 +520,7 @@ export default function ClientsPage() {
             })}
           </div>
         ) : (
-          <div className="apple-card overflow-hidden">
+          <div className="apple-card overflow-hidden" id="clients-table">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
                 <thead className="bg-[var(--eai-bg)]/30 border-b border-[var(--eai-border)]">

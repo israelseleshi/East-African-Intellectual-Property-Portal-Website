@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import type { ThemeMode } from '../app/theme'
+import { useAuthStore, canAccessFinance } from '../store/authStore'
 import {
   SquaresFour,
   Archive,
@@ -11,7 +12,7 @@ import {
   Clock
 } from '@phosphor-icons/react'
 
-const nav = [
+const allNav = [
   { label: 'Dashboard', to: '/', icon: SquaresFour },
   { label: 'Trademarks', to: '/trademarks', icon: Archive },
   { label: 'Application Form', to: '/eipa-forms/application-form', icon: ShieldCheck },
@@ -29,6 +30,9 @@ type Props = {
 }
 
 export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) {
+  const user = useAuthStore((state) => state.user)
+  const nav = user ? allNav.filter((item) => item.to !== '/invoicing' || canAccessFinance(user)) : allNav
+
   return (
     <aside
       className={[

@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { dashboardService, invoiceService, trademarkService } from '@/utils/api'
 import { cn } from '@/lib/utils'
+import { useAuthStore, canAccessFinance } from '@/store/authStore'
 
 type QueueDeadline = {
   id: string
@@ -88,6 +89,8 @@ export default function DashboardPage() {
   const [overdueActions, setOverdueActions] = useState<QueueDeadline[]>([])
   const [invoiceQueue, setInvoiceQueue] = useState<QueueInvoice[]>([])
   const [stalledCases, setStalledCases] = useState<QueueCase[]>([])
+  const user = useAuthStore((state) => state.user)
+  const financeEnabled = canAccessFinance(user)
 
   const loadDashboardData = useCallback(async (isAuto = false) => {
     try {
@@ -240,7 +243,9 @@ export default function DashboardPage() {
         {[
           { id: 'due7', label: 'Due in 7 Days', value: dueIn7Days.length, icon: ClockCountdown, color: 'text-amber-500', bg: 'bg-amber-500/10' },
           { id: 'overdue', label: 'Overdue Actions', value: overdueActions.length, icon: WarningCircle, color: 'text-red-500', bg: 'bg-red-500/10' },
-          { id: 'invoices', label: 'Pending Payments', value: invoiceQueue.length, icon: Wallet, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          ...(financeEnabled
+            ? [{ id: 'invoices', label: 'Pending Payments', value: invoiceQueue.length, icon: Wallet, color: 'text-blue-500', bg: 'bg-blue-500/10' }]
+            : []),
           { id: 'portfolio', label: 'Active Portfolio', value: stats?.activeTrademarks || 0, icon: ChartPieSlice, color: 'text-[var(--eai-primary)]', bg: 'bg-[var(--eai-primary)]/10' }
         ].map((card) => (
           <div key={card.id} className="apple-card group relative overflow-hidden p-6 hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 cursor-default">
@@ -310,26 +315,28 @@ export default function DashboardPage() {
           )}
         />
 
-        <QueueCard
-          id="queue-invoices"
-          title="Financial Recovery Queue"
-          icon={CreditCard}
-          emptyText="Treasury clear: All invoices are fully paid."
-          items={invoiceQueue}
-          renderItem={(item) => (
-            <QueueRow
-              key={item.id}
-              title={`${item.invoice_number || item.id} | ${item.client_name}`}
-              meta={`${formatMoney(item.total_amount, item.currency)}`}
-              badge={item.status}
-              badgeColor="bg-blue-500/10 text-blue-600 border-blue-500/20"
-              actions={[
-                { label: 'Ledger', onClick: () => navigate('/invoicing'), icon: ArrowSquareOut },
-                { label: 'Payment', onClick: () => navigate('/invoicing'), icon: Wallet }
-              ]}
-            />
-          )}
-        />
+        {financeEnabled && (
+          <QueueCard
+            id="queue-invoices"
+            title="Financial Recovery Queue"
+            icon={CreditCard}
+            emptyText="Treasury clear: All invoices are fully paid."
+            items={invoiceQueue}
+            renderItem={(item) => (
+              <QueueRow
+                key={item.id}
+                title={`${item.invoice_number || item.id} | ${item.client_name}`}
+                meta={`${formatMoney(item.total_amount, item.currency)}`}
+                badge={item.status}
+                badgeColor="bg-blue-500/10 text-blue-600 border-blue-500/20"
+                actions={[
+                  { label: 'Ledger', onClick: () => navigate('/invoicing'), icon: ArrowSquareOut },
+                  { label: 'Payment', onClick: () => navigate('/invoicing'), icon: Wallet }
+                ]}
+              />
+            )}
+          />
+        )}
 
         <QueueCard
           id="queue-stalled"

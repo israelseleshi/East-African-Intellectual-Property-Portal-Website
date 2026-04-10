@@ -30,7 +30,8 @@ const registerSchema = z.object({
   email: z.string().email(),
   phone: z.string().optional(),
   firmName: z.string().optional(),
-  password: z.string().min(6)
+  password: z.string().min(6),
+  role: z.enum(['SUPER_ADMIN', 'ADMIN']).optional()
 });
 
 const verifyOtpSchema = z.object({
@@ -168,7 +169,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const { fullName, email, phone, firmName, password } = parsed.data;
+    const { fullName, email, phone, firmName, password, role } = parsed.data;
 
     const [existingUsers] = await pool.execute('SELECT id FROM users WHERE email = ?', [email]);
     if ((existingUsers as unknown[]).length > 0) {
@@ -184,9 +185,11 @@ router.post('/register', async (req, res) => {
     const userId = crypto.randomUUID();
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+    const normalizedRole = role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
+
     await pool.execute(
       'INSERT INTO users (id, full_name, email, phone, firm_name, password_hash, role, verification_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, fullName, email, phone || null, firmName || null, passwordHash, 'LAWYER', otp]
+      [userId, fullName, email, phone || null, firmName || null, passwordHash, normalizedRole, otp]
     );
 
     await sendVerificationEmail(email, otp);

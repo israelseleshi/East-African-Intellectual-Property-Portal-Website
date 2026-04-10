@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 
 import CommandPalette from '../components/CommandPalette'
+import AppTour from '../components/AppTour'
 import Sidebar from '../components/Sidebar'
 import TopBar from '../components/TopBar'
 import { usePageTitleStore } from '../store/pageTitleStore'
@@ -100,6 +101,12 @@ export default function AppShell() {
   const location = useLocation()
   const title = usePageTitle()
 
+  const isAuthPage =
+    location.pathname === '/login' ||
+    location.pathname === '/signup' ||
+    location.pathname === '/verify-otp' ||
+    location.pathname === '/signup/super_admin'
+
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme())
   const [commandOpen, setCommandOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -108,8 +115,13 @@ export default function AppShell() {
   })
 
   useEffect(() => {
+    if (isAuthPage) {
+      applyTheme('light')
+      if (theme !== 'light') setTheme('light')
+      return
+    }
     applyTheme(theme)
-  }, [theme])
+  }, [theme, isAuthPage])
   const [version, setVersion] = useState<{ gitSha?: string | null; buildTime?: string | null }>({})
 
   const toggleTheme = useCallback(() => {
@@ -192,6 +204,7 @@ export default function AppShell() {
         </div>
       </div>
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      <AppTour />
     </div>
   )
 }

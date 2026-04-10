@@ -75,12 +75,14 @@ export default function ClientDetailPage() {
 
   const fetchClient = async (clientId: string) => {
     try {
+      console.log('[ClientDetailPage] fetchClient - Fetching client details for ID:', clientId);
       const data = await clientService.getClient(clientId);
+      console.log('[ClientDetailPage] fetchClient - Client loaded successfully, name:', data.name);
       setClient(data);
       setFormData(data);
       setOverrideTitle(data.name);
     } catch (error) {
-      console.error('Failed to fetch client:', error);
+      console.error('[ClientDetailPage] fetchClient - Failed to fetch client:', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,9 @@ export default function ClientDetailPage() {
     
     setSaving(true);
     try {
+      console.log('[ClientDetailPage] handleSave - Starting save for client ID:', id, 'with data:', formData);
       await clientService.updateClient(id, formData);
+      console.log('[ClientDetailPage] handleSave - API call succeeded for client ID:', id);
       setClient({ ...client!, ...formData as Client });
       setIsEditing(false);
       addToast({
@@ -99,8 +103,9 @@ export default function ClientDetailPage() {
         description: 'Client updated successfully',
         type: 'success'
       });
+      console.log('[ClientDetailPage] handleSave - Save successful, toast shown');
     } catch (error: unknown) {
-      console.error('Failed to update client:', error);
+      console.error('[ClientDetailPage] handleSave - Failed to update client:', error);
       const err = error as { response?: { data?: { error?: string } } };
       addToast({
         title: 'Failed to update client',
