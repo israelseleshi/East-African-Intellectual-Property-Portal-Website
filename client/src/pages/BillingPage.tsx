@@ -233,7 +233,9 @@ export default function BillingPage() {
         issueDate: inv.issue_date || null,
         dueDate: inv.due_date || null,
         notes: noteText,
-        method: inv.payment_method || inv.method || 'Bank Transfer'
+        method: inv.payment_method || inv.method || 'Bank Transfer',
+        items: inv.items || [],
+        feeDescription: inv.fee_description || inv.description || ''
       }})
       
       setTransactions(mappedTransactions)
@@ -453,8 +455,7 @@ export default function BillingPage() {
 
       const detailRows: Array<[string, string]> = [
         ['Client Name', tx.clientName || 'Client'],
-        ['Trademark', trademarkDisplay],
-        ['Service Stage', tx.type || 'Filing Service']
+        ['Trademark', trademarkDisplay]
       ]
       detailRows.forEach(([label, value]) => {
         page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
@@ -468,8 +469,7 @@ export default function BillingPage() {
       const billingRows: Array<[string, string]> = [
         ['Issue Date', tx.issueDate ? new Date(tx.issueDate).toLocaleDateString() : tx.date],
         ['Due Date', tx.dueDate ? new Date(tx.dueDate).toLocaleDateString() : '—'],
-        ['Payment Method', tx.method || 'Bank Transfer'],
-        ['Current Status', tx.status || 'DRAFT']
+        ['Payment Method', tx.method || 'Bank Transfer']
       ]
       billingRows.forEach(([label, value]) => {
         page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
@@ -478,7 +478,41 @@ export default function BillingPage() {
       })
 
       y -= 30
-      // 4. Financial Summary Table
+      
+      // 4. Line Items Table
+      if (tx.items && tx.items.length > 0) {
+        y = drawSectionTitle('Fee Details', y)
+        
+        // Table header
+        page.drawRectangle({
+          x: marginLeft,
+          y: y - 5,
+          width: marginRight - marginLeft,
+          height: 20,
+          color: rgb(0.96, 0.97, 0.98)
+        })
+        page.drawText('#', { x: marginLeft + 5, y: y, size: 9, font: boldFont })
+        page.drawText('Description', { x: marginLeft + 30, y: y, size: 9, font: boldFont })
+        page.drawText('Amount', { x: marginRight - 80, y: y, size: 9, font: boldFont })
+        y -= 22
+        
+        // Table rows
+        tx.items.forEach((item: any, index: number) => {
+          page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
+          page.drawText(item.description || item.category || 'Fee', { x: marginLeft + 30, y, size: 9, font: regularFont })
+          const itemAmount = `${tx.currency || 'ETB'} ${Number(item.amount || 0).toLocaleString()}`
+          page.drawText(itemAmount, { x: marginRight - 80, y, size: 9, font: regularFont })
+          y -= 16
+        })
+        
+        y -= 15
+      } else if (tx.feeDescription) {
+        y = drawSectionTitle('Fee Details', y)
+        page.drawText(tx.feeDescription, { x: marginLeft, y, size: 10, font: regularFont })
+        y -= 20
+      }
+
+      // 5. Financial Summary Table
       page.drawRectangle({
         x: marginLeft,
         y: y - 10,
