@@ -117,8 +117,23 @@ export const financialService = {
     }
   },
 
-  async listInvoices() {
-    return financialRepository.listInvoices();
+async listInvoices() {
+    const invoices = await financialRepository.listInvoices();
+    
+    const invoicesWithItems = await Promise.all(
+      invoices.map(async (inv: any) => {
+        const items = await financialRepository.listInvoiceItems(inv.id);
+        return {
+          ...inv,
+          items: items || [],
+          fee_description: items?.length > 0 
+            ? items.map((i: any) => i.description).join(', ')
+            : null
+        };
+      })
+    );
+    
+    return invoicesWithItems;
   },
 
   async getInvoiceById(invoiceId: string) {
