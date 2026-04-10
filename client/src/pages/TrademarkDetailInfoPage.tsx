@@ -166,6 +166,16 @@ export default function TrademarkDetailInfoPage() {
       setLoading(true);
       console.log('[TrademarkDetailInfoPage] handleSave - Starting save for case ID:', id, 'with payload:', editData);
       
+      const clientData = editData.client;
+      const cleanClient = clientData ? {
+        name: clientData.name || undefined,
+        nationality: clientData.nationality || undefined,
+        email: clientData.email || undefined,
+        phone: clientData.phone || undefined,
+        addressStreet: clientData.addressStreet || undefined,
+        city: clientData.city || undefined
+      } : undefined;
+      
       const payload = {
         markName: editData.markName || editData.mark_name,
         markType: editData.markType || editData.mark_type,
@@ -176,7 +186,7 @@ export default function TrademarkDetailInfoPage() {
         goodsServices: editData.goodsServices || editData.goods_services,
         clientInstructions: editData.clientInstructions,
         remark: editData.remark,
-        client: editData.client,
+        client: cleanClient,
         eipaForm: editData.eipaForm,
         mark_image: editData.mark_image
       };
