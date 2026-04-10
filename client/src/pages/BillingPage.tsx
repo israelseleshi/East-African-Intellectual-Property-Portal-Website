@@ -480,36 +480,41 @@ export default function BillingPage() {
       y -= 30
       
       // 4. Line Items Table
-      if (tx.items && tx.items.length > 0) {
+      const hasItems = tx.items && tx.items.length > 0
+      const hasFeeDesc = tx.feeDescription || (tx.notes && tx.notes.includes('Auto-generated for'))
+      
+      if (hasItems || hasFeeDesc) {
         y = drawSectionTitle('Fee Details', y)
         
-        // Table header
-        page.drawRectangle({
-          x: marginLeft,
-          y: y - 5,
-          width: marginRight - marginLeft,
-          height: 20,
-          color: rgb(0.96, 0.97, 0.98)
-        })
-        page.drawText('#', { x: marginLeft + 5, y: y, size: 9, font: boldFont })
-        page.drawText('Description', { x: marginLeft + 30, y: y, size: 9, font: boldFont })
-        page.drawText('Amount', { x: marginRight - 80, y: y, size: 9, font: boldFont })
-        y -= 22
-        
-        // Table rows
-        tx.items.forEach((item: any, index: number) => {
-          page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
-          page.drawText(item.description || item.category || 'Fee', { x: marginLeft + 30, y, size: 9, font: regularFont })
-          const itemAmount = `${tx.currency || 'ETB'} ${Number(item.amount || 0).toLocaleString()}`
-          page.drawText(itemAmount, { x: marginRight - 80, y, size: 9, font: regularFont })
-          y -= 16
-        })
+        if (hasItems) {
+          // Table header
+          page.drawRectangle({
+            x: marginLeft,
+            y: y - 5,
+            width: marginRight - marginLeft,
+            height: 20,
+            color: rgb(0.96, 0.97, 0.98)
+          })
+          page.drawText('#', { x: marginLeft + 5, y: y, size: 9, font: boldFont })
+          page.drawText('Description', { x: marginLeft + 30, y: y, size: 9, font: boldFont })
+          page.drawText('Amount', { x: marginRight - 80, y: y, size: 9, font: boldFont })
+          y -= 22
+          
+          // Table rows
+          tx.items.forEach((item: any, index: number) => {
+            const desc = item.description || item.category || 'Fee'
+            page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
+            page.drawText(desc, { x: marginLeft + 30, y, size: 9, font: regularFont })
+            const itemAmount = `${tx.currency || 'ETB'} ${Number(item.amount || 0).toLocaleString()}`
+            page.drawText(itemAmount, { x: marginRight - 80, y, size: 9, font: regularFont })
+            y -= 16
+          })
+        } else if (tx.feeDescription) {
+          page.drawText(tx.feeDescription, { x: marginLeft, y, size: 10, font: regularFont })
+          y -= 20
+        }
         
         y -= 15
-      } else if (tx.feeDescription) {
-        y = drawSectionTitle('Fee Details', y)
-        page.drawText(tx.feeDescription, { x: marginLeft, y, size: 10, font: regularFont })
-        y -= 20
       }
 
       // 5. Financial Summary Table
@@ -753,7 +758,8 @@ export default function BillingPage() {
             <table className="w-full border-collapse text-left">
               <thead className="bg-[var(--eai-bg)]/20 border-b border-[var(--eai-border)]">
                 <tr>
-                  <th className="px-6 py-4 text-label">Mark / Client</th>
+                  <th className="px-6 py-4 text-label">Client</th>
+                  <th className="px-6 py-4 text-label">Trademark</th>
                   <th className="px-6 py-4 text-label">Type / Purpose</th>
                   <th className="px-6 py-4 text-label">Date</th>
                   <th className="px-6 py-4 text-label">Amount</th>
@@ -769,9 +775,10 @@ export default function BillingPage() {
                     onClick={() => navigate(`/invoicing/${tx.id}`)}
                   >
                     <td className="px-6 py-5">
-                      <div className="text-body font-bold text-[var(--eai-text)]">{tx.markName}</div>
-                      <div className="text-micro text-[var(--eai-text-secondary)]">Client</div>
-                      <div className="text-micro text-[var(--eai-text-secondary)]">{tx.clientName || 'Global Legal Ltd.'}</div>
+                      <div className="text-body font-bold text-[var(--eai-text)]">{tx.clientName || 'Client'}</div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="text-body font-medium text-[var(--eai-text)]">{tx.markName || '—'}</div>
                     </td>
                     <td className="px-6 py-5 text-body font-medium">{tx.type}</td>
                     <td className="px-6 py-5 text-body text-[var(--eai-text-secondary)] font-medium">{tx.date}</td>
