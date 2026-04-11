@@ -221,7 +221,7 @@ export default function BillingPage() {
         id: inv.id,
         invoiceNumber: inv.invoice_number || '',
         markId: inv.trademark_id || inv.markId || '',
-        markName: inv.mark_name || inv.markName || inv.client_name,
+        markName: inv.mark_name || inv.markName || '',
         clientName: inv.client_name || 'Client',
         clientId: inv.client_id,
         type: stageLabel || inv.type || 'INVOICE',

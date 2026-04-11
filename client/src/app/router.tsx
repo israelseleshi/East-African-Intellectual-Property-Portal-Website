@@ -19,6 +19,7 @@ const InvoiceDetailPage = lazy(() => import('../pages/InvoiceDetailPage'))
 const LoginPage = lazy(() => import('../pages/LoginPage'))
 const SignUpPage = lazy(() => import('../pages/SignUpPage'))
 const VerifyOtpPage = lazy(() => import('../pages/VerifyOtpPage'))
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'))
 const FormInspectorPage = lazy(() => import('../pages/FormInspectorPage'))
 const HelpPage = lazy(() => import('../pages/HelpPage'))
 const TrashPage = lazy(() => import('../pages/TrashPage'))
@@ -41,6 +42,33 @@ const FinanceRoute = () => {
   }
   return <Outlet />
 }
+
+const TemporaryLoginPage = () => (
+  <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-4">Login Page</h1>
+      <p className="text-muted-foreground">Coming soon - shadcn auth pages</p>
+    </div>
+  </div>
+)
+
+const TemporarySignupPage = () => (
+  <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-4">Sign Up Page</h1>
+      <p className="text-muted-foreground">Coming soon - shadcn auth pages</p>
+    </div>
+  </div>
+)
+
+const TemporaryVerifyOtpPage = () => (
+  <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-4">Verify OTP Page</h1>
+      <p className="text-muted-foreground">Coming soon - shadcn auth pages</p>
+    </div>
+  </div>
+)
 
 const VerifyOtpPageWrapper = () => {
   const email = useAuthStore((state) => state.email)
@@ -69,6 +97,11 @@ export const router = createBrowserRouter([
   {
     path: '/verify-otp',
     element: <VerifyOtpPageWrapper />,
+    errorElement: <ErrorPage />
+  },
+  {
+    path: '/forgot-password',
+    element: withRouteSuspense(<ForgotPasswordPage />),
     errorElement: <ErrorPage />
   },
   {

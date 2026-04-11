@@ -19,5 +19,15 @@ export const authApi = {
   async me() {
     const response = await apiClient.get('/auth/me');
     return response.data;
+  },
+
+  async forgotPassword(payload: { email: string }) {
+    const response = await apiClient.post('/auth/forgot-password', payload);
+    return response.data;
+  },
+
+  async resetPassword(payload: { token: string; password: string }) {
+    const response = await apiClient.post('/auth/reset-password', payload);
+    return response.data;
   }
 };

@@ -9,6 +9,7 @@ import TopBar from '../components/TopBar'
 import { usePageTitleStore } from '../store/pageTitleStore'
 import { applyTheme, getInitialTheme, type ThemeMode } from './theme'
 import { useHotkeys } from './useHotkeys'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const pageVariants: Variants = {
   initial: {
@@ -185,19 +186,21 @@ export default function AppShell() {
           onOpenCommand={() => setCommandOpen(true)}
           theme={theme}
         />
-        <main className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 2xl:p-10 pb-20 md:pb-6 lg:pb-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="mx-auto w-full max-w-[100%] sm:max-w-[95%] md:max-w-[92%] lg:max-w-[88rem] xl:max-w-[96rem] 2xl:max-w-[110rem]"
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+        <main className="flex-1 overflow-hidden bg-background p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 2xl:p-10 pb-20 md:pb-6 lg:pb-8">
+          <ScrollArea className="h-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="mx-auto w-full max-w-[100%] sm:max-w-[95%] md:max-w-[92%] lg:max-w-[88rem] xl:max-w-[96rem] 2xl:max-w-[110rem]"
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </ScrollArea>
         </main>
         <div className="text-[11px] text-muted-foreground px-4 pb-2 text-right">
           {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : ''}

@@ -120,10 +120,15 @@ export const financialRepository = {
 
   async listInvoices(): Promise<RowDataPacket[]> {
     const [rows] = await pool.execute(`
-      SELECT i.*, c.name as client_name
+      SELECT i.*, c.name as client_name,
+             tc.id as trademark_id,
+             tc.mark_name
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
+      LEFT JOIN invoice_items ii ON ii.invoice_id = i.id AND ii.deleted_at IS NULL
+      LEFT JOIN trademark_cases tc ON tc.id = ii.case_id
       WHERE i.deleted_at IS NULL
+      GROUP BY i.id
       ORDER BY i.created_at DESC
     `);
     return rows as RowDataPacket[];

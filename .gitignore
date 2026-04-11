@@ -17,8 +17,8 @@ tables.md
 database_data.sql
 database_dump.sql
 
-# Internal Documentation
-docs/
+# # Internal Documentation
+# docs/
 
 
 # Deployment and Temporary files

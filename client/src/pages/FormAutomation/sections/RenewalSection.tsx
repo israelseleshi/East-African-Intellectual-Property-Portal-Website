@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
+import { Input } from '@/components/ui/input';
 
 interface RenewalSectionProps {
   formData: EipaFormData;
@@ -129,18 +130,16 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="I. Applicant Name" icon={User} rightElement={quickLoadClientTrigger}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Applicant Name (English)">
-            <input
+            <Input
               value={formData.renewal_applicant_name || ''}
               onChange={(e) => handleInputChange('renewal_applicant_name', e.target.value)}
-              className="apple-input"
               placeholder="Full legal name"
             />
           </FormField>
           <FormField label="Applicant Name (Amharic)">
-            <input
+            <Input
               value={formData.renewal_applicant_name_amharic || ''}
               onChange={(e) => handleInputChange('renewal_applicant_name_amharic', e.target.value)}
-              className="apple-input"
               placeholder="ስም በዐማርኛ"
             />
           </FormField>
