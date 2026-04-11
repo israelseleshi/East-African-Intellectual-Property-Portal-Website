@@ -6,7 +6,7 @@ import { useAuthStore, canAccessFinance } from '../store/authStore'
 import ErrorPage from '../components/ErrorPage'
 
 const DashboardPage = lazy(() => import('../pages/DashboardPage'))
-const DocketPage = lazy(() => import('../pages/DocketPage'))
+const TrademarksPage = lazy(() => import('../pages/TrademarksPage'))
 const ClientsPage = lazy(() => import('../pages/ClientsPage'))
 const ClientDetailPage = lazy(() => import('../pages/ClientDetailPage'))
 const NewClientPage = lazy(() => import('../pages/NewClientPage'))
@@ -14,6 +14,7 @@ const CaseFlowPage = lazy(() => import('../pages/CaseFlowPage'))
 const CaseFlowDemoPage = lazy(() => import('../pages/CaseFlowDemoPage'))
 const TrademarkDetailInfoPage = lazy(() => import('../pages/TrademarkDetailInfoPage'))
 const DeadlinesPage = lazy(() => import('../pages/DeadlinesPage'))
+const DeadlineDetailPage = lazy(() => import('../pages/DeadlineDetailPage'))
 const BillingPage = lazy(() => import('../pages/BillingPage'))
 const InvoiceDetailPage = lazy(() => import('../pages/InvoiceDetailPage'))
 const LoginPage = lazy(() => import('../pages/LoginPage'))
@@ -113,10 +114,11 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: withRouteSuspense(<DashboardPage />) },
-          { path: 'trademarks', element: withRouteSuspense(<DocketPage />) },
+          { path: 'trademarks', element: withRouteSuspense(<TrademarksPage />) },
           { path: 'trademarks/:id', element: withRouteSuspense(<TrademarkDetailInfoPage />) },
           { path: 'trademarks/:id/detail', element: withRouteSuspense(<TrademarkDetailInfoPage />) },
           { path: 'deadlines', element: withRouteSuspense(<DeadlinesPage />) },
+          { path: 'deadlines/:id', element: withRouteSuspense(<DeadlineDetailPage />) },
           { path: 'intake/new', element: <Navigate to="/eipa-forms" replace /> },
           { path: 'eipa-forms', element: <Navigate to="application-form" replace /> },
           { path: 'eipa-forms/application-form', element: withRouteSuspense(<FormInspectorPage />) },

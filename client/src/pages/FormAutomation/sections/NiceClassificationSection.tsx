@@ -2,6 +2,7 @@ import React from 'react';
 import { ImageIcon } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
 import NiceClassPicker from '../../../components/NiceClassPicker';
 
 interface NiceClassificationSectionProps {
@@ -39,10 +40,10 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
             return (
               <div key={n} className="flex items-center gap-3">
                 <span className="text-[11px] font-bold text-[var(--eai-text-secondary)] w-4 shrink-0">{n}</span>
-                <input
+                <Input
                   value={(formData[field] as string) || ''}
                   onChange={(e) => handleInputChange(field, e.target.value)}
-                  className="apple-input flex-1"
+                  className="flex-1"
                   placeholder={`Goods/services line ${n}`}
                 />
               </div>

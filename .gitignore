@@ -17,14 +17,18 @@ tables.md
 database_data.sql
 database_dump.sql
 
-# # Internal Documentation
-# docs/
-
+# Internal Documentation
+docs/
+*.md
+!README.md
 
 # Deployment and Temporary files
 deploy_tmp/
 delete-this/
 forms-upload/
+server/uploads/
+memories/
+client/.agents/
 *.zip
 *.log
 *.temp

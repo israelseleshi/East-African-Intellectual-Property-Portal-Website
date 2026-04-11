@@ -25,7 +25,7 @@ import { JurisdictionSpecificFields } from './FormAutomation/components/Jurisdic
 import { fillPdfForm } from '../utils/pdfUtils';
 
 export default function FormInspectorPage() {
-  const { addToast } = useToast();
+  const { toast: addToast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -119,7 +119,7 @@ export default function FormInspectorPage() {
       addToast({
         title: 'Success',
         description: 'Trademark case created successfully.',
-        type: 'success',
+        
       });
       navigate(`/trademarks/${caseId}`);
     } catch (error) {
@@ -127,7 +127,7 @@ export default function FormInspectorPage() {
       addToast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to create case',
-        type: 'error',
+        variant: 'destructive'
       });
     } finally {
       setIsSubmitting(false);
@@ -156,7 +156,7 @@ export default function FormInspectorPage() {
       addToast({
         title: 'Download Failed',
         description: 'Could not generate the downloadable PDF.',
-        type: 'error',
+        variant: 'destructive'
       });
     }
   };
@@ -216,8 +216,8 @@ export default function FormInspectorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--eai-bg)] pb-20">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+    <div className="min-h-screen bg-background pb-20">
+      <div className="w-full mx-auto px-4 pt-8">
 
         <FormHeader
           formType={formType}
@@ -229,9 +229,9 @@ export default function FormInspectorPage() {
           showFields={showFields}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
           {/* Left Column: Form Fields */}
-          <div className="lg:col-span-7 space-y-8" id="form-controls-section">
+          <div className="lg:col-span-7 space-y-8 overflow-y-auto" id="form-controls-section">
             <JurisdictionSpecificFields
               formType={formType}
               formData={formData}
@@ -250,7 +250,7 @@ export default function FormInspectorPage() {
           </div>
 
           {/* Right Column: Live Preview */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 h-full">
             <PdfPreviewPanel
               showPreview={showPreview}
               previewLoading={previewLoading}

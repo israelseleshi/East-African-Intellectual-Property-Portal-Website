@@ -1,105 +1,114 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, User, FileText, Pencil, Check, X } from '@phosphor-icons/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { clientService } from '@/utils/api';
-import { usePageTitleStore } from '@/store/pageTitleStore';
-import { useToast } from '@/components/ui/toast';
-import { CountrySelector } from '@/components/CountrySelector';
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, User, FileText, PencilSimple, Check, X, Envelope, Phone, MapPin, Globe, Buildings, IdentificationCard, GenderIntersex } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { clientService } from '@/utils/api'
+import { usePageTitleStore } from '@/store/pageTitleStore'
+import { toast } from 'sonner'
+import { CountrySelector } from '@/components/CountrySelector'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-import StatusPill from '@/components/StatusPill';
-import JurisdictionBadge from '@/components/JurisdictionBadge';
-import type { ApplicantType, TrademarkStatus, Jurisdiction } from '@/shared/database';
+import type { ApplicantType } from '@/shared/database'
 
 interface AssociatedTrademark {
-  id: string;
-  mark_name: string;
-  status: string;
-  jurisdiction: string;
-  filing_number: string | null;
-  created_at: string;
+  id: string
+  mark_name: string
+  status: string
+  jurisdiction: string
+  filing_number: string | null
+  created_at: string
 }
 
 interface Client {
-  id: string;
-  name: string;
-  local_name?: string;
-  type: ApplicantType;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
-  nationality: string;
-  email: string;
-  address_street: string;
-  address_zone?: string;
-  wereda?: string;
-  city: string;
-  state_name?: string;
-  city_code?: string;
-  state_code?: string;
-  house_no?: string;
-  zip_code: string;
-  po_box?: string;
-  telephone?: string;
-  fax?: string;
-  residence_country?: string;
-  created_at: string;
-  trademarks?: AssociatedTrademark[];
+  id: string
+  name: string
+  local_name?: string
+  type: ApplicantType
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
+  nationality: string
+  email: string
+  address_street: string
+  address_zone?: string
+  wereda?: string
+  city: string
+  state_name?: string
+  city_code?: string
+  state_code?: string
+  house_no?: string
+  zip_code: string
+  po_box?: string
+  telephone?: string
+  fax?: string
+  residence_country?: string
+  created_at: string
+  trademarks?: AssociatedTrademark[]
 }
 
 const CLIENT_TYPE_LABELS: Record<ApplicantType, string> = {
   INDIVIDUAL: 'Individual',
   COMPANY: 'Company',
   PARTNERSHIP: 'Partnership'
-};
+}
+
+function Field({ label, value, icon: Icon }: { label: string; value?: string | null; icon?: any }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+        {Icon && <Icon size={14} />}
+        {label}
+      </Label>
+      <div className="text-sm font-medium">{value || <span className="text-muted-foreground/50">—</span>}</div>
+    </div>
+  )
+}
 
 export default function ClientDetailPage() {
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const { addToast } = useToast();
-  const [client, setClient] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState<Partial<Client>>({});
-  const setOverrideTitle = usePageTitleStore((state) => state.setOverrideTitle);
-  const clearOverride = usePageTitleStore((state) => state.clearOverride);
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const [client, setClient] = useState<Client | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formData, setFormData] = useState<Partial<Client>>({})
+  const setOverrideTitle = usePageTitleStore((state) => state.setOverrideTitle)
+  const clearOverride = usePageTitleStore((state) => state.clearOverride)
 
   useEffect(() => {
     if (id) {
-      fetchClient(id);
+      fetchClient(id)
     }
-    return () => clearOverride();
-  }, [id]);
+    return () => clearOverride()
+  }, [id])
 
   const fetchClient = async (clientId: string) => {
     try {
-      console.log('[ClientDetailPage] fetchClient - Fetching client details for ID:', clientId);
-      const data = await clientService.getClient(clientId);
-      console.log('[ClientDetailPage] fetchClient - Client loaded successfully, name:', data.name);
-      setClient(data);
-      setFormData(data);
-      setOverrideTitle(data.name);
+      setLoading(true)
+      const data = await clientService.getClient(clientId)
+      setClient(data)
+      setFormData(data)
+      setOverrideTitle(data.name)
     } catch (error) {
-      console.error('[ClientDetailPage] fetchClient - Failed to fetch client:', error);
+      console.error('[ClientDetailPage] Failed to fetch client:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSave = async () => {
-    if (!id || !formData) return;
+    if (!id || !formData) return
     
-    setSaving(true);
+    setSaving(true)
     try {
-      console.log('[ClientDetailPage] handleSave - Starting save for client ID:', id, 'with data:', formData);
-      
       const sanitizeField = (val: string | null | undefined): string | undefined => {
-        if (val === null || val === undefined) return undefined;
-        const trimmed = val.trim();
-        return trimmed || undefined;
-      };
+        if (val === null || val === undefined) return undefined
+        const trimmed = val.trim()
+        return trimmed || undefined
+      }
       
       const cleanedData = {
         name: sanitizeField(formData.name),
@@ -121,448 +130,280 @@ export default function ClientDetailPage() {
         po_box: sanitizeField(formData.po_box),
         telephone: sanitizeField(formData.telephone),
         fax: sanitizeField(formData.fax)
-      };
+      }
       
-      await clientService.updateClient(id, cleanedData);
-      console.log('[ClientDetailPage] handleSave - API call succeeded for client ID:', id);
-      setClient({ ...client!, ...formData as Client });
-      setIsEditing(false);
-      addToast({
-        title: 'Success',
+      await clientService.updateClient(id, cleanedData)
+      setClient({ ...client!, ...formData as Client })
+      setIsEditing(false)
+      toast.success('Success', {
         description: 'Client updated successfully',
-        type: 'success'
-      });
-      console.log('[ClientDetailPage] handleSave - Save successful, toast shown');
-    } catch (error: unknown) {
-      console.error('[ClientDetailPage] handleSave - Failed to update client:', error);
-      const err = error as { response?: { data?: { error?: string } } };
-      addToast({
-        title: 'Failed to update client',
-        description: err?.response?.data?.error || 'Please try again',
-        type: 'error'
-      });
+      })
+    } catch (error: any) {
+      console.error('[ClientDetailPage] Failed to update client:', error)
+      toast.error('Failed to update client', {
+        description: error?.response?.data?.error || 'Please try again',
+      })
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
-  const handleChange = (field: keyof Client, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field: keyof Client, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--eai-primary)] border-t-transparent" />
-        <div className="text-[15px] font-bold text-[var(--eai-text-secondary)] mt-3">Loading client...</div>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+        <header className="flex items-center gap-4 mb-8">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div><Skeleton className="h-8 w-64" /><Skeleton className="h-4 w-48 mt-2" /></div>
+        </header>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-64 rounded-lg" />)}
+        </div>
       </div>
-    );
+    )
   }
 
   if (!client) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="text-[18px] font-bold text-[var(--eai-text)] tracking-tight">Client not found</div>
-        <Button onClick={() => navigate('/clients')} className="mt-4">
-          Back to Clients
-        </Button>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-24">
+        <div className="text-xl font-bold text-foreground">Client not found</div>
+        <Button onClick={() => navigate('/clients')} className="mt-4">Back to Clients</Button>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="w-full">
-      <header className="flex items-end justify-between">
+    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+      <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/clients')}
-            className="p-2 rounded-xl hover:bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] transition-colors"
-          >
-            <ArrowLeft size={24} weight="bold" />
-          </button>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-h1 text-[var(--eai-text)] leading-none">
-              {isEditing ? 'Edit Client' : client.name}
-            </h1>
-            {!isEditing && (
-              <div className="mt-1">
-                <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
-                  {CLIENT_TYPE_LABELS[client.type]}
-                </span>
-              </div>
-            )}
+          <Button variant="outline" size="icon" onClick={() => navigate('/clients')} className="h-10 w-10 shrink-0">
+            <ArrowLeft size={20} />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">{isEditing ? 'Edit Client' : client.name}</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="default">{CLIENT_TYPE_LABELS[client.type]}</Badge>
+              {client.nationality && <Badge variant="outline">{client.nationality}</Badge>}
+            </div>
           </div>
         </div>
-        
-        {isEditing ? (
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsEditing(false);
-                setFormData(client);
-              }}
-              className="flex items-center gap-2"
-            >
-              <X size={18} weight="bold" />
-              Cancel
+        <div className="flex items-center gap-2 shrink-0">
+          {isEditing ? (
+            <>
+              <Button variant="outline" onClick={() => { setIsEditing(false); setFormData(client) }}>
+                <X size={18} className="mr-2" /> Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                <Check size={18} className="mr-2" /> {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setIsEditing(true)}>
+              <PencilSimple size={18} className="mr-2" /> Edit Client
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="apple-button-primary flex items-center gap-2"
-            >
-              <Check size={18} weight="bold" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        ) : (
-          <Button
-            onClick={() => setIsEditing(true)}
-            className="apple-button-primary flex items-center gap-2"
-          >
-            <Pencil size={18} weight="bold" />
-            Edit Client
-          </Button>
-        )}
+          )}
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        <Card className="apple-card border-none shadow-lg overflow-hidden relative group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-[var(--eai-primary)] opacity-0 group-hover:opacity-100 transition-opacity" />
-          <CardHeader className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30">
-            <CardTitle className="text-h3 text-[var(--eai-text)] flex items-center gap-2">
-              <User size={20} className="text-[var(--eai-primary)]" weight="duotone" />
-              Client Information
-            </CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Identity Card */}
+        <Card className="border-border shadow-sm bg-card">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2">
+              <User size={20} className="text-primary" />
+              <CardTitle className="text-base text-foreground">Identity & Type</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="p-6 space-y-8">
-            <div className="space-y-4">
-              <h4 className="text-label text-[var(--eai-text-secondary)] tracking-wider text-[11px] font-bold">Identity</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="p-6 space-y-4">
+            {isEditing ? (
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Client name</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.name || ''}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">{client.name}</div>
-                  )}
+                  <Label>Client Name</Label>
+                  <Input value={formData.name || ''} onChange={e => handleChange('name', e.target.value)} />
                 </div>
-
                 <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Local name (Amharic)</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.local_name || ''}
-                      onChange={(e) => handleChange('local_name', e.target.value)}
-                      placeholder="ምሳሌ ድርጅት"
-                      className="apple-input font-amharic"
-                    />
-                  ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">
-                      {client.local_name || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                    </div>
-                  )}
+                  <Label>Local Name (Amharic)</Label>
+                  <Input value={formData.local_name || ''} onChange={e => handleChange('local_name', e.target.value)} className="font-amharic" />
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Client type</Label>
-                  {isEditing ? (
-                    <div className="apple-input-container">
-                      <select
-                        value={formData.type || ''}
-                        onChange={(e) => handleChange('type', e.target.value as ApplicantType)}
-                        className="w-full h-11 bg-transparent text-body outline-none appearance-none cursor-pointer"
-                      >
-                        <option value="INDIVIDUAL">Individual</option>
-                        <option value="COMPANY">Company</option>
-                        <option value="PARTNERSHIP">Partnership</option>
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="mt-1">
-                      <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
-                        {CLIENT_TYPE_LABELS[client.type]}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Gender</Label>
-                  {isEditing ? (
-                    <div className="apple-input-container">
-                      <select
-                        value={formData.gender || ''}
-                        onChange={(e) => handleChange('gender', e.target.value)}
-                        className="w-full h-11 bg-transparent text-body outline-none appearance-none cursor-pointer"
-                      >
-                        <option value="">Not Specified</option>
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="OTHER">Other</option>
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">
-                      {client.gender || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                    </div>
-                  )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Client Type</Label>
+                    <Select value={formData.type} onValueChange={v => handleChange('type', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                        <SelectItem value="COMPANY">Company</SelectItem>
+                        <SelectItem value="PARTNERSHIP">Partnership</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Gender</Label>
+                    <Select value={formData.gender || 'NONE'} onValueChange={v => handleChange('gender', v === 'NONE' ? null : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Not Specified" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Not Specified</SelectItem>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-label text-[var(--eai-text-secondary)] tracking-wider text-[11px] font-bold">Contact & Address</h4>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Email</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.email || ''}
-                      onChange={(e) => handleChange('email', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.email || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Nationality</Label>
-                  {isEditing ? (
-                    <CountrySelector
-                      value={formData.nationality || ''}
-                      onChange={(val) => handleChange('nationality', val)}
-                      placeholder="Select nationality"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.nationality || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Country of residence</Label>
-                  {isEditing ? (
-                    <CountrySelector
-                      value={formData.residence_country || ''}
-                      onChange={(val) => handleChange('residence_country', val)}
-                      placeholder="Select country"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.residence_country || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Telephone</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.telephone || ''}
-                      onChange={(e) => handleChange('telephone', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.telephone || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Fax</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.fax || ''}
-                      onChange={(e) => handleChange('fax', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.fax || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Street address</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.address_street || ''}
-                      onChange={(e) => handleChange('address_street', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.address_street || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Zone / Subcity</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.address_zone || ''}
-                      onChange={(e) => handleChange('address_zone', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.address_zone || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Wereda</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.wereda || ''}
-                      onChange={(e) => handleChange('wereda', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.wereda || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">City</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.city || ''}
-                      onChange={(e) => handleChange('city', e.target.value)}
-                      placeholder="City"
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.city || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">City Code</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.city_code || ''}
-                      onChange={(e) => handleChange('city_code', e.target.value)}
-                      placeholder="City Code"
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.city_code || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">State / Region</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.state_name || ''}
-                      onChange={(e) => handleChange('state_name', e.target.value)}
-                      placeholder="State / Region"
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.state_name || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">State Code</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.state_code || ''}
-                      onChange={(e) => handleChange('state_code', e.target.value)}
-                      placeholder="State Code"
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.state_code || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">House no.</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.house_no || ''}
-                      onChange={(e) => handleChange('house_no', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.house_no || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">ZIP / Postal code</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.zip_code || ''}
-                      onChange={(e) => handleChange('zip_code', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.zip_code || '—'}</div>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">P.O. Box</Label>
-                  {isEditing ? (
-                    <Input
-                      value={formData.po_box || ''}
-                      onChange={(e) => handleChange('po_box', e.target.value)}
-                      className="apple-input"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{client.po_box || '—'}</div>
-                  )}
-                </div>
+                <Field label="Full Name" value={client.name} icon={IdentificationCard} />
+                <Field label="Local Name" value={client.local_name} icon={IdentificationCard} />
+                <Field label="Client Type" value={CLIENT_TYPE_LABELS[client.type]} icon={Buildings} />
+                <Field label="Gender" value={client.gender} icon={GenderIntersex} />
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="apple-card border-none shadow-lg overflow-hidden relative group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-[var(--eai-primary)] opacity-0 group-hover:opacity-100 transition-opacity" />
-          <CardHeader className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30">
-            <CardTitle className="text-h3 text-[var(--eai-text)] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText size={20} className="text-[var(--eai-primary)]" weight="duotone" />
-                Associated Trademarks
-              </div>
-              {client.trademarks && client.trademarks.length > 0 && (
-                <span className="text-micro bg-[var(--eai-primary)] text-white px-2 py-0.5 rounded-full">
-                  {client.trademarks.length}
-                </span>
-              )}
-            </CardTitle>
+        {/* Contact Info */}
+        <Card className="border-border shadow-sm bg-card">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Envelope size={20} className="text-primary" />
+              <CardTitle className="text-base text-foreground">Contact Information</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="p-0">
-            {!client.trademarks || client.trademarks.length === 0 ? (
-              <div className="p-12 flex flex-col items-center justify-center text-center">
-                <div className="h-16 w-16 bg-[var(--eai-bg)] flex items-center justify-center rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <FileText size={32} className="text-[var(--eai-text-secondary)] opacity-50" weight="duotone" />
+          <CardContent className="p-6 space-y-4">
+            {isEditing ? (
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Email Address</Label>
+                  <Input value={formData.email || ''} onChange={e => handleChange('email', e.target.value)} />
                 </div>
-                <p className="text-body text-[var(--eai-text-secondary)] font-medium">
-                  No trademarks associated with this client.
-                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Telephone</Label>
+                    <Input value={formData.telephone || ''} onChange={e => handleChange('telephone', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Fax</Label>
+                    <Input value={formData.fax || ''} onChange={e => handleChange('fax', e.target.value)} />
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="divide-y divide-[var(--eai-border)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Field label="Email" value={client.email} icon={Envelope} />
+                <Field label="Telephone" value={client.telephone} icon={Phone} />
+                <Field label="Fax" value={client.fax} icon={Phone} />
+                <Field label="Created" value={new Date(client.created_at).toLocaleDateString()} icon={Globe} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Address Card */}
+        <Card className="border-border shadow-sm bg-card md:col-span-2">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2">
+              <MapPin size={20} className="text-primary" />
+              <CardTitle className="text-base text-foreground">Address & Location</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {isEditing ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-1.5">
+                  <Label>Nationality</Label>
+                  <CountrySelector value={formData.nationality || ''} onChange={v => handleChange('nationality', v)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Residence Country</Label>
+                  <CountrySelector value={formData.residence_country || ''} onChange={v => handleChange('residence_country', v)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Street Address</Label>
+                  <Input value={formData.address_street || ''} onChange={e => handleChange('address_street', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Zone / Subcity</Label>
+                  <Input value={formData.address_zone || ''} onChange={e => handleChange('address_zone', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Wereda</Label>
+                  <Input value={formData.wereda || ''} onChange={e => handleChange('wereda', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>City</Label>
+                  <Input value={formData.city || ''} onChange={e => handleChange('city', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>State / Region</Label>
+                  <Input value={formData.state_name || ''} onChange={e => handleChange('state_name', e.target.value)} />
+                </div>
+                <div className="space-y-1.5 md:col-span-1">
+                  <Label>ZIP / Postal Code</Label>
+                  <Input value={formData.zip_code || ''} onChange={e => handleChange('zip_code', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>P.O. Box</Label>
+                  <Input value={formData.po_box || ''} onChange={e => handleChange('po_box', e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Field label="Nationality" value={client.nationality} icon={Globe} />
+                <Field label="Residence" value={client.residence_country} icon={Globe} />
+                <Field label="City" value={client.city} icon={MapPin} />
+                <Field label="Street" value={client.address_street} icon={MapPin} />
+                <Field label="Zone/Subcity" value={client.address_zone} icon={MapPin} />
+                <Field label="Wereda" value={client.wereda} icon={MapPin} />
+                <Field label="State" value={client.state_name} icon={MapPin} />
+                <Field label="Postal/ZIP" value={client.zip_code} icon={MapPin} />
+                <Field label="P.O. Box" value={client.po_box} icon={MapPin} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Associated Trademarks */}
+        {!isEditing && client.trademarks && client.trademarks.length > 0 && (
+          <Card className="border-border shadow-sm bg-card md:col-span-2">
+            <CardHeader className="bg-muted/30 border-b border-border">
+              <div className="flex items-center gap-2">
+                <FileText size={20} className="text-primary" />
+                <CardTitle className="text-base text-foreground">Associated Trademarks</CardTitle>
+                <CardDescription>Trademarks filed by this client</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
                 {client.trademarks.map((tm) => (
-                  <div
-                    key={tm.id}
+                  <div 
+                    key={tm.id} 
+                    className="p-4 hover:bg-muted/50 cursor-pointer transition-colors flex items-center justify-between"
                     onClick={() => navigate(`/trademarks/${tm.id}`)}
-                    className="p-4 hover:bg-[var(--eai-bg)]/50 cursor-pointer transition-colors flex items-center justify-between group/item"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 bg-[var(--eai-bg)] rounded-xl flex items-center justify-center text-[var(--eai-text-secondary)] group-hover/item:text-[var(--eai-primary)] transition-colors shadow-sm shrink-0">
-                        <FileText size={20} weight="duotone" />
-                      </div>
-                      <div className="min-w-0 max-w-[300px]">
-                        <div className="text-body font-bold text-[var(--eai-text)] line-clamp-2">{tm.mark_name}</div>
-                        <div className="text-micro text-[var(--eai-text-secondary)]">
-                          {tm.filing_number || 'No Filing #'}
-                        </div>
+                    <div>
+                      <div className="font-bold text-sm text-foreground">{tm.mark_name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {tm.filing_number || 'No filing number'} • {tm.jurisdiction}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <JurisdictionBadge jurisdiction={(tm.jurisdiction || 'ET') as Jurisdiction} />
-                      <StatusPill status={tm.status as TrademarkStatus} />
-                    </div>
+                    <Badge variant={tm.status === 'REGISTERED' ? 'default' : 'outline'}>
+                      {tm.status}
+                    </Badge>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
-  );
+  )
 }

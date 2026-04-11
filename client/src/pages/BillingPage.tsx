@@ -5,13 +5,11 @@ import { financialsApi } from '@/api/financials'
 import { useToast } from '../components/ui/toast'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import {
-  CreditCard,
   CurrencyDollar,
   ChartLineUp,
   ArrowUpRight,
   WarningCircle,
   Clock,
-  Funnel,
   Download,
   Receipt,
   CheckCircle,
@@ -20,7 +18,10 @@ import {
   Trash,
   CaretLeft,
   CaretRight,
-  X
+  X,
+  MagnifyingGlass,
+  FileArrowDown,
+  CreditCard
 } from '@phosphor-icons/react'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -28,6 +29,11 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { DatePicker } from '@/components/ui/date-picker'
 
 const EIPO_FEES = [
   { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
@@ -35,7 +41,7 @@ const EIPO_FEES = [
   { code: 'OPPOSITION', description: 'Opposition To Registration Of A Trademark', amount: 1500 },
   { code: 'REGISTRATION', description: 'Registration Of Trade Mark', amount: 3000 },
   { code: 'RENEWAL_APPLICATION', description: 'Application For Renewal Of Registration Of A Trademark', amount: 1300 },
-  { code: 'RENEWAL', description: 'Renewal Of Registration Of A Trademark', amount: 2200 },
+  { code: 'RENEWAL', description: 'Renewal Of Registration Of Trade Mark', amount: 2200 },
   { code: 'AMENDMENT_REGISTRATION', description: 'Amendment Of Registration Of A Trademark', amount: 360 },
   { code: 'SUBSTITUTE_CERTIFICATE', description: 'Substitute Certificate Of Registration Of A Trademark', amount: 495 },
   { code: 'CANCELLATION', description: 'Application For The Cancellation Or Invalidation Of The Registration Of A Trademark', amount: 2600 },
@@ -62,7 +68,7 @@ const EIPO_FEES = [
 
 export default function BillingPage() {
   const navigate = useNavigate()
-  const { addToast } = useToast()
+  const { toast: addToast } = useToast()
 
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,13 +94,7 @@ export default function BillingPage() {
     { description: '', category: 'OFFICIAL_FEE', amount: '' }
   ])
   
-  const [stats, setStats] = useState<{
-    totalRevenue: number
-    outstanding: number
-    paidMtd: number
-    clientCount: number
-    overdueCount: number
-  }>({
+  const [stats, setStats] = useState({
     totalRevenue: 0,
     outstanding: 0,
     paidMtd: 0,
@@ -109,7 +109,7 @@ export default function BillingPage() {
     client: '__all__'
   })
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  const itemsPerPage = 6
 
   const fetchClients = async () => {
     try {
@@ -156,13 +156,13 @@ export default function BillingPage() {
 
   const handleCreateInvoice = async () => {
     if (!newInvoice.clientId) {
-      addToast({ title: 'Error', description: 'Please select a client.', type: 'error' })
+      addToast({ title: 'Error', description: 'Please select a client.', variant: 'destructive' })
       return
     }
     
     const validItems = lineItems.filter(item => item.description && item.amount)
     if (validItems.length === 0) {
-      addToast({ title: 'Error', description: 'Please add at least one line item.', type: 'error' })
+      addToast({ title: 'Error', description: 'Please add at least one line item.', variant: 'destructive' })
       return
     }
 
@@ -183,7 +183,6 @@ export default function BillingPage() {
       addToast({
         title: 'Invoice Created',
         description: 'The invoice has been created successfully.',
-        type: 'success'
       })
 
       setIsCreateInvoiceModalOpen(false)
@@ -196,15 +195,13 @@ export default function BillingPage() {
       setLineItems([{ description: '', category: 'OFFICIAL_FEE', amount: '' }])
       fetchTransactions()
     } catch (error) {
-      addToast({ title: 'Error', description: 'Failed to create invoice.', type: 'error' })
+      addToast({ title: 'Error', description: 'Failed to create invoice.', variant: 'destructive' })
     } finally {
       setCreatingInvoice(false)
     }
   }
 
   const totalInvoiceAmount = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-
-  
 
   const fetchTransactions = async () => {
     try {
@@ -218,25 +215,26 @@ export default function BillingPage() {
         const stageLabel = stageCode ? stageCode.replace(/_/g, ' ') : null
 
         return {
-        id: inv.id,
-        invoiceNumber: inv.invoice_number || '',
-        markId: inv.trademark_id || inv.markId || '',
-        markName: inv.mark_name || inv.markName || '',
-        clientName: inv.client_name || 'Client',
-        clientId: inv.client_id,
-        type: stageLabel || inv.type || 'INVOICE',
-        stageCode: stageCode || null,
-        amount: Number(inv.total_amount || inv.amount),
-        currency: inv.currency,
-        status: inv.status,
-        date: new Date(inv.issue_date || inv.date || new Date()).toLocaleDateString(),
-        issueDate: inv.issue_date || null,
-        dueDate: inv.due_date || null,
-        notes: noteText,
-        method: inv.payment_method || inv.method || 'Bank Transfer',
-        items: inv.items || [],
-        feeDescription: inv.fee_description || inv.description || ''
-      }})
+          id: inv.id,
+          invoiceNumber: inv.invoice_number || '',
+          markId: inv.trademark_id || inv.markId || '',
+          markName: inv.mark_name || inv.markName || '',
+          clientName: inv.client_name || 'Client',
+          clientId: inv.client_id,
+          type: stageLabel || inv.type || 'INVOICE',
+          stageCode: stageCode || null,
+          amount: Number(inv.total_amount || inv.amount),
+          currency: inv.currency,
+          status: inv.status,
+          date: new Date(inv.issue_date || inv.date || new Date()).toLocaleDateString(),
+          issueDate: inv.issue_date || null,
+          dueDate: inv.due_date || null,
+          notes: noteText,
+          method: inv.payment_method || inv.method || 'Bank Transfer',
+          items: inv.items || [],
+          feeDescription: inv.fee_description || inv.description || ''
+        }
+      })
       
       setTransactions(mappedTransactions)
 
@@ -290,7 +288,6 @@ export default function BillingPage() {
       addToast({
         title: 'Payment Recorded',
         description: 'The payment has been successfully logged.',
-        type: 'success'
       })
 
       setIsPaymentModalOpen(false)
@@ -299,7 +296,7 @@ export default function BillingPage() {
       addToast({
         title: 'Error',
         description: 'Failed to record payment.',
-        type: 'error'
+        variant: 'destructive'
       })
     }
   }
@@ -358,7 +355,7 @@ export default function BillingPage() {
   const handleDownload = async (tx: any) => {
     try {
       const pdfDoc = await PDFDocument.create()
-      const page = pdfDoc.addPage([595.28, 841.89]) // A4
+      const page = pdfDoc.addPage([595.28, 841.89])
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
       const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
@@ -366,7 +363,6 @@ export default function BillingPage() {
       const marginRight = 545
       let y = 800
 
-      // 1. Logo & Header
       try {
         const logoUrl = '/eaip-logo.png'
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer())
@@ -384,7 +380,6 @@ export default function BillingPage() {
         y -= 40
       }
 
-      // Company Info (Centered)
       const companyInfo = [
         'EAST AFRICAN INTELLECTUAL PROPERTY',
         'Addis Ababa, Ethiopia',
@@ -413,7 +408,6 @@ export default function BillingPage() {
       })
       y -= 40
 
-      // 2. Invoice Title & Basic Info
       page.drawText('INVOICE', {
         x: marginLeft,
         y,
@@ -432,7 +426,6 @@ export default function BillingPage() {
       })
       y -= 50
 
-      // 3. Categorized Sections
       const drawSectionTitle = (title: string, yPos: number) => {
         page.drawText(title.toUpperCase(), {
           x: marginLeft,
@@ -444,11 +437,8 @@ export default function BillingPage() {
         return yPos - 20
       }
 
-      // Section A: Client & Trademark Details
       y = drawSectionTitle('Client & Trademark Details', y)
       
-      // Determine the correct trademark display name
-      // Use mark description if it exists and is different from client name, otherwise markName
       const trademarkDisplay = (tx.notes && tx.notes.includes('Auto-generated for')) 
         ? (tx.markName !== tx.clientName ? tx.markName : 'New Trademark') 
         : (tx.markName || 'Trademark');
@@ -464,7 +454,6 @@ export default function BillingPage() {
       })
 
       y -= 20
-      // Section B: Billing Schedule
       y = drawSectionTitle('Billing Schedule', y)
       const billingRows: Array<[string, string]> = [
         ['Issue Date', tx.issueDate ? new Date(tx.issueDate).toLocaleDateString() : tx.date],
@@ -479,7 +468,6 @@ export default function BillingPage() {
 
       y -= 30
       
-      // 4. Line Items Table
       const hasItems = tx.items && tx.items.length > 0
       const hasFeeDesc = tx.feeDescription || (tx.notes && tx.notes.includes('Auto-generated for'))
       
@@ -487,7 +475,6 @@ export default function BillingPage() {
         y = drawSectionTitle('Fee Details', y)
         
         if (hasItems) {
-          // Table header
           page.drawRectangle({
             x: marginLeft,
             y: y - 5,
@@ -495,12 +482,11 @@ export default function BillingPage() {
             height: 20,
             color: rgb(0.96, 0.97, 0.98)
           })
-          page.drawText('#', { x: marginLeft + 5, y: y, size: 9, font: boldFont })
-          page.drawText('Description', { x: marginLeft + 30, y: y, size: 9, font: boldFont })
-          page.drawText('Amount', { x: marginRight - 80, y: y, size: 9, font: boldFont })
+          page.drawText('#', { x: marginLeft + 5, y, size: 9, font: boldFont })
+          page.drawText('Description', { x: marginLeft + 30, y, size: 9, font: boldFont })
+          page.drawText('Amount', { x: marginRight - 80, y, size: 9, font: boldFont })
           y -= 22
           
-          // Table rows
           tx.items.forEach((item: any, index: number) => {
             const desc = item.description || item.category || 'Fee'
             page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
@@ -517,7 +503,6 @@ export default function BillingPage() {
         y -= 15
       }
 
-      // 5. Financial Summary Table
       page.drawRectangle({
         x: marginLeft,
         y: y - 10,
@@ -545,8 +530,6 @@ export default function BillingPage() {
       })
       
       y -= 60
-
-      // 5. Signature Section
       y -= 40
       page.drawLine({
         start: { x: marginRight - 180, y },
@@ -572,337 +555,346 @@ export default function BillingPage() {
       addToast({
         title: 'Invoice Downloaded',
         description: `PDF generated for ${tx.markName || 'invoice'}.`,
-        type: 'success'
       })
     } catch (error) {
       console.error('Failed to generate invoice PDF:', error)
       addToast({
         title: 'Download Failed',
         description: 'Could not generate invoice PDF.',
-        type: 'error'
+        variant: 'destructive'
       })
     }
   }
 
-  return (
-    <div className="w-full">
-      <header className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-h1 text-[var(--eai-text)]">Billing & Ledger</h1>
-            <p className="text-body text-[var(--eai-text-secondary)] font-medium">Professional invoicing and financial fee management.</p>
-          </div>
-          <button
-            onClick={() => setIsCreateInvoiceModalOpen(true)}
-            className="apple-button-primary rounded-xl flex items-center gap-2"
-          >
-            <Plus size={18} weight="bold" />
-            Create Invoice
-          </button>
+  if (loading) {
+    return (
+      <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
+        <header className="flex items-center justify-between mb-8">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-40" />
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardContent className="p-6 space-y-4">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
+
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <Skeleton className="h-6 w-48" />
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Billing & Ledger</h1>
+          <p className="text-muted-foreground text-sm">Professional invoicing and financial fee management.</p>
+        </div>
+        <Button
+          onClick={() => setIsCreateInvoiceModalOpen(true)}
+          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus size={16} weight="bold" />
+          Create Invoice
+        </Button>
       </header>
 
-      {/* Apple Wallet Style Cards */}
-      <div className="grid gap-6 md:grid-cols-3 mt-8" id="billing-stats-grid">
-        <div className="apple-card p-6 bg-gradient-to-br from-[var(--eai-primary)] to-[#004B7C] text-white border-none shadow-xl shadow-[var(--eai-primary)]/20 overflow-hidden relative group" id="stat-revenue">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-            <Receipt size={120} weight="duotone" />
-          </div>
-          <div className="flex items-center justify-between mb-8 relative z-10">
-            <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-sm">
-              <CurrencyDollar size={24} weight="bold" />
+      {/* Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-primary to-blue-800 text-white">
+          <CardContent className="p-6 relative">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Receipt size={100} weight="duotone" />
             </div>
-            <CreditCard size={24} weight="fill" className="opacity-50" />
-          </div>
-          <div className="text-label text-white/70 relative z-10">Total Revenue</div>
-          <div className="text-h1 text-white leading-none mt-1 relative z-10">{formatAmount(stats.totalRevenue)}</div>
-          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10">
-            <ChartLineUp size={16} weight="bold" />
-            <span>Reflecting all generated invoices</span>
-          </div>
-        </div>
+            <div className="flex items-center justify-between mb-6 relative z-10">
+              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <CurrencyDollar size={24} weight="bold" />
+              </div>
+              <CreditCard size={24} weight="fill" className="opacity-50" />
+            </div>
+            <div className="text-sm text-white/70 relative z-10">Total Revenue</div>
+            <div className="text-3xl font-bold leading-none mt-1 relative z-10">{formatAmount(stats.totalRevenue)}</div>
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium relative z-10">
+              <ChartLineUp size={16} />
+              <span>All time revenue</span>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="apple-card p-6 bg-gradient-to-br from-red-500 to-red-600 text-white border-none shadow-xl shadow-red-500/20 overflow-hidden relative group" id="stat-outstanding">
-          <div className="flex items-center justify-between mb-8 relative z-10">
-            <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-sm">
-              <WarningCircle size={24} weight="bold" />
+        <Card 
+          className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
+          onClick={() => setFilters(prev => ({ 
+            ...prev, 
+            status: (prev.status === 'OVERDUE' || prev.status === 'PARTIALLY_PAID' || prev.status === 'DRAFT')
+              ? '__all__' 
+              : 'OVERDUE' 
+          }))}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <WarningCircle size={24} weight="bold" />
+              </div>
             </div>
-          </div>
-          <div className="text-label text-white/70 relative z-10">Outstanding</div>
-          <div className="text-h1 text-white leading-none mt-1 relative z-10">{formatAmount(stats.outstanding)}</div>
-          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10">
-            <Clock size={16} weight="bold" />
-            <span>{stats.overdueCount} Overdue invoices</span>
-          </div>
-        </div>
+            <div className="text-sm text-white/70">Outstanding</div>
+            <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.outstanding)}</div>
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium">
+              <Clock size={16} />
+              <span>{stats.overdueCount} overdue</span>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="apple-card p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-none shadow-xl shadow-emerald-500/20 overflow-hidden relative group" id="stat-paid">
-          <div className="flex items-center justify-between mb-8 relative z-10">
-            <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-sm">
-              <ArrowUpRight size={24} weight="bold" />
+        <Card 
+          className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
+          onClick={() => setFilters(prev => ({ 
+            ...prev, 
+            status: (prev.status === 'PAID')
+              ? '__all__' 
+              : 'PAID' 
+          }))}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <ArrowUpRight size={24} weight="bold" />
+              </div>
+              <ChartLineUp size={24} weight="fill" className="opacity-50" />
             </div>
-            <ChartLineUp size={24} weight="fill" className="opacity-50" />
-          </div>
-          <div className="text-label text-white/70 relative z-10">Paid (MTD)</div>
-          <div className="text-h1 text-white leading-none mt-1 relative z-10">{formatAmount(stats.paidMtd)}</div>
-          <div className="mt-6 flex items-center gap-1.5 text-micro font-black relative z-10">
-            <span className="bg-white/20 px-2 py-0.5 rounded-full">Active</span>
-            <span>Across {stats.clientCount} clients</span>
-          </div>
-        </div>
+            <div className="text-sm text-white/70">Paid (MTD)</div>
+            <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.paidMtd)}</div>
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium">
+              <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">Active</span>
+              <span>Across {stats.clientCount} clients</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Transaction Ledger */}
-      <div className="apple-card overflow-hidden mt-8" id="billing-ledger">
-        <div className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30 px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-h3">Transaction History</h2>
-            <div className="flex items-center gap-2 text-label text-[var(--eai-text-secondary)]">
-              <Funnel size={16} weight="bold" />
-              <span>Filters</span>
+      {/* Filters */}
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">Transaction History</CardTitle>
+              {filters.status !== '__all__' && (
+                <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
+                  Filter: {filters.status} <X size={12} className="ml-1" />
+                </Badge>
+              )}
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
-            <Input
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
-              className="apple-input"
-            />
-            <Input
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
-              className="apple-input"
-            />
-            <Select
-              value={filters.status}
-              onValueChange={(val) => setFilters((prev) => ({ ...prev, status: val }))}
-            >
-              <SelectTrigger className="apple-input">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All statuses</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-                <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
-                <SelectItem value="OVERDUE">Overdue</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex gap-2">
-              <Select
-                value={filters.client}
-                onValueChange={(val) => setFilters((prev) => ({ ...prev, client: val }))}
-              >
-                <SelectTrigger className="apple-input">
-                  <SelectValue placeholder="All clients" />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input
+                  placeholder="Search..."
+                  className="pl-9 w-[200px] bg-background"
+                  value={filters.client === '__all__' ? '' : filters.client}
+                  onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value || '__all__' }))}
+                />
+              </div>
+              <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
+                <SelectTrigger className="w-[140px] bg-background">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All clients</SelectItem>
-                  {Array.from(new Set(transactions.map((tx) => tx.clientName).filter(Boolean))).map((clientName) => (
-                    <SelectItem key={clientName} value={clientName}>{clientName}</SelectItem>
-                  ))}
+                  <SelectItem value="__all__">All Status</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
+                  <SelectItem value="OVERDUE">Overdue</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
                 </SelectContent>
               </Select>
-              <button
-                onClick={resetFilters}
-                className="apple-button-secondary rounded-xl px-3 flex items-center gap-1"
-                title="Clear filters"
-              >
-                <X size={14} weight="bold" />
-                Clear
-              </button>
+              <Button variant="outline" size="sm" onClick={resetFilters}>
+                <X size={14} /> Clear
+              </Button>
             </div>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="w-full animate-pulse p-6">
-              {/* Table Header Skeleton */}
-              <div className="flex gap-4 pb-4 border-b border-[var(--eai-border)]">
-                <div className="h-4 w-32 bg-[var(--eai-border)]/50 rounded" />
-                <div className="h-4 w-24 bg-[var(--eai-border)]/50 rounded" />
-                <div className="h-4 w-24 bg-[var(--eai-border)]/50 rounded" />
-                <div className="h-4 w-24 bg-[var(--eai-border)]/50 rounded" />
-                <div className="h-4 w-20 bg-[var(--eai-border)]/50 rounded" />
-                <div className="h-4 w-24 bg-[var(--eai-border)]/50 rounded ml-auto" />
-              </div>
-              {/* Table Rows Skeleton */}
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex gap-4 py-5 border-b border-[var(--eai-border)]">
-                  <div className="flex-1 space-y-2">
-                    <div className="h-5 w-40 bg-[var(--eai-border)]/40 rounded" />
-                    <div className="h-4 w-24 bg-[var(--eai-border)]/30 rounded" />
-                  </div>
-                  <div className="h-4 w-20 bg-[var(--eai-border)]/30 rounded" />
-                  <div className="h-4 w-24 bg-[var(--eai-border)]/30 rounded" />
-                  <div className="h-4 w-24 bg-[var(--eai-border)]/30 rounded" />
-                  <div className="h-6 w-16 bg-[var(--eai-border)]/40 rounded" />
-                  <div className="h-4 w-24 bg-[var(--eai-border)]/30 rounded" />
-                </div>
-              ))}
-            </div>
-          ) : filteredTransactions.length === 0 ? (
+        </CardHeader>
+        <CardContent className="p-0">
+          {filteredTransactions.length === 0 ? (
             <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
-              <div className="h-16 w-16 bg-[var(--eai-bg)] flex items-center justify-center rounded-2xl">
-                <Receipt size={32} className="text-[var(--eai-text-secondary)] opacity-50" />
+              <div className="h-16 w-16 bg-muted flex items-center justify-center rounded-2xl">
+                <Receipt size={32} className="text-muted-foreground opacity-50" />
               </div>
               <div>
-                <h3 className="text-h3 text-[var(--eai-text)]">No transactions found</h3>
-                <p className="text-body text-[var(--eai-text-secondary)]">Your ledger will appear here once invoices are generated from the Manage Lifecycle view.</p>
+                <h3 className="text-lg font-semibold">No transactions found</h3>
+                <p className="text-muted-foreground text-sm">Your ledger will appear here once invoices are generated.</p>
               </div>
             </div>
           ) : (
-            <>
-            <table className="w-full border-collapse text-left">
-              <thead className="bg-[var(--eai-bg)]/20 border-b border-[var(--eai-border)]">
-                <tr>
-                  <th className="px-6 py-4 text-label">Client</th>
-                  <th className="px-6 py-4 text-label">Trademark</th>
-                  <th className="px-6 py-4 text-label">Type / Purpose</th>
-                  <th className="px-6 py-4 text-label">Date</th>
-                  <th className="px-6 py-4 text-label">Amount</th>
-                  <th className="px-6 py-4 text-label">Status</th>
-                  <th className="px-6 py-4 text-label text-center">Method</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--eai-border)]">
-                {paginatedTransactions.map((tx, index) => (
-                  <tr
-                    key={tx.id}
-                    className="group hover:bg-[var(--eai-bg)]/40 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/invoicing/${tx.id}`)}
-                  >
-                    <td className="px-6 py-5">
-                      <div className="text-body font-bold text-[var(--eai-text)]">{tx.clientName || 'Client'}</div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="text-body font-medium text-[var(--eai-text)]">{tx.markName || '—'}</div>
-                    </td>
-                    <td className="px-6 py-5 text-body font-medium">{tx.type}</td>
-                    <td className="px-6 py-5 text-body text-[var(--eai-text-secondary)] font-medium">{tx.date}</td>
-                    <td className="px-6 py-5 text-body font-bold">{formatAmount(tx.amount, tx.currency)}</td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <span className={[
-                          "inline-flex h-6 items-center px-2.5 rounded-none text-micro font-black border",
-                          tx.status === 'PAID' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : 
-                          tx.status === 'PARTIALLY_PAID' ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
-                          tx.status === 'OVERDUE' ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                          "bg-orange-500/10 text-orange-600 border-orange-500/20"
-                        ].join(' ')}>{tx.status}</span>
-                        {tx.status !== 'PAID' && (
-                          <button
-                            id={index === 0 ? 'record-payment-btn' : undefined}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedInvoice(tx);
-                              setPaymentData(prev => ({ ...prev, amount: tx.amount.toString() }));
-                              setIsPaymentModalOpen(true);
-                            }}
-                            className="p-1 rounded-md hover:bg-emerald-50 text-emerald-600 transition-colors"
-                            title="Record Payment"
-                          >
-                            <CheckCircle size={16} weight="bold" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="text-body font-medium text-[var(--eai-text-secondary)]">{tx.method}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(tx);
-                          }}
-                          className="p-2 rounded-xl hover:bg-white transition-colors text-[var(--eai-primary)] shadow-sm"
-                          title="Download Invoice PDF"
-                        >
-                          <Download size={18} weight="bold" />
-                        </button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 font-semibold">Client</th>
+                    <th className="px-6 py-3 font-semibold">Trademark</th>
+                    <th className="px-6 py-3 font-semibold">Type</th>
+                    <th className="px-6 py-3 font-semibold">Date</th>
+                    <th className="px-6 py-3 font-semibold">Amount</th>
+                    <th className="px-6 py-3 font-semibold">Status</th>
+                    <th className="px-6 py-3 font-semibold text-center">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredTransactions.length > 0 && (
-              <div className="flex items-center justify-between border-t border-[var(--eai-border)] bg-[var(--eai-bg)]/20 px-6 py-4">
-                <div className="text-body text-[var(--eai-text-secondary)]">
-                  Showing <span className="font-bold text-[var(--eai-text)]">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                  <span className="font-bold text-[var(--eai-text)]">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of{' '}
-                  <span className="font-bold text-[var(--eai-text)]">{filteredTransactions.length}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--eai-border)] bg-white text-[var(--eai-text)] shadow-sm transition-all hover:bg-[var(--eai-bg)] disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <CaretLeft size={16} weight="bold" />
-                  </button>
-                  <div className="text-label text-[var(--eai-text-secondary)] px-2">
-                    Page <span className="font-bold text-[var(--eai-text)]">{currentPage}</span> / <span className="font-bold text-[var(--eai-text)]">{totalPages}</span>
-                  </div>
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--eai-border)] bg-white text-[var(--eai-text)] shadow-sm transition-all hover:bg-[var(--eai-bg)] disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <CaretRight size={16} weight="bold" />
-                  </button>
-                </div>
-              </div>
-            )}
-            </>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginatedTransactions.map((tx, index) => (
+                    <tr
+                      key={tx.id}
+                      className="group hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/invoicing/${tx.id}`)}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="font-medium">{tx.clientName || 'Client'}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium">{tx.markName || '—'}</div>
+                      </td>
+                      <td className="px-6 py-4 font-medium">{tx.type}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{tx.date}</td>
+                      <td className="px-6 py-4 font-bold">{formatAmount(tx.amount, tx.currency)}</td>
+                      <td className="px-6 py-4">
+                        <Badge 
+                          variant={
+                            tx.status === 'PAID' ? 'default' : 
+                            tx.status === 'PARTIALLY_PAID' ? 'secondary' :
+                            tx.status === 'OVERDUE' ? 'destructive' : 'outline'
+                          }
+                          className={`font-medium ${
+                            tx.status === 'PAID' ? 'bg-green-500 hover:bg-green-600' :
+                            tx.status === 'PARTIALLY_PAID' ? 'bg-blue-500 hover:bg-blue-600' :
+                            tx.status === 'OVERDUE' ? 'bg-red-500 hover:bg-red-600' :
+                            'bg-gray-500 hover:bg-gray-600'
+                          }`}
+                        >
+                          {tx.status === 'PARTIALLY_PAID' ? 'Partially Paid' : tx.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-1">
+                          {tx.status !== 'PAID' && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedInvoice(tx)
+                                setPaymentData(prev => ({ ...prev, amount: tx.amount.toString() }))
+                                setIsPaymentModalOpen(true)
+                              }}
+                              title="Record Payment"
+                            >
+                              <CheckCircle size={16} />
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownload(tx)
+                            }}
+                            title="Download PDF"
+                          >
+                            <Download size={16} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
-      </div>
+          
+          {filteredTransactions.length > 0 && (
+            <div className="flex items-center justify-between border-t px-6 py-4">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of{' '}
+                <span className="font-medium">{filteredTransactions.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <CaretLeft size={16} />
+                </Button>
+                <span className="text-sm px-2">
+                  Page <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <CaretRight size={16} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Payment Recording Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="apple-card max-w-md border-none p-0 overflow-hidden flex flex-col max-h-[90vh] !translate-y-[-50%]">
-          <DialogHeader className="p-6 bg-[var(--eai-bg)]/30 border-b border-[var(--eai-border)] shrink-0">
-            <DialogTitle className="text-h3 flex items-center gap-2">
-              <Bank size={20} className="text-[var(--eai-primary)]" weight="duotone" />
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bank size={20} className="text-primary" />
               Record Payment
             </DialogTitle>
           </DialogHeader>
           
-          <div className="p-6 space-y-4 overflow-y-auto">
-            <div className="space-y-1.5">
-              <Label className="text-micro text-[var(--eai-text-secondary)]">Amount Received</Label>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Amount Received</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--eai-text-secondary)] font-bold">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
                 <Input 
                   type="number"
                   value={paymentData.amount}
                   onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                  className="apple-input pl-8"
+                  className="pl-8"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-micro text-[var(--eai-text-secondary)]">Payment Date</Label>
-                <Input 
-                  type="date"
-                  value={paymentData.paymentDate}
-                  onChange={(e) => setPaymentData({...paymentData, paymentDate: e.target.value})}
-                  className="apple-input"
+              <div className="space-y-2">
+                <Label>Payment Date</Label>
+                <DatePicker 
+                  date={paymentData.paymentDate ? new Date(paymentData.paymentDate) : undefined}
+                  onDateChange={(date) => setPaymentData({...paymentData, paymentDate: date ? date.toISOString().split('T')[0] : ''})}
+                  placeholder="Select payment date"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-micro text-[var(--eai-text-secondary)]">Method</Label>
+              <div className="space-y-2">
+                <Label>Method</Label>
                 <Select 
                   value={paymentData.paymentMethod}
                   onValueChange={(val) => setPaymentData({...paymentData, paymentMethod: val})}
                 >
-                  <SelectTrigger className="apple-input">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
                     <SelectItem value="CASH">Cash</SelectItem>
@@ -913,83 +905,65 @@ export default function BillingPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-micro text-[var(--eai-text-secondary)]">Reference Number</Label>
+            <div className="space-y-2">
+              <Label>Reference Number</Label>
               <Input 
                 value={paymentData.referenceNumber}
                 onChange={(e) => setPaymentData({...paymentData, referenceNumber: e.target.value})}
                 placeholder="Receipt # or Bank Ref"
-                className="apple-input"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-micro text-[var(--eai-text-secondary)]">Internal Notes</Label>
+            <div className="space-y-2">
+              <Label>Notes</Label>
               <Textarea 
                 value={paymentData.notes}
                 onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
-                className="apple-input min-h-[80px]"
               />
             </div>
           </div>
 
-          <DialogFooter className="p-6 bg-[var(--eai-bg)]/30 border-t border-[var(--eai-border)] shrink-0">
-            <button 
-              onClick={() => setIsPaymentModalOpen(false)}
-              className="apple-button-secondary rounded-xl"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleRecordPayment}
-              className="apple-button-primary rounded-xl"
-            >
-              Post Payment
-            </button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleRecordPayment}>Post Payment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Create Invoice Modal */}
       <Dialog open={isCreateInvoiceModalOpen} onOpenChange={setIsCreateInvoiceModalOpen}>
-        <DialogContent className="apple-card max-w-2xl border-none p-0 overflow-hidden flex flex-col max-h-[90vh] !translate-y-[-50%]">
-          <DialogHeader className="p-6 bg-[var(--eai-bg)]/30 border-b border-[var(--eai-border)] shrink-0">
-            <DialogTitle className="text-h3 flex items-center gap-2">
-              <Receipt size={20} className="text-[var(--eai-primary)]" weight="duotone" />
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileArrowDown size={20} className="text-primary" />
               Create New Invoice
             </DialogTitle>
           </DialogHeader>
           
-          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          <div className="space-y-6 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-micro text-[var(--eai-text-secondary)]">Client *</Label>
+              <div className="space-y-2">
+                <Label>Client *</Label>
                 <Select 
                   value={newInvoice.clientId}
                   onValueChange={(val) => setNewInvoice({...newInvoice, clientId: val})}
                 >
-                  <SelectTrigger className="apple-input">
-                    <SelectValue placeholder="Select a client" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
                   <SelectContent>
                     {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
+                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-micro text-[var(--eai-text-secondary)]">Currency</Label>
+              <div className="space-y-2">
+                <Label>Currency</Label>
                 <Select 
                   value={newInvoice.currency}
                   onValueChange={(val) => setNewInvoice({...newInvoice, currency: val})}
                 >
-                  <SelectTrigger className="apple-input">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="USD">USD - US Dollars</SelectItem>
                     <SelectItem value="ETB">ETB - Ethiopian Birr</SelectItem>
@@ -1000,52 +974,43 @@ export default function BillingPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-micro text-[var(--eai-text-secondary)]">Due Date</Label>
-                <Input 
-                  type="date"
-                  value={newInvoice.dueDate}
-                  onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
-                  className="apple-input"
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <DatePicker 
+                  date={newInvoice.dueDate ? new Date(newInvoice.dueDate) : undefined}
+                  onDateChange={(date) => setNewInvoice({...newInvoice, dueDate: date ? date.toISOString().split('T')[0] : ''})}
+                  placeholder="Select due date"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-micro text-[var(--eai-text-secondary)]">Total Amount</Label>
-                <div className="apple-input bg-[var(--eai-bg)] flex items-center h-10 px-3">
-                  <span className="text-[var(--eai-text-secondary)] font-bold mr-2">
-                    {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
-                  </span>
-                  <span className="text-[var(--eai-text)] font-bold">{totalInvoiceAmount.toLocaleString()}</span>
+              <div className="space-y-2">
+                <Label>Total Amount</Label>
+                <div className="h-10 px-3 flex items-center bg-muted rounded-md border font-bold">
+                  {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
+                  {totalInvoiceAmount.toLocaleString()}
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-[var(--eai-text-secondary)]">Line Items *</Label>
-                <button
-                  onClick={addLineItem}
-                  className="text-micro text-[var(--eai-primary)] hover:underline flex items-center gap-1"
-                >
-                  <Plus size={14} weight="bold" />
-                  Add Item
-                </button>
+                <Label>Line Items *</Label>
+                <Button variant="ghost" size="sm" onClick={addLineItem}>
+                  <Plus size={14} /> Add Item
+                </Button>
               </div>
               
               <div className="space-y-3">
                 {lineItems.map((item, index) => (
-                  <div key={index} className="flex gap-3 items-start p-4 bg-[var(--eai-bg)]/30 rounded-lg border border-[var(--eai-border)]">
+                  <div key={index} className="flex gap-3 items-start p-4 bg-muted/30 rounded-lg border">
                     <div className="flex-1 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-micro text-[var(--eai-text-secondary)]">Fee Type *</Label>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Fee Type</Label>
                           <Select 
                             value={item.category}
                             onValueChange={(val) => updateLineItem(index, 'category', val)}
                           >
-                            <SelectTrigger className="apple-input">
-                              <SelectValue placeholder="Select a fee..." />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Select a fee..." /></SelectTrigger>
                             <SelectContent>
                               {EIPO_FEES.map((fee) => (
                                 <SelectItem key={fee.code} value={fee.code}>
@@ -1055,71 +1020,52 @@ export default function BillingPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-micro text-[var(--eai-text-secondary)]">Amount ({newInvoice.currency})</Label>
-                          <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--eai-text-secondary)] font-bold text-base pointer-events-none">
-                              {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
-                            </span>
-                            <Input 
-                              type="number"
-                              placeholder="0.00"
-                              value={item.amount}
-                              onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
-                              className="apple-input !pl-14 text-right font-bold text-lg"
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Amount</Label>
+                          <Input 
+                            type="number"
+                            placeholder="0.00"
+                            value={item.amount}
+                            onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
+                          />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-micro text-[var(--eai-text-secondary)]">Description</Label>
-                        <Input 
-                          placeholder="Description will auto-fill when you select a fee type"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                          className="apple-input bg-white/50"
-                        />
-                      </div>
+                      <Input 
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                      />
                     </div>
                     {lineItems.length > 1 && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => removeLineItem(index)}
-                        className="mt-7 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove item"
+                        className="text-destructive"
                       >
-                        <Trash size={18} weight="bold" />
-                      </button>
+                        <Trash size={16} />
+                      </Button>
                     )}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-micro text-[var(--eai-text-secondary)]">Notes (Optional)</Label>
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
               <Textarea 
                 value={newInvoice.notes}
                 onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
-                placeholder="Internal notes or additional information..."
-                className="apple-input min-h-[60px]"
+                placeholder="Internal notes..."
               />
             </div>
           </div>
 
-          <DialogFooter className="p-6 bg-[var(--eai-bg)]/30 border-t border-[var(--eai-border)] shrink-0">
-            <button 
-              onClick={() => setIsCreateInvoiceModalOpen(false)}
-              className="apple-button-secondary rounded-xl"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleCreateInvoice}
-              disabled={creatingInvoice}
-              className="apple-button-primary rounded-xl disabled:opacity-50 flex items-center gap-2"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateInvoiceModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateInvoice} disabled={creatingInvoice}>
               {creatingInvoice ? 'Creating...' : 'Create Invoice'}
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

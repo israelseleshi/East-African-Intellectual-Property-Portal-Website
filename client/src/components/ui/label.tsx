@@ -23,4 +23,41 @@ const Label = React.forwardRef<
 ))
 Label.displayName = LabelPrimitive.Root.displayName
 
-export { Label }
+function RequiredLabel({ 
+  children, 
+  required,
+  className,
+  ...props 
+}: React.ComponentPropsWithoutRef<typeof Label> & { required?: boolean }) {
+  const text = typeof children === 'string' ? children : ''
+  
+  if (!text.includes('*') && !required) {
+    return (
+      <Label className={className} {...props}>
+        {children}
+      </Label>
+    )
+  }
+
+  const parts = text.split('*')
+  const hasAsterisk = text.includes('*')
+  
+  return (
+    <Label className={className} {...props}>
+      {hasAsterisk ? (
+        <>
+          {parts[0]}
+          <span className="text-red-500 dark:text-red-400">*</span>
+          {parts.slice(1).join('*')}
+        </>
+      ) : (
+        <>
+          {children}
+          {required && <span className="text-red-500 dark:text-red-400"> *</span>}
+        </>
+      )}
+    </Label>
+  )
+}
+
+export { Label, RequiredLabel }

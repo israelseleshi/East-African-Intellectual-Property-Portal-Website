@@ -14,7 +14,7 @@ type Props = {
 export default function WizardStepper({ steps, activeIndex, collapsed = false }: Props) {
   return (
     <div className="apple-card p-4">
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="flex items-center justify-center flex-wrap gap-4">
         {steps.map((s, i) => {
           const isCurrent = i === activeIndex
           const isDone = i < activeIndex

@@ -71,7 +71,7 @@ export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) 
 
         {/* Navigation */}
         <nav className="flex-1 w-full overflow-x-auto no-scrollbar md:overflow-x-visible px-2 md:px-3">
-          <div className="flex flex-row md:flex-col h-full items-center md:items-stretch justify-around md:justify-start gap-1 md:gap-0">
+          <div className="flex flex-row md:flex-col h-full items-center md:items-stretch justify-start md:justify-start gap-1 md:gap-0">
             {nav.map((item, index) => (
               <div key={item.to} className="flex-1 md:flex-none max-w-[80px] md:max-w-none">
                 {index > 0 && <div className="hidden md:block mx-3 h-px bg-[var(--eai-border)] opacity-40" />}
@@ -81,7 +81,7 @@ export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) 
                   title={collapsed ? item.label : undefined}
                   className={({ isActive }: { isActive: boolean }) =>
                     [
-                      'flex flex-col md:flex-row h-14 md:h-12 items-center justify-center md:justify-start gap-1 md:gap-3 rounded-xl md:rounded-none px-1 md:px-3 transition-all duration-200 group relative',
+                      'flex flex-row md:flex-row h-14 md:h-12 items-center justify-start gap-2 rounded-xl md:rounded-none px-3 md:px-3 transition-all duration-200 group relative',
                       isActive
                         ? 'bg-[var(--eai-primary)] text-white shadow-lg shadow-[var(--eai-primary)]/20 font-semibold z-10'
                         : theme === 'dark'
@@ -93,15 +93,9 @@ export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) 
                   <item.icon
                     size={20}
                     weight={collapsed ? "bold" : "regular"}
-                    className={[
-                      'shrink-0 transition-transform group-active:scale-90',
-                      collapsed ? 'md:mx-auto' : ''
-                    ].join(' ')}
+                    className="shrink-0 transition-transform group-active:scale-90"
                   />
-                  <span className={[
-                    'text-[10px] md:text-[15px] leading-none text-center truncate w-full md:w-auto',
-                    collapsed ? 'md:hidden' : 'block'
-                  ].join(' ')}>
+                  <span className="text-[10px] md:text-[15px] leading-none text-left truncate w-full md:w-auto">
                     {item.label.split(' ')[0]}
                   </span>
                 </NavLink>

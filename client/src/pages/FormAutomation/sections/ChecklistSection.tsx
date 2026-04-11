@@ -2,6 +2,7 @@ import React from 'react';
 import { Briefcase } from 'lucide-react';
 import { FormSection, FormField, CheckboxGroup } from '../components/FormShared';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
 
 interface ChecklistSectionProps {
   formData: EipaFormData;
@@ -35,36 +36,32 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
       <div className="space-y-4 pt-6 border-t border-[var(--eai-border)]">
         {formData.chk_list_other && (
           <FormField label="Other document(s) specify">
-            <input
+            <Input
               value={formData.other_documents_text || ''}
               onChange={(e) => handleInputChange('other_documents_text', e.target.value)}
-              className="apple-input"
               placeholder="List other documents..."
             />
           </FormField>
         )}
         <div className="grid grid-cols-3 gap-4">
           <FormField label="Day">
-            <input
+            <Input
               value={formData.applicant_sign_day}
               onChange={(e) => handleInputChange('applicant_sign_day', e.target.value)}
-              className="apple-input"
               placeholder="DD"
             />
           </FormField>
           <FormField label="Month">
-            <input
+            <Input
               value={formData.applicant_sign_month || ''}
               onChange={(e) => handleInputChange('applicant_sign_month', e.target.value)}
-              className="apple-input"
               placeholder="MMM"
             />
           </FormField>
           <FormField label="Year">
-            <input
+            <Input
               value={formData.applicant_sign_year_en}
               onChange={(e) => handleInputChange('applicant_sign_year_en', e.target.value)}
-              className="apple-input"
               placeholder="YYYY"
             />
           </FormField>

@@ -22,7 +22,7 @@ export default function WorkflowStepIndicator({ state }: Props) {
 
   return (
     <div className="rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)]/50 p-3">
-      <div className="grid gap-2 sm:grid-cols-6">
+      <div className="flex items-center justify-center flex-wrap gap-2">
         {STEPS.map((s, idx) => {
           const isDone = idx < currentIndex
           const isCurrent = idx === currentIndex

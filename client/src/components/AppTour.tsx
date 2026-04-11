@@ -10,8 +10,8 @@ const routeSteps: Record<string, Step[]> = {
   ],
   '/trademarks': [
     { target: '#new-application-btn', content: 'Start a new trademark application from this button.' },
-    { target: '#search-filter', content: 'Use these filters to narrow your docket quickly.' },
-    { target: '#docket-grid', content: 'This is your docket area for grid and table views.' }
+    { target: '#search-filter', content: 'Use these filters to narrow your trademarks quickly.' },
+    { target: '#trademarks-grid', content: 'This is your trademarks area for grid and table views.' }
   ],
   '/clients': [
     { target: '#new-client-btn', content: 'Create new client records here.' },

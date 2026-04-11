@@ -2,6 +2,8 @@ import React from 'react';
 import { Tag, XCircle, Upload } from 'lucide-react';
 import { FormSection, FormField, CheckboxGroup } from '../components/FormShared';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface MarkSpecificationSectionProps {
   formData: EipaFormData;
@@ -122,52 +124,47 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
         </div>
 
         <FormField label="Mark description" className="pt-4">
-          <textarea
+          <Textarea
             value={formData.mark_description}
             onChange={(e) => handleInputChange('mark_description', e.target.value)}
-            className="apple-input min-h-[100px] py-3"
+            className="min-h-[100px]"
             placeholder="Describe the visual and literal elements of the mark..."
           />
         </FormField>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <FormField label="Translation">
-            <input
+            <Input
               value={formData.mark_translation}
               onChange={(e) => handleInputChange('mark_translation', e.target.value)}
-              className="apple-input"
               placeholder="English translation"
             />
           </FormField>
           <FormField label="Transliteration">
-            <input
+            <Input
               value={formData.mark_transliteration}
               onChange={(e) => handleInputChange('mark_transliteration', e.target.value)}
-              className="apple-input"
               placeholder="Phonetic pronunciation"
             />
           </FormField>
           <FormField label="Language">
-            <input
+            <Input
               value={formData.mark_language_requiring_traslation}
               onChange={(e) => handleInputChange('mark_language_requiring_traslation', e.target.value)}
-              className="apple-input"
               placeholder="e.g., Amharic, Oromo"
             />
           </FormField>
           <FormField label="Color indication">
-            <input
+            <Input
               value={formData.mark_color_indication || ''}
               onChange={(e) => handleInputChange('mark_color_indication', e.target.value)}
-              className="apple-input"
               placeholder="e.g., Blue and White"
             />
           </FormField>
           <FormField label="3D features indication">
-            <input
+            <Input
               value={formData.mark_has_three_dim_features || ''}
               onChange={(e) => handleInputChange('mark_has_three_dim_features', e.target.value)}
-              className="apple-input"
               placeholder="Describe 3D features"
             />
           </FormField>

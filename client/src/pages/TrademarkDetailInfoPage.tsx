@@ -1,30 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, FileText, Info, PencilSimple, X, ClockCounterClockwise, DownloadSimple, ListChecks, ClockAfternoon } from '@phosphor-icons/react'
+import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockwise, DownloadSimple, Info, Buildings, MapPin, Phone, Envelope, Calendar, CheckSquare, List, WarningCircle, X, Upload, XCircle } from '@phosphor-icons/react'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/ui/toast'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { Jurisdiction, TrademarkStatus } from '@/shared/database'
-import JurisdictionBadge from '@/components/JurisdictionBadge'
-import StatusPill from '@/components/StatusPill'
-import NiceClassPicker from '@/components/NiceClassPicker'
-import { CaseNotesTab } from '../components/CaseNotesTab'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CountrySelector } from '@/components/CountrySelector'
 import { trademarkService } from '@/utils/api'
-import { casesApi } from '@/api/cases'
 import { usePageTitleStore } from '@/store/pageTitleStore'
-
-type CaseDeadline = {
-  id: string
-  case_id: string
-  type: string
-  due_date: string
-  status: 'PENDING' | 'COMPLETED' | 'MISSED' | 'SUPERSEDED'
-}
+import { useToast } from '@/hooks/use-toast'
+import { fillPdfForm } from '@/utils/pdfUtils'
 
 type NiceMapping = { id: string; classNo: number; description?: string }
 
@@ -58,306 +48,432 @@ type TrademarkCaseDetail = {
   expiry_date?: string
   nextRenewalDate?: string
   next_renewal_date?: string
-  next_action_date?: string
-  clientInstructions?: string
-  client_instructions?: string
-  remark?: string
+  eipaForm?: Record<string, unknown> | null
   client?: {
     name?: string
-    addressStreet?: string
-    address_street?: string
-    city?: string
+    localName?: string
     nationality?: string
     email?: string
     phone?: string
+    addressStreet?: string
+    addressZone?: string
+    city?: string
+    wereda?: string
+    houseNo?: string
+    poBox?: string
+    fax?: string
   }
-  deadlines?: CaseDeadline[]
-  history?: any[]
-  eipaForm?: Record<string, unknown> | null
+  agent?: {
+    name?: string
+    country?: string
+    city?: string
+    subcity?: string
+    telephone?: string
+    email?: string
+    poBox?: string
+  }
+}
+
+const JURISDICTION_NAMES: Record<string, string> = {
+  ET: 'Ethiopia', KE: 'Kenya', ER: 'Eritrea', DJ: 'Djibouti',
+  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi',
+}
+
+const STATUS_NAMES: Record<string, string> = {
+  DRAFT: 'Draft', FILED: 'Filed', FORMAL_EXAM: 'Formal Exam',
+  SUBSTANTIVE_EXAM: 'Substantive', PUBLISHED: 'Published', REGISTERED: 'Registered'
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: 'bg-slate-500 text-white hover:bg-slate-600',
+  FILED: 'bg-blue-500 text-white hover:bg-blue-600',
+  FORMAL_EXAM: 'bg-yellow-500 text-black hover:bg-yellow-600',
+  SUBSTANTIVE_EXAM: 'bg-orange-500 text-white hover:bg-orange-600',
+  PUBLISHED: 'bg-purple-500 text-white hover:bg-purple-600',
+  REGISTERED: 'bg-green-600 text-white hover:bg-green-700',
+  REJECTED: 'bg-red-500 text-white hover:bg-red-600',
+  ABANDONED: 'bg-gray-700 text-white hover:bg-gray-800'
+}
+
+export const resolveMarkImageUrl = (rawPath?: string) => {
+  if (!rawPath) return ''
+  if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
+  const devApiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '')
+  const origin = import.meta.env.PROD ? window.location.origin : devApiBase
+  const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+  if (path.startsWith('/api/')) return `${origin}${path}`
+  if (path.startsWith('/uploads/')) return `${origin}/api${path}`
+  if (path.startsWith('/forms-download/')) return `${origin}/api${path}`
+  return `${origin}/api/forms-download/${path.replace(/^\//, '')}`
 }
 
 function safeDate(value?: string) {
-  if (!value) return undefined
+  if (!value) return '—'
   const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return undefined
-  return d.toLocaleDateString('en-US')
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US')
+}
+
+function EditableField({ 
+  label, 
+  value, 
+  onChange, 
+  name, 
+  type = 'text',
+  options
+}: { 
+  label: string; 
+  value?: string | boolean | null; 
+  onChange?: (name: string, value: any) => void; 
+  name?: string;
+  type?: 'text' | 'textarea' | 'checkbox' | 'country';
+  options?: { label: string; value: string }[]
+}) {
+  if (onChange && name) {
+    if (type === 'checkbox') {
+      return (
+        <div className="flex items-center gap-2 pt-2">
+          <Checkbox 
+            id={name} 
+            checked={!!value} 
+            onCheckedChange={(checked) => onChange(name, checked)} 
+          />
+          <Label htmlFor={name} className="text-xs font-semibold text-muted-foreground cursor-pointer">{label}</Label>
+        </div>
+      )
+    }
+
+    if (type === 'country') {
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+          <CountrySelector 
+            value={typeof value === 'string' ? value : ''} 
+            onChange={(val) => onChange(name, val)} 
+          />
+        </div>
+      )
+    }
+
+    if (type === 'textarea') {
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+          <Textarea
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(name, e.target.value)}
+            className="text-sm font-medium min-h-[100px]"
+          />
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+        <Input
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(name, e.target.value)}
+          className="text-sm font-medium h-9"
+        />
+      </div>
+    )
+  }
+  
+  if (type === 'checkbox') {
+    return (
+      <div className="flex items-center gap-2 pt-2 opacity-70">
+        <Checkbox checked={!!value} disabled />
+        <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+      <div className="text-sm font-medium">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (value || '—')}</div>
+    </div>
+  )
+}
+
+function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: string }) {
+  const [candidateIndex, setCandidateIndex] = useState(0)
+  const [failed, setFailed] = useState(false)
+
+  const candidates = useMemo(() => {
+    const primary = resolveMarkImageUrl(markImage)
+    if (!primary) return []
+    const list = [primary]
+    if (!import.meta.env.PROD) {
+      const remote = primary.replace(/^http:\/\/localhost:\d+/i, 'https://eastafricanip.com').replace(/^http:\/\/127\.0\.0\.1:\d+/i, 'https://eastafricanip.com')
+      if (remote !== primary) list.push(remote)
+    }
+    return Array.from(new Set(list))
+  }, [markImage])
+
+  useEffect(() => { setCandidateIndex(0); setFailed(false) }, [markImage, candidates.join('|')])
+
+  const current = candidates[candidateIndex]
+
+  return (
+    <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-muted-foreground shadow-sm border border-border">
+      {!failed && current ? (
+        <img src={current} alt={`${label} logo`} className="h-full w-full object-contain" onError={() => {
+          if (candidateIndex < candidates.length - 1) setCandidateIndex(idx => idx + 1)
+          else setFailed(true)
+        }} />
+      ) : <Buildings size={64} />}
+    </div>
+  )
 }
 
 export default function TrademarkDetailInfoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { addToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [tm, setTm] = useState<TrademarkCaseDetail | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<Partial<TrademarkCaseDetail>>({})
-  const [markImageFailed, setMarkImageFailed] = useState(false)
-  const [markImageCandidateIndex, setMarkImageCandidateIndex] = useState(0)
+  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [isSaving, setIsSaving] = useState(false)
+  const [markImagePreview, setMarkImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const setOverrideTitle = usePageTitleStore((state) => state.setOverrideTitle)
   const clearOverride = usePageTitleStore((state) => state.clearOverride)
+  const { toast } = useToast()
 
-  const [showDeadlineHistory, setShowDeadlineHistory] = useState(false)
+  const getDisplayValue = (name: string, fallback: any) => {
+    if (isEditing && name in formData) return formData[name]
+    return fallback
+  }
 
   useEffect(() => {
     let active = true
-    if (!id) {
-      setLoading(false)
-      return () => {
-        active = false
-      }
-    }
-
+    if (!id) { setLoading(false); return () => { active = false } }
     setLoading(true)
-
-    const load = async () => {
+    const fetchData = async () => {
       try {
-        console.log('[TrademarkDetailInfoPage] Fetching case details for ID:', id);
         const data = await trademarkService.getCase(id)
         if (!active) return
-        console.log('[TrademarkDetailInfoPage] Case loaded successfully, data keys:', Object.keys(data));
         setTm(data)
-        setEditData(data)
-        setMarkImageFailed(false)
         setOverrideTitle(data.markName || data.mark_name || 'Trademark')
-      } catch (error) {
-        if (!active) return
-        console.error('[TrademarkDetailInfoPage] Failed to load trademark detail:', error)
-        setTm(null)
-      } finally {
-        if (active) setLoading(false)
-      }
+      } catch { if (!active) return; setTm(null) }
+      finally { if (active) setLoading(false) }
     }
-
-    load()
-
-    return () => {
-      active = false
-    }
+    fetchData()
+    return () => { active = false }
   }, [id, setOverrideTitle])
 
-  useEffect(() => {
-    return () => clearOverride()
-  }, [clearOverride])
+  useEffect(() => { return () => clearOverride() }, [clearOverride])
 
-  const handleEditToggle = () => {
-    if (isEditing) {
-      // Cancel edit - revert to original data
-      setEditData(tm || {})
-    }
-    setIsEditing(!isEditing)
+  const handleFieldChange = (name: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleInputChange = (field: keyof TrademarkCaseDetail, value: any) => {
-    setEditData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handleEipaFieldChange = (key: string, value: any) => {
-    setEditData(prev => ({
-      ...prev,
-      eipaForm: {
-        ...(prev.eipaForm as Record<string, unknown> || {}),
-        [key]: value
-      }
-    }))
-  }
-
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      console.log('[TrademarkDetailInfoPage] handleSave - Starting save for case ID:', id, 'with payload:', editData);
-      
-      const clientData = editData.client;
-      const cleanClient = clientData ? {
-        name: clientData.name || undefined,
-        nationality: clientData.nationality || undefined,
-        email: clientData.email || undefined,
-        phone: clientData.phone || undefined,
-        addressStreet: clientData.addressStreet || undefined,
-        city: clientData.city || undefined
-      } : undefined;
-      
-      const payload = {
-        markName: editData.markName || editData.mark_name,
-        markType: editData.markType || editData.mark_type,
-        colorIndication: editData.colorIndication || editData.color_indication,
-        priority: editData.priority,
-        filingNumber: editData.filingNumber || editData.filing_number,
-        niceClasses: editData.niceClasses,
-        goodsServices: editData.goodsServices || editData.goods_services,
-        clientInstructions: editData.clientInstructions,
-        remark: editData.remark,
-        client: cleanClient,
-        eipaForm: editData.eipaForm,
-        mark_image: editData.mark_image
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setMarkImagePreview(base64);
+        handleFieldChange('mark_image', base64);
       };
+      reader.readAsDataURL(file);
+    }
+  };
 
-      await casesApi.updateCase(id!, payload);
-      console.log('[TrademarkDetailInfoPage] handleSave - API call succeeded for case ID:', id);
+  const removeImage = () => {
+    setMarkImagePreview(null);
+    handleFieldChange('mark_image', '');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const startEditing = () => {
+    if (!tm) return
+    setFormData({
+      markName: tm.markName || tm.mark_name || '',
+      markType: tm.markType || tm.mark_type || '',
+      colorIndication: tm.colorIndication || tm.color_indication || eipaField('mark_color_indication') || '',
+      filingNumber: tm.filingNumber || tm.filing_number || '',
+      priority: tm.priority || '',
+      goodsServices: tm.goodsServices || tm.goods_services || '',
+      markDescription: tm.mark_description || eipaField('mark_description') || '',
+      mark_image: tm.mark_image || '',
       
-      const updatedData = await trademarkService.getCase(id!);
-      setTm(updatedData);
-      setEditData(updatedData);
-      setIsEditing(false);
+      // Applicant
+      'client.name': tm.client?.name || eipaField('applicant_name_english') || '',
+      'client.nationality': tm.client?.nationality || eipaField('nationality') || '',
+      'client.country': tm.client?.city || eipaField('residence_country') || '',
+      'client.city': tm.client?.city || eipaField('city_name') || '',
+      'client.subcity': eipaField('address_zone') || '',
+      'client.wereda': tm.client?.wereda || eipaField('wereda') || '',
+      'client.houseNo': tm.client?.houseNo || eipaField('house_no') || '',
+      'client.poBox': tm.client?.poBox || eipaField('po_box') || '',
+      'client.phone': tm.client?.phone || eipaField('telephone') || '',
+      'client.fax': tm.client?.fax || eipaField('fax') || '',
+      'client.email': tm.client?.email || eipaField('email') || '',
       
-      addToast({
-        title: 'Changes saved',
-        description: 'Trademark details updated successfully.',
-        type: 'success'
+      // Agent
+      'agent.name': tm.agent?.name || eipaField('agent_name') || '',
+      'agent.country': tm.agent?.country || eipaField('agent_country') || '',
+      'agent.city': tm.agent?.city || eipaField('agent_city') || '',
+      'agent.subcity': tm.agent?.subcity || eipaField('agent_subcity') || '',
+      'agent.poBox': tm.agent?.poBox || eipaField('agent_pobox') || '',
+      'agent.telephone': tm.agent?.telephone || eipaField('agent_telephone') || '',
+      'agent.email': tm.agent?.email || eipaField('agent_email') || '',
+      
+      // Mark Type Checkboxes
+      chk_goods: !!eipaField('chk_goods'),
+      chk_services: !!eipaField('chk_services'),
+      chk_collective: !!eipaField('chk_collective'),
+      
+      // Mark Form Checkboxes
+      type_word: !!eipaField('type_word'),
+      type_figur: !!eipaField('type_figur'),
+      type_thre: !!eipaField('type_thre'),
+
+      // More details
+      mark_translation: eipaField('mark_translation') || '',
+      mark_transliteration: eipaField('mark_transliteration') || '',
+      mark_language_requiring_translation: eipaField('mark_language_requiring_translation') || '',
+      mark_has_three_dim_features: eipaField('mark_has_three_dim_features') || '',
+
+      // Priority
+      priority_country: eipaField('priority_country') || '',
+      priority_filing_date: eipaField('priority_filing_date') || '',
+      disclaimer_text_english: eipaField('disclaimer_text_english') || '',
+      disclaimer_text_amharic: eipaField('disclaimer_text_amharic') || '',
+    })
+    setIsEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setFormData({})
+    setMarkImagePreview(null)
+  }
+
+  const saveCase = async () => {
+    if (!id || isSaving) return
+    setIsSaving(true)
+    try {
+      const payload: Record<string, unknown> = {}
+      
+      // Base fields
+      const baseFields = ['markName', 'markType', 'colorIndication', 'filingNumber', 'priority', 'goodsServices', 'markDescription', 'mark_image'];
+      baseFields.forEach(field => {
+        if (formData[field] !== undefined) payload[field] = formData[field];
       });
-      console.log('[TrademarkDetailInfoPage] handleSave - Save successful, toast shown');
-    } catch (error: any) {
-      console.error('[TrademarkDetailInfoPage] handleSave - Failed to save:', error);
-      addToast({
-        title: 'Save failed',
-        description: error?.response?.data?.error || 'Could not update trademark details.',
-        type: 'error'
+
+      // Nest Client fields
+      const clientPayload: Record<string, any> = {};
+      Object.keys(formData).filter(k => k.startsWith('client.')).forEach(k => {
+        const subKey = k.split('.')[1];
+        clientPayload[subKey] = formData[k];
       });
+      if (Object.keys(clientPayload).length > 0) payload.client = clientPayload;
+
+      // Nest Agent fields
+      const agentPayload: Record<string, any> = {};
+      Object.keys(formData).filter(k => k.startsWith('agent.')).forEach(k => {
+        const subKey = k.split('.')[1];
+        agentPayload[subKey] = formData[k];
+      });
+      if (Object.keys(agentPayload).length > 0) payload.agent = agentPayload;
+
+      // EIPA Form data (for checkboxes and other extra fields)
+      const eipaPayload: Record<string, any> = { ...(tm?.eipaForm || {}) };
+      const eipaKeys = [
+        'chk_goods', 'chk_services', 'chk_collective', 
+        'type_word', 'type_figur', 'type_thre',
+        'mark_translation', 'mark_transliteration', 'mark_language_requiring_translation', 'mark_has_three_dim_features',
+        'priority_country', 'priority_filing_date', 'disclaimer_text_english', 'disclaimer_text_amharic'
+      ];
+      
+      eipaKeys.forEach(key => {
+        if (formData[key] !== undefined) eipaPayload[key] = formData[key];
+      });
+      
+      payload.eipaForm = eipaPayload;
+
+      if (Object.keys(payload).length > 0) {
+        const res = await trademarkService.updateCase(id, payload)
+        if (res.success) {
+          toast({ title: 'Case Updated', description: res.message })
+          await load()
+          setIsEditing(false)
+          setFormData({})
+          setMarkImagePreview(null)
+        }
+      } else {
+        setIsEditing(false)
+        setFormData({})
+      }
+    } catch (e) {
+      const err = e as { response?: { data?: { error?: string } } }
+      toast({ title: 'Update Failed', description: err?.response?.data?.error || 'Failed to save case', variant: 'destructive' })
     } finally {
-      setLoading(false);
+      setIsSaving(false)
     }
   }
 
-  const handleNiceClassesChange = (value: string) => {
-    const classes = value.split(',')
-      .map(v => parseInt(v.trim()))
-      .filter(v => !isNaN(v));
-    handleInputChange('niceClasses', classes);
+  const load = async () => {
+    if (!id) return
+    try {
+      const data = await trademarkService.getCase(id)
+      setTm(data)
+      setOverrideTitle(data.markName || data.mark_name || 'Trademark')
+    } catch {
+      setTm(null)
+    }
   }
 
-  const renderEditableSelect = (key: string, currentValue: any) => {
-    const val = currentValue ? 'YES' : 'NO';
-    return (
-      <Select
-        value={val}
-        onValueChange={(newVal: string) => handleEipaFieldChange(key, newVal === 'YES')}
-      >
-        <SelectTrigger className="h-8 apple-input">
-          <SelectValue placeholder="Select" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="YES">Yes</SelectItem>
-          <SelectItem value="NO">No</SelectItem>
-        </SelectContent>
-      </Select>
-    );
-  };
+  const handleDownloadForm = async () => {
+    if (!tm) return
+    try {
+      toast({ title: 'Preparing PDF...', description: 'Please wait while we generate your form' })
+
+      const isRenewal = (tm.status || '').toUpperCase() === 'RENEWAL' || (tm.markType || tm.mark_type || '').toUpperCase() === 'RENEWAL'
+      const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
+      
+      const pdfBytes = await fillPdfForm(pdfUrl, tm.eipaForm as Record<string, unknown> || {})
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' })
+
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `EIPA_FORM_${tm.filingNumber || tm.filing_number || tm.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast({ title: 'Download Started' })
+    } catch (err) {
+      console.error('Download error:', err)
+      toast({ title: 'Download Failed', description: 'Could not generate PDF form', variant: 'destructive' })
+    }
+  }
+
+  const eipa = tm?.eipaForm as Record<string, unknown> | null
+  const eipaField = (key: string) => eipa?.[key] as string | null | undefined
 
   const markName = tm?.markName || tm?.mark_name || tm?.wordMark || '—'
   const filingNo = tm?.filingNumber || tm?.filing_number || '—'
-
   const niceClasses = useMemo(() => {
     if (tm?.niceMappings?.length) return tm.niceMappings.map((m) => m.classNo)
-    if (tm?.niceClasses?.length) return tm.niceClasses
-    return []
+    return tm?.niceClasses || []
   }, [tm?.niceMappings, tm?.niceClasses])
-
-  const eipa = (tm?.eipaForm || null) as Record<string, unknown> | null
-  const eipaField = (key: string) => {
-    const v = eipa?.[key]
-    if (v === null || v === undefined || v === '') return null
-    return v
-  }
-
-  const resolveMarkImageUrl = (rawPath?: string) => {
-    if (!rawPath) return ''
-    if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
-
-    const devApiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '')
-    const origin = import.meta.env.PROD ? window.location.origin : devApiBase
-    const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
-
-    if (path.startsWith('/api/')) return `${origin}${path}`
-    if (path.startsWith('/uploads/')) return `${origin}/api${path}`
-    if (path.startsWith('/forms-download/')) return `${origin}/api${path}`
-
-    // Some legacy rows store only a filename.
-    const filename = path.replace(/^\//, '')
-    return `${origin}/api/forms-download/${filename}`
-  }
-
-  const markImageCandidates = useMemo(() => {
-    if (isEditing && editData.mark_image?.startsWith('data:')) return [editData.mark_image]
-
-    const primary = resolveMarkImageUrl(tm?.mark_image)
-    if (!primary) return []
-
-    const candidates = [primary]
-    if (!import.meta.env.PROD) {
-      // Local DB may point to files that only exist on production host.
-      const remote = primary
-        .replace(/^http:\/\/localhost:\d+/i, 'https://eastafricanip.com')
-        .replace(/^http:\/\/127\.0\.0\.1:\d+/i, 'https://eastafricanip.com')
-      if (remote !== primary) {
-        // Prefer production-hosted asset first in dev to avoid local 404 noise.
-        if (primary.includes('/forms-download/')) {
-          // Avoid retrying localhost for forms-download assets in dev:
-          // local environments typically do not mirror production file storage.
-          return [remote]
-        }
-        candidates.push(remote)
-      }
-    }
-
-    return Array.from(new Set(candidates))
-  }, [isEditing, editData.mark_image, tm?.mark_image])
-
-  const markImageSrc = markImageCandidates[markImageCandidateIndex] || ''
-
-  useEffect(() => {
-    setMarkImageFailed(false)
-    setMarkImageCandidateIndex(0)
-  }, [markImageCandidates.join('|')])
 
   if (loading) {
     return (
-      <div className="w-full space-y-8">
-        <header className="flex items-end justify-between">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-xl" />
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-64" />
-              <div className="flex gap-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-32 rounded-xl" />
-            <Skeleton className="h-10 w-24 rounded-xl" />
-            <Skeleton className="h-10 w-28 rounded-xl" />
-          </div>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+        <header className="flex items-center gap-4 mb-8">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div><Skeleton className="h-8 w-64" /><Skeleton className="h-4 w-48 mt-2" /></div>
         </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          {[1, 2].map((i) => (
-            <Card key={`skeleton-card-${i}`} className="apple-card border-none shadow-lg">
-              <CardHeader className="border-b border-[var(--eai-border)]">
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent className="p-6 space-y-8">
-                <div className="space-y-4">
-                  <Skeleton className="h-4 w-32 mx-auto" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map((j) => (
-                      <div key={`skeleton-field-${i}-${j}`} className="space-y-2">
-                        <Skeleton className="h-3 w-16" />
-                        <Skeleton className="h-5 w-full" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <Skeleton className="h-4 w-40 mx-auto" />
-                  <div className="space-y-4">
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-48 rounded-lg" />)}
         </div>
       </div>
     )
@@ -365,830 +481,255 @@ export default function TrademarkDetailInfoPage() {
 
   if (!tm) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="text-[18px] font-bold text-[var(--eai-text)] tracking-tight">Trademark not found</div>
-        <button onClick={() => navigate('/trademarks')} className="mt-4 apple-button-primary">
-          Back to Trademarks
-        </button>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-24">
+        <div className="text-xl font-bold">Trademark not found</div>
+        <Button onClick={() => navigate('/trademarks')} className="mt-4">Back to Trademarks</Button>
       </div>
     )
   }
 
+  const isRegistered = tm.status === 'REGISTERED'
+  const isPublished = tm.status === 'PUBLISHED'
+
   return (
-    <div className="w-full">
-      <header className="flex items-end justify-between">
+    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+      <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/trademarks')}
-            className="p-2 rounded-xl hover:bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] transition-colors"
-            title="Back to Docket"
-          >
-            <ArrowLeft size={24} weight="bold" />
-          </button>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-h1 text-[var(--eai-text)] leading-none">{markName}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-primary)] text-white rounded-none">
-                {filingNo}
-              </span>
-              <JurisdictionBadge jurisdiction={(tm.jurisdiction || 'ET') as Jurisdiction} />
-              <StatusPill status={(tm.status as TrademarkStatus) || 'DRAFT'} />
+          <Button variant="outline" size="icon" onClick={() => navigate('/trademarks')} className="h-10 w-10 shrink-0">
+            <ArrowLeft size={20} />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">{markName}</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="default">{filingNo}</Badge>
+              <Badge variant="outline">{JURISDICTION_NAMES[tm.jurisdiction || 'ET'] || tm.jurisdiction}</Badge>
+              <Badge className={STATUS_COLORS[tm.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>
+                {STATUS_NAMES[tm.status || 'DRAFT'] || tm.status}
+              </Badge>
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isEditing ? (
             <>
-              <button
-                onClick={handleSave}
-                className="apple-button-primary flex items-center gap-2 rounded-xl"
-              >
-                <Check size={18} weight="bold" />
-                <span>Save Changes</span>
-              </button>
-              <button
-                onClick={handleEditToggle}
-                className="apple-button-secondary flex items-center gap-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded-xl"
-              >
-                <X size={18} weight="bold" />
-                <span>Cancel</span>
-              </button>
+              <Button variant="outline" onClick={cancelEditing} disabled={isSaving}>
+                <X size={18} /><span className="hidden sm:inline">Cancel</span>
+              </Button>
+              <Button onClick={saveCase} disabled={isSaving}>
+                <PencilSimpleLine size={18} /><span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+              </Button>
             </>
           ) : (
             <>
-              <button
-                onClick={() => navigate(`/case-flow/${tm.id}`)}
-                className="flex h-10 items-center gap-2 rounded-xl border border-[var(--eai-primary)] bg-white px-4 text-[13px] font-bold text-[var(--eai-primary)] transition-all hover:bg-gray-50 shadow-sm tracking-tight"
-              >
-                <ClockCounterClockwise size={18} weight="bold" />
-                <span>Manage lifecycle</span>
-              </button>
-              <button className="flex h-10 items-center gap-2 rounded-xl border border-[var(--eai-primary)] bg-white px-4 text-[13px] font-bold text-[var(--eai-primary)] transition-all hover:bg-gray-50 shadow-sm tracking-tight">
-                <DownloadSimple size={18} weight="bold" />
-                <span>Export</span>
-              </button>
-              <button
-                onClick={handleEditToggle}
-                className="flex h-10 items-center gap-2 rounded-xl border border-[var(--eai-primary)] bg-white px-4 text-[13px] font-bold text-[var(--eai-primary)] transition-all hover:bg-gray-50 shadow-sm tracking-tight"
-              >
-                <PencilSimple size={18} weight="bold" />
-                <span>Edit Case</span>
-              </button>
+              <Button variant="outline" onClick={() => navigate(`/case-flow/${tm.id}`)}>
+                <ClockCounterClockwise size={18} /><span className="hidden sm:inline">Manage lifecycle</span>
+              </Button>
+              <Button variant="outline" onClick={handleDownloadForm}><DownloadSimple size={18} /><span className="hidden sm:inline">Export Form</span></Button>
+              <Button variant="outline" onClick={startEditing}><PencilSimple size={18} /><span className="hidden sm:inline">Edit Case</span></Button>
             </>
           )}
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        <Card className="apple-card border-none shadow-lg overflow-hidden relative group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-[var(--eai-primary)] opacity-0 group-hover:opacity-100 transition-opacity" />
-          <CardHeader className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30">
-            <CardTitle className="text-h3 text-[var(--eai-text)] flex items-center gap-2">
-              <FileText size={20} className="text-[var(--eai-primary)]" weight="duotone" />
-              Trademark Information
-            </CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-border shadow-sm bg-card">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><Info size={20} className="text-primary" /><CardTitle className="text-base">I. Applicant (Client) Details</CardTitle></div>
           </CardHeader>
-          <CardContent className="p-6 space-y-8">
-            <div className="space-y-4">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Identity</h4>
-              {tm.mark_image && (
-                <div className="flex justify-center mb-6">
-                  <div className="w-48 h-48 border border-[var(--eai-border)] rounded-xl overflow-hidden flex items-center justify-center p-2 shadow-sm group/image relative">
-                    {!markImageFailed ? (
-                      <img
-                        src={markImageSrc}
-                        alt="Mark Logo"
-                        className="max-w-full max-h-full object-contain"
-                        onError={() => {
-                          if (markImageCandidateIndex < markImageCandidates.length - 1) {
-                            setMarkImageCandidateIndex((idx) => idx + 1)
-                            return
-                          }
-                          setMarkImageFailed(true)
-                          console.warn('[Image] Failed to load mark image, path:', tm.mark_image)
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-micro text-[var(--eai-text-secondary)]">
-                        Mark logo unavailable
-                      </div>
-                    )}
-                     {isEditing && (
-                       <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity cursor-pointer">
-                         <PencilSimple size={24} className="text-white mb-1" weight="bold" />
-                         <span className="text-[10px] text-white font-bold tracking-widest">Change image</span>
-                         <input 
-                           type="file" 
-                           className="hidden" 
-                           accept="image/*"
-                           onChange={async (e) => {
-                             const file = e.target.files?.[0];
-                             if (file) {
-                               const reader = new FileReader();
-                               reader.onloadend = () => {
-                                 const base64String = reader.result as string;
-                                 handleInputChange('mark_image', base64String);
-                                 // Also update the local view immediately if needed, 
-                                 // but handleInputChange will trigger a re-render with editData
-                               };
-                               reader.readAsDataURL(file);
-                             }
-                           }}
-                         />
-                       </label>
-                     )}
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Mark name</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.markName || editData.mark_name || ''}
-                      onChange={(e) => handleInputChange('markName', e.target.value)}
-                      className="apple-input h-8 text-body font-bold"
-                    />
-                  ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">{markName}</div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Filing number</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.filingNumber || editData.filing_number || ''}
-                      onChange={(e) => handleInputChange('filingNumber', e.target.value)}
-                      className="apple-input h-8 text-body font-bold"
-                    />
-                  ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">{filingNo}</div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Mark type</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.markType || editData.mark_type || ''}
-                      onChange={(e) => handleInputChange('markType', e.target.value)}
-                      className="apple-input h-8 text-body font-medium"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{tm.markType || tm.mark_type || '—'}</div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Color indication</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.colorIndication || editData.color_indication || ''}
-                      onChange={(e) => handleInputChange('colorIndication', e.target.value)}
-                      className="apple-input h-8 text-body font-medium"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{tm.colorIndication || tm.color_indication || '—'}</div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Priority</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.priority || ''}
-                      onChange={(e) => handleInputChange('priority', e.target.value)}
-                      className="apple-input h-8 text-body font-medium"
-                    />
-                  ) : (
-                    <div className="text-body font-medium text-[var(--eai-text)]">{tm.priority || '—'}</div>
-                  )}
-                </div>
-              </div>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EditableField label="Applicant Name" value={getDisplayValue('client.name', tm.client?.name || eipaField('applicant_name_english'))} name={isEditing ? 'client.name' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Nationality" type="country" value={getDisplayValue('client.nationality', tm.client?.nationality || eipaField('nationality'))} name={isEditing ? 'client.nationality' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Country" type="country" value={getDisplayValue('client.country', eipaField('residence_country'))} name={isEditing ? 'client.country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="City" value={getDisplayValue('client.city', tm.client?.city || eipaField('city_name'))} name={isEditing ? 'client.city' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Sub-City" value={getDisplayValue('client.subcity', eipaField('address_zone'))} name={isEditing ? 'client.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Wereda" value={getDisplayValue('client.wereda', tm.client?.wereda || eipaField('wereda'))} name={isEditing ? 'client.wereda' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="House No." value={getDisplayValue('client.houseNo', tm.client?.houseNo || eipaField('house_no'))} name={isEditing ? 'client.houseNo' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="P.O. Box" value={getDisplayValue('client.poBox', tm.client?.poBox || eipaField('po_box'))} name={isEditing ? 'client.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Telephone" value={getDisplayValue('client.phone', tm.client?.phone || eipaField('telephone'))} name={isEditing ? 'client.phone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Fax" value={getDisplayValue('client.fax', tm.client?.fax || eipaField('fax'))} name={isEditing ? 'client.fax' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Email" value={getDisplayValue('client.email', tm.client?.email || eipaField('email'))} name={isEditing ? 'client.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
-
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Nice Classes</h4>
-              <div className="flex flex-col gap-2">
-                {isEditing ? (
-                  <NiceClassPicker
-                    selectedClasses={editData.niceClasses || []}
-                    onChange={(classes) => handleInputChange('niceClasses', classes)}
-                    placeholder="Select Nice classes..."
-                  />
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {niceClasses.length ? (
-                      niceClasses.map((c) => (
-                        <span
-                          key={c}
-                          className="text-micro px-2 py-0.5 border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] rounded-none"
-                        >
-                          Class {c}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Goods & Services</h4>
-              <div className="space-y-4">
-                {isEditing ? (
-                  <Textarea
-                    value={editData.goodsServices || editData.goods_services || ''}
-                    onChange={(e) => handleInputChange('goodsServices', e.target.value)}
-                    className="apple-input text-body min-h-[100px]"
-                    placeholder="Enter goods and services description..."
-                  />
-                ) : (
-                  <>
-                    {tm.niceMappings?.length ? (
-                      tm.niceMappings.map((m) => (
-                        <div key={m.id} className="p-4 bg-[var(--eai-bg)]/30 border border-[var(--eai-border)] rounded-none">
-                          <div className="text-[11px] font-black text-[var(--eai-primary)] mb-2 tracking-tight">Class {m.classNo}</div>
-                          <div className="text-body text-[var(--eai-text)] font-medium">{m.description || '—'}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-[var(--eai-bg)]/30 border border-[var(--eai-border)] rounded-none">
-                        <div className="text-body text-[var(--eai-text)] font-medium">{tm.goodsServices || tm.goods_services || '—'}</div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Deadlines Section */}
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <div className="flex items-center justify-between pb-2 border-b border-[var(--eai-border)]">
-                <h4 className="text-h3 text-[var(--eai-text-secondary)] font-bold tracking-tight flex items-center gap-2">
-                  <ListChecks size={18} weight="bold" className="text-[var(--eai-primary)]" />
-                  Deadlines & Milestones
-                </h4>
-                <button 
-                  onClick={() => setShowDeadlineHistory(!showDeadlineHistory)}
-                  className="flex items-center gap-1.5 text-micro font-black text-[var(--eai-primary)] hover:opacity-70 transition-opacity"
-                >
-                  <ClockAfternoon size={14} weight="bold" />
-                  {showDeadlineHistory ? 'Show Active Only' : 'Show History'}
-                </button>
-              </div>
-              
-              <div className="space-y-3">
-                {tm.deadlines && tm.deadlines.length > 0 ? (
-                  tm.deadlines
-                    .filter(d => showDeadlineHistory || (d.status === 'PENDING'))
-                    .map((d) => (
-                      <div
-                        key={d.id}
-                        className={`flex items-center justify-between rounded-xl border p-3 transition-all ${
-                          d.status === 'SUPERSEDED'
-                            ? 'border-slate-500/20 bg-slate-500/10 opacity-70'
-                            : d.status === 'COMPLETED'
-                              ? 'border-emerald-500/20 bg-emerald-500/10'
-                              : 'border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-sm'
-                        }`}
-                      >
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`text-[11px] font-black tracking-tight ${
-                            d.status === 'SUPERSEDED' ? 'text-slate-400' : 'text-[var(--eai-primary)]'
-                          }`}>
-                            {d.type.replace(/_/g, ' ')}
-                          </span>
-                          <span className="text-body font-bold text-[var(--eai-text)]">
-                            {safeDate(d.due_date)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-micro px-2 py-0.5 font-black border ${
-                            d.status === 'PENDING' ? 'border-orange-500/20 bg-orange-500/10 text-orange-400' :
-                            d.status === 'SUPERSEDED' ? 'border-slate-500/20 bg-slate-500/10 text-slate-300' :
-                            'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
-                          }`}>
-                            {d.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <div className="text-center py-4 text-[var(--eai-text-secondary)] opacity-50 italic text-body">
-                    No deadlines recorded for this case.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Key Dates</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Application date</Label>
-                  <div className="text-body font-medium text-[var(--eai-text)]">
-                    {safeDate(tm.applicationDate || tm.application_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Publication date</Label>
-                  <div className="text-body font-medium text-[var(--eai-text)]">
-                    {safeDate(tm.publicationDate || tm.publication_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Registration date</Label>
-                  <div className="text-body font-medium text-[var(--eai-text)]">
-                    {safeDate(tm.registrationDate || tm.registration_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Expiry date</Label>
-                  <div className="text-body font-medium text-[var(--eai-text)]">
-                    {safeDate(tm.expiryDate || tm.expiry_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Next renewal date</Label>
-                  <div className="text-body font-medium text-[var(--eai-text)]">
-                    {safeDate(tm.nextRenewalDate || tm.next_renewal_date) || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Automated Form Detail Sections - Full specification sections */}
-            <div className="space-y-6 pt-4 border-t border-[var(--eai-border)]">
-                <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">IV. Mark specification</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Goods mark</Label>
-                      {isEditing ? renderEditableSelect('chk_goods', eipaField('chk_goods')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_goods') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Service mark</Label>
-                      {isEditing ? renderEditableSelect('chk_services', eipaField('chk_services')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_services') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Collective mark</Label>
-                      {isEditing ? renderEditableSelect('chk_collective', eipaField('chk_collective')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_collective') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - word</Label>
-                      {isEditing ? renderEditableSelect('type_word', eipaField('type_word')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('type_word') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - figurative</Label>
-                      {isEditing ? renderEditableSelect('type_figur', eipaField('type_figur')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('type_figur') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - mixed</Label>
-                      {isEditing ? renderEditableSelect('k_type_mi', eipaField('k_type_mi')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('k_type_mi') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Type - 3D</Label>
-                      {isEditing ? renderEditableSelect('type_thre', eipaField('type_thre')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('type_thre') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)]">Mark description</Label>
-                    {isEditing ? (
-                      <Textarea
-                        value={String((editData.eipaForm as Record<string, unknown>)?.['mark_description'] ?? '')}
-                        onChange={(e) => handleEipaFieldChange('mark_description', e.target.value)}
-                        className="apple-input text-body min-h-[72px]"
-                      />
-                    ) : (
-                      <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                        {String(eipaField('mark_description') || tm?.mark_description || '—')}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Translation</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('mark_translation') || '')}
-                          onChange={(e) => handleEipaFieldChange('mark_translation', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_translation') ? String(eipaField('mark_translation')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Transliteration</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('mark_transliteration') || '')}
-                          onChange={(e) => handleEipaFieldChange('mark_transliteration', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_transliteration') ? String(eipaField('mark_transliteration')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Language requiring translation</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('mark_language_requiring_translation') || '')}
-                          onChange={(e) => handleEipaFieldChange('mark_language_requiring_translation', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_language_requiring_translation') ? String(eipaField('mark_language_requiring_translation')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">3D features description</Label>
-                      {isEditing ? (
-                        <Textarea
-                          value={String(eipaField('mark_has_three_dim_features') || '')}
-                          onChange={(e) => handleEipaFieldChange('mark_has_three_dim_features', e.target.value)}
-                          className="apple-input text-body min-h-[72px]"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_has_three_dim_features') ? String(eipaField('mark_has_three_dim_features')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Color indication (Form)</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('mark_color_indication') || '')}
-                          onChange={(e) => handleEipaFieldChange('mark_color_indication', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('mark_color_indication') ? String(eipaField('mark_color_indication')) : '—'}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">V. Disclaimer</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Amharic disclaimer</Label>
-                      {isEditing ? (
-                        <Textarea
-                          value={String((editData.eipaForm as Record<string, unknown>)?.['disclaimer_text_amharic'] ?? '')}
-                          onChange={(e) => handleEipaFieldChange('disclaimer_text_amharic', e.target.value)}
-                          className="apple-input text-body min-h-[72px]"
-                        />
-                      ) : (
-                        <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                          {eipaField('disclaimer_text_amharic') ? String(eipaField('disclaimer_text_amharic')) : '—'}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Disclaimer text (English)</Label>
-                      {isEditing ? (
-                        <Textarea
-                          value={String((editData.eipaForm as Record<string, unknown>)?.['disclaimer_text_english'] ?? '')}
-                          onChange={(e) => handleEipaFieldChange('disclaimer_text_english', e.target.value)}
-                          className="apple-input text-body min-h-[72px]"
-                        />
-                      ) : (
-                        <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                          {eipaField('disclaimer_text_english') ? String(eipaField('disclaimer_text_english')) : '—'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">VI. Priority right declaration</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority application date</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('priority_application_filing_date') || '')}
-                          onChange={(e) => handleEipaFieldChange('priority_application_filing_date', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('priority_application_filing_date') ? String(eipaField('priority_application_filing_date')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority filing date</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('priority_filing_date') || '')}
-                          onChange={(e) => handleEipaFieldChange('priority_filing_date', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('priority_filing_date') ? String(eipaField('priority_filing_date')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority country</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('priority_country') || '')}
-                          onChange={(e) => handleEipaFieldChange('priority_country', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('priority_country') ? String(eipaField('priority_country')) : '—'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority goods & services</Label>
-                      {isEditing ? (
-                        <Textarea
-                          value={String(eipaField('priority_goods_services') || '')}
-                          onChange={(e) => handleEipaFieldChange('priority_goods_services', e.target.value)}
-                          className="apple-input text-body min-h-[72px]"
-                        />
-                      ) : (
-                        <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                          {eipaField('priority_goods_services') ? String(eipaField('priority_goods_services')) : '—'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Supporting documents: Accompanies this form</Label>
-                      {isEditing ? renderEditableSelect('chk_priority_accompanies', eipaField('chk_priority_accompanies')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_priority_accompanies') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Supporting documents: Submit within 3 months</Label>
-                      {isEditing ? renderEditableSelect('chk_priority_submitted_later', eipaField('chk_priority_submitted_later')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_priority_submitted_later') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-                  <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">VII. Checklist & signature</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">3 identical copies of mark</Label>
-                      {isEditing ? renderEditableSelect('chk_list_copies', eipaField('chk_list_copies')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_copies') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Statutes governing mark use</Label>
-                      {isEditing ? renderEditableSelect('chk_list_statutes', eipaField('chk_list_statutes')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_statutes') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Power of attorney</Label>
-                      {isEditing ? renderEditableSelect('chk_list_poa', eipaField('chk_list_poa')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_poa') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Priority documents</Label>
-                      {isEditing ? renderEditableSelect('chk_list_priority_docs', eipaField('chk_list_priority_docs')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_priority_docs') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Mark drawing (3D features)</Label>
-                      {isEditing ? renderEditableSelect('chk_list_drawing', eipaField('chk_list_drawing')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_drawing') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Proof of payment</Label>
-                      {isEditing ? renderEditableSelect('chk_list_payment', eipaField('chk_list_payment')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_payment') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Other document(s)</Label>
-                      {isEditing ? renderEditableSelect('chk_list_other', eipaField('chk_list_other')) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('chk_list_other') ? 'Yes' : 'No'}</div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Other documents text</Label>
-                      {isEditing ? (
-                        <Input
-                          value={String(eipaField('other_documents_text') || '')}
-                          onChange={(e) => handleEipaFieldChange('other_documents_text', e.target.value)}
-                          className="apple-input h-8 text-body font-medium"
-                        />
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">{eipaField('other_documents_text') ? String(eipaField('other_documents_text')) : '—'}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label className="text-micro text-[var(--eai-text-secondary)]">Signed date (Day/Month/Year)</Label>
-                      {isEditing ? (
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Day"
-                            value={String(eipaField('applicant_sign_day') || '')}
-                            onChange={(e) => handleEipaFieldChange('applicant_sign_day', e.target.value)}
-                            className="apple-input h-8 text-body font-medium w-16"
-                          />
-                          <Input
-                            placeholder="Month"
-                            value={String(eipaField('applicant_sign_month') || '')}
-                            onChange={(e) => handleEipaFieldChange('applicant_sign_month', e.target.value)}
-                            className="apple-input h-8 text-body font-medium w-24"
-                          />
-                          <Input
-                            placeholder="Year"
-                            value={String(eipaField('applicant_sign_year_en') || '')}
-                            onChange={(e) => handleEipaFieldChange('applicant_sign_year_en', e.target.value)}
-                            className="apple-input h-8 text-body font-medium w-20"
-                          />
-                        </div>
-                      ) : (
-                        <div className="text-body font-medium text-[var(--eai-text)]">
-                          {eipaField('applicant_sign_day') || eipaField('applicant_sign_month') || eipaField('applicant_sign_year_en')
-                            ? `${String(eipaField('applicant_sign_day') || '')} ${String(eipaField('applicant_sign_month') || '')} ${String(eipaField('applicant_sign_year_en') || '')}`.trim()
-                            : '—'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
           </CardContent>
         </Card>
 
-        <Card className="apple-card border-none shadow-lg overflow-hidden relative group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-[var(--eai-primary)] opacity-0 group-hover:opacity-100 transition-opacity" />
-          <CardHeader className="border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/30">
-            <CardTitle className="text-h3 text-[var(--eai-text)] flex items-center gap-2">
-              <Info size={20} className="text-[var(--eai-primary)]" weight="duotone" />
-              Owner & Notes
-            </CardTitle>
+        <Card className="border-border shadow-sm bg-card">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><Buildings size={20} className="text-primary" /><CardTitle className="text-base">II. Agent Details</CardTitle></div>
           </CardHeader>
-          <CardContent className="p-6 space-y-8">
-            <div className="space-y-4">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Owner Information</h4>
-              <div className="space-y-6">
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Applicant name</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.client?.name || ''}
-                      onChange={(e) => handleInputChange('client', { ...editData.client, name: e.target.value })}
-                      className="apple-input h-8 text-body font-bold"
-                    />
-                  ) : (
-                    <div className="text-body font-bold text-[var(--eai-text)]">{tm.client?.name || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
-                  )}
-                </div>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EditableField label="Agent Name" value={getDisplayValue('agent.name', tm.agent?.name || eipaField('agent_name'))} name={isEditing ? 'agent.name' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Country" type="country" value={getDisplayValue('agent.country', tm.agent?.country || eipaField('agent_country'))} name={isEditing ? 'agent.country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="City" value={getDisplayValue('agent.city', tm.agent?.city || eipaField('agent_city'))} name={isEditing ? 'agent.city' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Sub-City" value={getDisplayValue('agent.subcity', tm.agent?.subcity || eipaField('agent_subcity'))} name={isEditing ? 'agent.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="P.O. Box" value={getDisplayValue('agent.poBox', tm.agent?.poBox || eipaField('agent_pobox'))} name={isEditing ? 'agent.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Telephone" value={getDisplayValue('agent.telephone', tm.agent?.telephone || eipaField('agent_telephone'))} name={isEditing ? 'agent.telephone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Email" value={getDisplayValue('agent.email', tm.agent?.email || eipaField('agent_email'))} name={isEditing ? 'agent.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)]">Nationality</Label>
-                    {isEditing ? (
-                      <Input
-                        value={editData.client?.nationality || ''}
-                        onChange={(e) => handleInputChange('client', { ...editData.client, nationality: e.target.value })}
-                        className="apple-input h-8 text-body font-medium"
-                      />
-                    ) : (
-                      <div className="text-body font-medium text-[var(--eai-text)]">{tm.client?.nationality || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)]">Telephone</Label>
-                    {isEditing ? (
-                      <Input
-                        value={editData.client?.phone || ''}
-                        onChange={(e) => handleInputChange('client', { ...editData.client, phone: e.target.value })}
-                        className="apple-input h-8 text-body font-medium"
-                      />
-                    ) : (
-                      <div className="text-body font-medium text-[var(--eai-text)]">{tm.client?.phone || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)]">Email</Label>
-                    {isEditing ? (
-                      <Input
-                        value={editData.client?.email || ''}
-                        onChange={(e) => handleInputChange('client', { ...editData.client, email: e.target.value })}
-                        className="apple-input h-8 text-body font-medium"
-                      />
-                    ) : (
-                      <div className="text-body font-medium text-[var(--eai-text)]">{tm.client?.email || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}</div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-micro text-[var(--eai-text-secondary)]">Address</Label>
-                    {isEditing ? (
-                      <Input
-                        value={`${editData.client?.addressStreet || editData.client?.address_street || ''}${editData.client?.city ? ', ' + editData.client.city : ''}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split(',');
-                          handleInputChange('client', { 
-                            ...editData.client, 
-                            addressStreet: parts[0]?.trim(), 
-                            city: parts[1]?.trim() 
-                          })
+        <Card className="border-border shadow-sm bg-card md:col-span-2">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><FileText size={20} className="text-primary" /><CardTitle className="text-base">III. Mark Specification</CardTitle></div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            {isEditing ? (
+              <div className="space-y-3 mb-6">
+                <Label className="text-xs font-semibold text-muted-foreground">Mark Logo / Image</Label>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative aspect-video w-full max-w-sm mx-auto rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-primary transition-all"
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  {(markImagePreview || getDisplayValue('mark_image', tm.mark_image)) ? (
+                    <div className="relative w-full h-full p-4">
+                      <img
+                        src={markImagePreview || resolveMarkImageUrl(getDisplayValue('mark_image', tm.mark_image))}
+                        alt="Mark preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          const originalUrl = resolveMarkImageUrl(tm.mark_image);
+                          if (target.src !== originalUrl) {
+                            target.src = originalUrl;
+                          }
                         }}
-                        className="apple-input h-8 text-body font-medium"
-                        placeholder="Street, City"
                       />
-                    ) : (
-                      <div className="text-body font-medium text-[var(--eai-text)]">
-                        {tm.client?.addressStreet || tm.client?.address_street ? (
-                          <span>
-                            {tm.client?.addressStreet || tm.client?.address_street}
-                            {tm.client?.city ? `, ${tm.client.city}` : ''}
-                          </span>
-                        ) : (
-                          <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>
-                        )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage();
+                        }}
+                        className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-destructive"
+                      >
+                        <XCircle size={24} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center text-center space-y-2">
+                      <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+                        <Upload size={24} />
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)]">Instructions & Remarks</h4>
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Client instruction</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editData.clientInstructions || ''}
-                      onChange={(e) => handleInputChange('clientInstructions', e.target.value)}
-                      className="apple-input text-body min-h-[72px]"
-                    />
-                  ) : (
-                    <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                      {tm.clientInstructions || tm.client_instructions || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-micro text-[var(--eai-text-secondary)]">Legal remark</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editData.remark || ''}
-                      onChange={(e) => handleInputChange('remark', e.target.value)}
-                      className="apple-input text-body min-h-[72px]"
-                    />
-                  ) : (
-                    <div className="text-body text-[var(--eai-text)] bg-[var(--eai-bg)]/50 p-4 border border-[var(--eai-border)] rounded-none min-h-[72px]">
-                      {tm.remark || <span className="text-[var(--eai-text-secondary)] opacity-50">—</span>}
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold">Click to upload mark image</p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG, SVG up to 2MB</p>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
+            ) : tm.mark_image && (
+              <div className="flex justify-center mb-6">
+                <MarkInfoThumbnail markImage={tm.mark_image} label={markName} />
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <EditableField label="Mark Name" value={getDisplayValue('markName', tm?.markName || tm?.mark_name || tm?.wordMark)} name={isEditing ? 'markName' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Mark Type" value={getDisplayValue('markType', tm.markType || tm.mark_type || eipaField('mark_type'))} name={isEditing ? 'markType' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Color Indication" value={getDisplayValue('colorIndication', tm.colorIndication || tm.color_indication || eipaField('mark_color_indication'))} name={isEditing ? 'colorIndication' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+              <EditableField label="Goods Mark" type="checkbox" value={getDisplayValue('chk_goods', !!eipaField('chk_goods'))} name={isEditing ? 'chk_goods' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Service Mark" type="checkbox" value={getDisplayValue('chk_services', !!eipaField('chk_services'))} name={isEditing ? 'chk_services' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Collective Mark" type="checkbox" value={getDisplayValue('chk_collective', !!eipaField('chk_collective'))} name={isEditing ? 'chk_collective' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Word" type="checkbox" value={getDisplayValue('type_word', !!eipaField('type_word'))} name={isEditing ? 'type_word' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Figurative" type="checkbox" value={getDisplayValue('type_figur', !!eipaField('type_figur'))} name={isEditing ? 'type_figur' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - 3D" type="checkbox" value={getDisplayValue('type_thre', !!eipaField('type_thre'))} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            </div>
+            <EditableField label="Mark Description" type="textarea" value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} name={isEditing ? 'markDescription' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EditableField label="Translation" value={getDisplayValue('mark_translation', eipaField('mark_translation'))} name={isEditing ? 'mark_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Transliteration" value={getDisplayValue('mark_transliteration', eipaField('mark_transliteration'))} name={isEditing ? 'mark_transliteration' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Language" value={getDisplayValue('mark_language_requiring_translation', eipaField('mark_language_requiring_translation'))} name={isEditing ? 'mark_language_requiring_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="3D Features" value={getDisplayValue('mark_has_three_dim_features', eipaField('mark_has_three_dim_features'))} name={isEditing ? 'mark_has_three_dim_features' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-4 pt-4 border-t border-[var(--eai-border)]">
-              <h4 className="text-h3 text-[var(--eai-text-secondary)] text-center font-bold tracking-tight pb-2 border-b border-[var(--eai-border)] uppercase">Legal Timeline & Notes</h4>
-              <CaseNotesTab caseId={id!} />
+        <Card className="border-border shadow-sm bg-card">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><WarningCircle size={20} className="text-primary" /><CardTitle className="text-base">IV. Priority / Disclaimer</CardTitle></div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EditableField label="Priority Country" type="country" value={getDisplayValue('priority_country', eipaField('priority_country'))} name={isEditing ? 'priority_country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Priority Date" value={getDisplayValue('priority_filing_date', eipaField('priority_filing_date'))} name={isEditing ? 'priority_filing_date' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            </div>
+            <EditableField label="Disclaimer (English)" value={getDisplayValue('disclaimer_text_english', eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            <EditableField label="Disclaimer (Amharic)" value={getDisplayValue('disclaimer_text_amharic', eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-sm bg-card">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><List size={20} className="text-primary" /><CardTitle className="text-base">V. Nice Classification</CardTitle></div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {niceClasses.length ? niceClasses.map(c => (
+                <Badge key={c} variant="outline" className="px-3 py-1">{c}</Badge>
+              )) : <span className="text-muted-foreground">—</span>}
+            </div>
+            {tm.niceMappings?.map(m => (
+              <div key={m.id} className="p-3 bg-muted/30 rounded-md">
+                <span className="text-xs font-bold text-primary">Class {m.classNo}</span>
+                <p className="text-sm mt-1">{m.description || '—'}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-sm bg-card md:col-span-2">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><MapPin size={20} className="text-primary" /><CardTitle className="text-base">VI. Goods & Services</CardTitle></div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {isEditing ? (
+              <Textarea
+                value={formData.goodsServices || tm.goodsServices || tm.goods_services || ''}
+                onChange={(e) => handleFieldChange('goodsServices', e.target.value)}
+                className="min-h-[100px] text-sm"
+              />
+            ) : (
+              <div className="p-4 bg-muted/30 rounded-md text-sm">
+                {tm.goodsServices || tm.goods_services || tm.mark_description || '—'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border shadow-sm bg-card md:col-span-2">
+          <CardHeader className="bg-muted/30 border-b border-border">
+            <div className="flex items-center gap-2"><Calendar size={20} className="text-primary" /><CardTitle className="text-base">VII. Key Dates</CardTitle></div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Field label="Application Date" value={safeDate(tm.applicationDate || tm.application_date)} />
+              <Field label="Publication Date" value={safeDate(tm.publicationDate || tm.publication_date)} />
+              <Field label="Registration Date" value={safeDate(tm.registrationDate || tm.registration_date)} />
+              <Field label="Expiry Date" value={safeDate(tm.expiryDate || tm.expiry_date)} />
+              <Field label="Next Renewal" value={safeDate(tm.nextRenewalDate || tm.next_renewal_date)} />
             </div>
           </CardContent>
         </Card>
       </div>
+    </div>
+  )
+}
+
+function Field({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+      <div className="text-sm font-medium">{value || '—'}</div>
     </div>
   )
 }

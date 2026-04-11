@@ -190,13 +190,13 @@ export function CaseNotesTab({ caseId }: CaseNotesTabProps) {
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
           placeholder="Enter note content..."
-          className="apple-input mb-3 min-h-[100px]"
+          className="mb-3 min-h-[100px]"
         />
         <div className="flex items-center gap-4 mb-4">
           <select
             value={noteType}
             onChange={(e) => setNoteType(e.target.value as Note['note_type'])}
-            className="apple-input h-9 px-3 text-[13px] bg-transparent cursor-pointer"
+            className="bg-background border-input h-9 px-3 text-[13px] bg-transparent cursor-pointer"
           >
             {Object.entries(NOTE_TYPE_LABELS).map(([key, label]) => (
               <option key={key} value={key} className="bg-[var(--eai-surface)] text-[var(--eai-text)]">{label}</option>
@@ -322,7 +322,7 @@ function NoteItem({ note, onPin, onDelete, onReply, replyingTo, setReplyingTo, r
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
-            className="apple-input flex-1 h-9 px-3 text-[13px]"
+            className="bg-background border-input flex-1 h-9 px-3 text-[13px]"
             onKeyPress={(e) => e.key === 'Enter' && onReply(note.id)}
             autoFocus
           />

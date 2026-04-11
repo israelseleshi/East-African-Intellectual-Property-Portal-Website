@@ -1,15 +1,17 @@
 import React, { useRef } from 'react';
-import { FileText, User, MapPin, Phone, Briefcase, CheckSquare, Image as ImageIcon, Hash, List, PenTool, Database, ChevronDown, Upload, XCircle } from 'lucide-react';
+import { FileText, User, MapPin, Phone, Briefcase, CheckSquare, Image as ImageIcon, Hash, List, PenTool, Upload, XCircle } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData, Client } from '../types';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface RenewalSectionProps {
   formData: EipaFormData;
@@ -56,71 +58,80 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
   };
   const quickLoadClientTrigger = (
     <div id="quick-client-select-renewal">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-9 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
-            <Database size={16} className="text-[var(--eai-text-secondary)]" />
-            <span className="text-[12px] font-bold">
-              {selectedClientId ? clients.find(c => c.id === selectedClientId)?.name : 'Load Client'}
-            </span>
-            <ChevronDown size={14} className="text-[var(--eai-text-secondary)]" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 rounded-xl border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl max-h-[300px] overflow-y-auto">
+      <Select
+        value={selectedClientId}
+        onValueChange={(value) => handleClientSelect(value)}
+      >
+        <SelectTrigger className="w-[180px] h-9">
+          <SelectValue placeholder="Load Client" />
+        </SelectTrigger>
+        <SelectContent>
           {clients.length > 0 ? (
             clients.map((client) => (
-              <DropdownMenuItem
-                key={client.id}
-                onClick={() => handleClientSelect(client.id)}
-                className={`px-4 py-2.5 text-[13px] font-medium cursor-pointer flex flex-col items-start gap-0.5 ${selectedClientId === client.id ? 'bg-[var(--eai-primary)] text-white' : 'hover:bg-[var(--eai-bg)] text-[var(--eai-text)]'}`}
-              >
-                <span className="font-bold">{client.name}</span>
-                <span className={`text-[10px] tracking-wider ${selectedClientId === client.id ? 'text-white/70' : 'text-[var(--eai-text-secondary)]'}`}>
-                  {client.type} • {client.nationality}
-                </span>
-              </DropdownMenuItem>
+              <SelectItem key={client.id} value={client.id}>
+                <div className="flex flex-col">
+                  <span className="font-semibold">{client.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {client.type} • {client.nationality}
+                  </span>
+                </div>
+              </SelectItem>
             ))
           ) : (
-            <div className="px-4 py-2 text-[12px] text-[var(--eai-text-secondary)]">No clients found</div>
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">No clients found</div>
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </SelectContent>
+      </Select>
     </div>
   );
 
   const quickLoadAgentTrigger = (
     <div id="quick-agent-select-renewal">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-surface)] px-3 py-1.5 h-9 tracking-tight hover:bg-[var(--eai-bg)] transition-colors shadow-sm text-[var(--eai-text)]">
-            <Briefcase size={16} className="text-[var(--eai-text-secondary)]" />
-            <span className="text-[12px] font-bold">Load Agent</span>
-            <ChevronDown size={14} className="text-[var(--eai-text-secondary)]" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 rounded-xl border-[var(--eai-border)] bg-[var(--eai-surface)] shadow-xl">
-          <DropdownMenuItem
-            onClick={() => {
-              handleInputChange('renewal_agent_name', 'East African Intellectual Property');
-              handleInputChange('renewal_agent_country', 'Ethiopia');
-              handleInputChange('renewal_agent_city', 'Addis Ababa');
-              handleInputChange('renewal_agent_subcity', 'Bole');
-              handleInputChange('renewal_agent_wereda', '03');
-              handleInputChange('renewal_agent_house_no', 'New');
-              handleInputChange('renewal_agent_telephone', '+251 11 661 2911');
-              handleInputChange('renewal_agent_email', 'info@eastafricanip.com');
-              handleInputChange('renewal_agent_pobox', '1234');
-              handleInputChange('renewal_agent_fax', '');
-            }}
-            className="px-4 py-2.5 text-[13px] font-medium cursor-pointer flex flex-col items-start gap-0.5 hover:bg-[var(--eai-bg)] text-[var(--eai-text)]"
-          >
-            <span className="font-bold">EAIP (Main Office)</span>
-            <span className="text-[10px] tracking-wider text-[var(--eai-text-secondary)]">
-              Default Firm Details
-            </span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Select
+        onValueChange={(value) => {
+          if (value === 'eaip') {
+            handleInputChange('renewal_agent_name', 'East African Intellectual Property');
+            handleInputChange('renewal_agent_country', 'Ethiopia');
+            handleInputChange('renewal_agent_city', 'Addis Ababa');
+            handleInputChange('renewal_agent_subcity', 'Bole');
+            handleInputChange('renewal_agent_wereda', '03');
+            handleInputChange('renewal_agent_house_no', 'New');
+            handleInputChange('renewal_agent_telephone', '+251 11 661 2911');
+            handleInputChange('renewal_agent_email', 'info@eastafricanip.com');
+            handleInputChange('renewal_agent_pobox', '1234');
+            handleInputChange('renewal_agent_fax', '');
+          } else if (value === 'fikadu') {
+            handleInputChange('renewal_agent_name', 'Fikadu Asfaw');
+            handleInputChange('renewal_agent_country', 'Ethiopia');
+            handleInputChange('renewal_agent_city', 'Addis Ababa');
+            handleInputChange('renewal_agent_subcity', 'Bole');
+            handleInputChange('renewal_agent_wereda', '02');
+            handleInputChange('renewal_agent_house_no', '');
+            handleInputChange('renewal_agent_telephone', '+251 911 213 141');
+            handleInputChange('renewal_agent_email', 'fikadu@eastafricanip.com');
+            handleInputChange('renewal_agent_pobox', '1000');
+            handleInputChange('renewal_agent_fax', '+251115839201');
+          }
+        }}
+      >
+        <SelectTrigger className="w-[180px] h-9">
+          <SelectValue placeholder="Load Agent" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="fikadu">
+            <div className="flex flex-col">
+              <span className="font-semibold">Fikadu Asfaw</span>
+              <span className="text-xs text-muted-foreground">Managing Partner</span>
+            </div>
+          </SelectItem>
+          <SelectItem value="eaip">
+            <div className="flex flex-col">
+              <span className="font-semibold">EAIP (Main Office)</span>
+              <span className="text-xs text-muted-foreground">Default Firm Details</span>
+            </div>
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 
@@ -150,103 +161,90 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="II. Address & Contact" icon={MapPin}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Street Address">
-            <input
+            <Input
               value={formData.renewal_address_street || ''}
               onChange={(e) => handleInputChange('renewal_address_street', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="Zone">
-            <input
+            <Input
               value={formData.renewal_address_zone || ''}
               onChange={(e) => handleInputChange('renewal_address_zone', e.target.value)}
-              className="apple-input"
               placeholder="Zone"
             />
           </FormField>
           <FormField label="City Code">
-            <input
+            <Input
               value={formData.renewal_city_code || ''}
               onChange={(e) => handleInputChange('renewal_city_code', e.target.value)}
-              className="apple-input"
               placeholder="City Code"
             />
           </FormField>
           <FormField label="City Name">
-            <input
+            <Input
               value={formData.renewal_city_name || ''}
               onChange={(e) => handleInputChange('renewal_city_name', e.target.value)}
-              className="apple-input"
               placeholder="City Name"
             />
           </FormField>
           <FormField label="State Code">
-            <input
+            <Input
               value={formData.renewal_state_code || ''}
               onChange={(e) => handleInputChange('renewal_state_code', e.target.value)}
-              className="apple-input"
               placeholder="State Code"
             />
           </FormField>
           <FormField label="State Name">
-            <input
+            <Input
               value={formData.renewal_state_name || ''}
               onChange={(e) => handleInputChange('renewal_state_name', e.target.value)}
-              className="apple-input"
               placeholder="State Name"
             />
           </FormField>
           <FormField label="Zip Code">
-            <input
+            <Input
               value={formData.renewal_zip_code || ''}
               onChange={(e) => handleInputChange('renewal_zip_code', e.target.value)}
-              className="apple-input"
               placeholder="Zip Code"
             />
           </FormField>
           <FormField label="Wereda">
-            <input
+            <Input
               value={formData.renewal_wereda || ''}
               onChange={(e) => handleInputChange('renewal_wereda', e.target.value)}
-              className="apple-input"
               placeholder="Wereda"
             />
           </FormField>
           <FormField label="House No.">
-            <input
+            <Input
               value={formData.renewal_house_no || ''}
               onChange={(e) => handleInputChange('renewal_house_no', e.target.value)}
-              className="apple-input"
               placeholder="House No."
             />
           </FormField>
           <FormField label="Telephone">
-            <input
+            <Input
               value={formData.renewal_telephone || ''}
               onChange={(e) => handleInputChange('renewal_telephone', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="E-mail">
-            <input
+            <Input
               type="email"
               value={formData.renewal_email || ''}
               onChange={(e) => handleInputChange('renewal_email', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="Fax">
-            <input
+            <Input
               value={formData.renewal_fax || ''}
               onChange={(e) => handleInputChange('renewal_fax', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="P.O. Box">
-            <input
+            <Input
               value={formData.renewal_po_box || ''}
               onChange={(e) => handleInputChange('renewal_po_box', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="Nationality">
@@ -267,29 +265,23 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
 
         <div className="mt-4 flex flex-wrap gap-4 p-3 bg-muted/30 rounded-lg">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={formData.renewal_chk_female || false}
-              onChange={(e) => handleInputChange('renewal_chk_female', e.target.checked)}
-              className="apple-checkbox"
+              onCheckedChange={(checked) => handleInputChange('renewal_chk_female', checked as boolean)}
             />
             <span className="text-sm">Female</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={formData.renewal_chk_male || false}
-              onChange={(e) => handleInputChange('renewal_chk_male', e.target.checked)}
-              className="apple-checkbox"
+              onCheckedChange={(checked) => handleInputChange('renewal_chk_male', checked as boolean)}
             />
             <span className="text-sm">Male</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={formData.renewal_chk_company || false}
-              onChange={(e) => handleInputChange('renewal_chk_company', e.target.checked)}
-              className="apple-checkbox"
+              onCheckedChange={(checked) => handleInputChange('renewal_chk_company', checked as boolean)}
             />
             <span className="text-sm">Company</span>
           </label>
@@ -300,10 +292,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="Agent Details" icon={Briefcase} rightElement={quickLoadAgentTrigger}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Agent Name">
-            <input
+            <Input
               value={formData.renewal_agent_name || ''}
               onChange={(e) => handleInputChange('renewal_agent_name', e.target.value)}
-              className="apple-input"
               placeholder="Name"
             />
           </FormField>
@@ -315,66 +306,58 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
             />
           </FormField>
           <FormField label="City">
-            <input
+            <Input
               value={formData.renewal_agent_city || ''}
               onChange={(e) => handleInputChange('renewal_agent_city', e.target.value)}
-              className="apple-input"
               placeholder="City"
             />
           </FormField>
           <FormField label="Sub-City">
-            <input
+            <Input
               value={formData.renewal_agent_subcity || ''}
               onChange={(e) => handleInputChange('renewal_agent_subcity', e.target.value)}
-              className="apple-input"
               placeholder="Sub-City"
             />
           </FormField>
           <FormField label="Wereda">
-            <input
+            <Input
               value={formData.renewal_agent_wereda || ''}
               onChange={(e) => handleInputChange('renewal_agent_wereda', e.target.value)}
-              className="apple-input"
               placeholder="Wereda"
             />
           </FormField>
           <FormField label="House No.">
-            <input
+            <Input
               value={formData.renewal_agent_house_no || ''}
               onChange={(e) => handleInputChange('renewal_agent_house_no', e.target.value)}
-              className="apple-input"
               placeholder="House No."
             />
           </FormField>
           <FormField label="Tel.">
-            <input
+            <Input
               value={formData.renewal_agent_telephone || ''}
               onChange={(e) => handleInputChange('renewal_agent_telephone', e.target.value)}
-              className="apple-input"
               placeholder="Tel."
             />
           </FormField>
           <FormField label="E-mail">
-            <input
+            <Input
               value={formData.renewal_agent_email || ''}
               onChange={(e) => handleInputChange('renewal_agent_email', e.target.value)}
-              className="apple-input"
               placeholder="E-mail"
             />
           </FormField>
           <FormField label="P.O. Box">
-            <input
+            <Input
               value={formData.renewal_agent_pobox || ''}
               onChange={(e) => handleInputChange('renewal_agent_pobox', e.target.value)}
-              className="apple-input"
               placeholder="P.O. Box"
             />
           </FormField>
           <FormField label="Fax">
-            <input
+            <Input
               value={formData.renewal_agent_fax || ''}
               onChange={(e) => handleInputChange('renewal_agent_fax', e.target.value)}
-              className="apple-input"
               placeholder="Fax"
             />
           </FormField>
@@ -385,29 +368,23 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="III. Use of Mark" icon={CheckSquare}>
         <div className="flex flex-wrap gap-4 p-3 bg-muted/30 rounded-lg">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={formData.renewal_chk_goods_mark || false}
-              onChange={(e) => handleInputChange('renewal_chk_goods_mark', e.target.checked)}
-              className="apple-checkbox"
+              onCheckedChange={(checked) => handleInputChange('renewal_chk_goods_mark', checked as boolean)}
             />
             <span className="text-sm">Goods Mark</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={formData.renewal_chk_service_mark || false}
-              onChange={(e) => handleInputChange('renewal_chk_service_mark', e.target.checked)}
-              className="apple-checkbox"
+              onCheckedChange={(checked) => handleInputChange('renewal_chk_service_mark', checked as boolean)}
             />
             <span className="text-sm">Service Mark</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={formData.renewal_chk_collective_mark || false}
-              onChange={(e) => handleInputChange('renewal_chk_collective_mark', e.target.checked)}
-              className="apple-checkbox"
+              onCheckedChange={(checked) => handleInputChange('renewal_chk_collective_mark', checked as boolean)}
             />
             <span className="text-sm">Collective Mark</span>
           </label>
@@ -466,25 +443,22 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="V. Case Details" icon={FileText}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Application No">
-            <input
+            <Input
               value={formData.renewal_app_no || ''}
               onChange={(e) => handleInputChange('renewal_app_no', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="Registration No">
-            <input
+            <Input
               value={formData.renewal_reg_no || ''}
               onChange={(e) => handleInputChange('renewal_reg_no', e.target.value)}
-              className="apple-input"
             />
           </FormField>
           <FormField label="Registration Date">
-            <input
+            <Input
               type="date"
               value={formData.renewal_reg_date || ''}
               onChange={(e) => handleInputChange('renewal_reg_date', e.target.value)}
-              className="apple-input"
             />
           </FormField>
         </div>
@@ -496,40 +470,34 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
           <div className="space-y-3">
             <label className="text-label text-[var(--eai-text)]">List of goods and or services (Split into 6 lines for PDF)</label>
             <div className="grid grid-cols-1 gap-2">
-              <input
+              <Input
                 value={formData.renewal_goods_services_1 || ''}
                 onChange={(e) => handleInputChange('renewal_goods_services_1', e.target.value)}
-                className="apple-input"
                 placeholder="Line 1"
               />
-              <input
+              <Input
                 value={formData.renewal_goods_services_2 || ''}
                 onChange={(e) => handleInputChange('renewal_goods_services_2', e.target.value)}
-                className="apple-input"
                 placeholder="Line 2"
               />
-              <input
+              <Input
                 value={formData.renewal_goods_services_3 || ''}
                 onChange={(e) => handleInputChange('renewal_goods_services_3', e.target.value)}
-                className="apple-input"
                 placeholder="Line 3"
               />
-              <input
+              <Input
                 value={formData.renewal_goods_services_4 || ''}
                 onChange={(e) => handleInputChange('renewal_goods_services_4', e.target.value)}
-                className="apple-input"
                 placeholder="Line 4"
               />
-              <input
+              <Input
                 value={formData.renewal_goods_services_5 || ''}
                 onChange={(e) => handleInputChange('renewal_goods_services_5', e.target.value)}
-                className="apple-input"
                 placeholder="Line 5"
               />
-              <input
+              <Input
                 value={formData.renewal_goods_services_6 || ''}
                 onChange={(e) => handleInputChange('renewal_goods_services_6', e.target.value)}
-                className="apple-input"
                 placeholder="Line 6"
               />
             </div>
@@ -541,26 +509,23 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       <FormSection title="Signature" icon={PenTool}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField label="Day">
-            <input
+            <Input
               value={formData.renewal_sign_day || ''}
               onChange={(e) => handleInputChange('renewal_sign_day', e.target.value)}
-              className="apple-input"
               placeholder="DD"
             />
           </FormField>
           <FormField label="Month">
-            <input
+            <Input
               value={formData.renewal_sign_month || ''}
               onChange={(e) => handleInputChange('renewal_sign_month', e.target.value)}
-              className="apple-input"
               placeholder="MM"
             />
           </FormField>
           <FormField label="Year">
-            <input
+            <Input
               value={formData.renewal_sign_year || ''}
               onChange={(e) => handleInputChange('renewal_sign_year', e.target.value)}
-              className="apple-input"
               placeholder="YYYY"
             />
           </FormField>

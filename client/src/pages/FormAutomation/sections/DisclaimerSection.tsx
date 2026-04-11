@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
 
 interface DisclaimerSectionProps {
   formData: EipaFormData;
@@ -17,18 +18,16 @@ export const DisclaimerSection: React.FC<DisclaimerSectionProps> = ({ formData, 
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label="Disclaimer (Amharic)">
-          <input
+          <Input
             value={formData.disclaimer_text_amharic}
             onChange={(e) => handleInputChange('disclaimer_text_amharic', e.target.value)}
-            className="apple-input"
             placeholder="የመብት ገደቡን እዚህ ያስገቡ..."
           />
         </FormField>
         <FormField label="Disclaimer (English)">
-          <input
+          <Input
             value={formData.disclaimer_text_english}
             onChange={(e) => handleInputChange('disclaimer_text_english', e.target.value)}
-            className="apple-input"
             placeholder="e.g. No claim to exclusive right of use of..."
           />
         </FormField>

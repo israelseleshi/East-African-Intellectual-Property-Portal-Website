@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CaretLeft } from '@phosphor-icons/react';
+import { ArrowLeft } from '@phosphor-icons/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import CaseStageTracker from '@/components/CaseStageTracker';
 import { trademarkService } from '@/utils/api';
 import { useToast } from '@/components/ui/toast';
@@ -37,11 +39,15 @@ interface CaseData {
   history?: CaseHistoryEntry[];
 }
 
+const JURISDICTION_NAMES: Record<string, string> = {
+  ET: 'Ethiopia', KE: 'Kenya', ER: 'Eritrea', DJ: 'Djibouti',
+  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi',
+};
+
 export default function CaseFlowPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToast } = useToast();
-  const { dialog: confirmDialog } = useConfirm();
+  const { toast: addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [caseData, setCaseData] = useState<CaseData | null>(null);
   const [currentStage, setCurrentStage] = useState<CaseFlowStage>('DATA_COLLECTION');
@@ -64,7 +70,6 @@ export default function CaseFlowPage() {
       addToast({
         title: 'Failed to load case',
         description: err?.response?.data?.error || 'Please try again',
-        type: 'error'
       });
     } finally {
       setLoading(false);
@@ -81,7 +86,6 @@ export default function CaseFlowPage() {
       addToast({
         title: 'Stage Updated',
         description: res.message,
-        type: 'success'
       });
       await loadCase();
     } catch (_e) {
@@ -89,7 +93,6 @@ export default function CaseFlowPage() {
       addToast({
         title: 'Failed to update stage',
         description: err?.response?.data?.error || err?.response?.data?.details || 'Please try again',
-        type: 'error'
       });
     } finally {
       setIsUpdating(false);
@@ -102,13 +105,10 @@ export default function CaseFlowPage() {
       addToast({
         title: 'Generating Form',
         description: 'Preparing your filled PDF...',
-        type: 'info'
       });
 
-      // 1. Fetch EIPA form data for this case
       const fullCaseData = await api.get(`/cases/${id}`);
 
-      // 2. Prepare data for filling
       const fillData = {
         ...fullCaseData,
         applicant_name: fullCaseData.client?.name || fullCaseData.client_name,
@@ -122,11 +122,9 @@ export default function CaseFlowPage() {
         jurisdiction: fullCaseData.jurisdiction,
       };
 
-      // 3. Fill the PDF
       const pdfUrl = '/application_form.pdf';
       const pdfBytes = await fillPdfForm(pdfUrl, fillData, true);
 
-      // 4. Download it
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -140,14 +138,12 @@ export default function CaseFlowPage() {
       addToast({
         title: 'Download Successful',
         description: 'PDF has been generated and downloaded.',
-        type: 'success'
       });
     } catch (error) {
       console.error('PDF Fill error:', error);
       addToast({
         title: 'Download Failed',
         description: 'Could not generate the filled form.',
-        type: 'error'
       });
     }
   };
@@ -155,12 +151,6 @@ export default function CaseFlowPage() {
   if (loading) return <div className="p-8 text-center">Loading Case Flow...</div>;
   if (!caseData) return <div className="p-8 text-center text-red-500">Case not found</div>;
 
-  // Transform backend deadlines to component format
-  // The component expects a flat object of deadlines
-  // In a real app, you might need a mapping function here if the API returns an array
-  // For now, assuming we can derive displayable deadlines from the deadlines table or latest history
-  // Simplified: passing empty object as we rely on the component's internal logic or needing to fetch deadlines separately
-  // TODO: Fetch deadlines endpoint and pass here. For now, rely on stage tracker's visual state.
   const deadlines = {
     formal_exam_deadline: caseData.formal_exam_deadline,
     opposition_period_end: caseData.opposition_period_end,
@@ -174,50 +164,44 @@ export default function CaseFlowPage() {
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
-      {confirmDialog}
       <header className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/trademarks')}
-          className="flex h-10 w-10 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text-secondary)] hover:bg-[var(--eai-bg)]"
-        >
-          <CaretLeft size={20} weight="bold" />
-        </button>
+        <Button variant="outline" size="icon" onClick={() => navigate('/trademarks')}>
+          <ArrowLeft size={20} />
+        </Button>
         <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-[var(--eai-text)]">
+          <h1 className="text-2xl font-bold tracking-tight">
             Case Lifecycle Management
           </h1>
-          <p className="text-[14px] text-[var(--eai-text-secondary)] mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {caseData.mark_name} ({caseData.filing_number || 'Pending'})
           </p>
         </div>
       </header>
 
-      {/* Info Card */}
-      <Card className="apple-card border-l-4 border-l-[var(--eai-primary)]">
+      <Card className="border-l-4 border-l-primary">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center bg-[var(--eai-primary)]/10 text-[var(--eai-primary)]">
-                <span className="text-[20px] font-bold">TM</span>
+              <div className="flex h-12 w-12 items-center justify-center bg-primary/10 text-primary">
+                <span className="text-xl font-bold">TM</span>
               </div>
               <div>
-                <div className="text-[16px] font-bold text-[var(--eai-text)]">
+                <div className="text-base font-bold">
                   {caseData.mark_name}
                 </div>
-                <div className="text-[13px] text-[var(--eai-text-secondary)]">
-                  Client: {caseData.client_name} • Jurisdiction: {caseData.jurisdiction === 'ET' ? 'Ethiopia' : 'Kenya'}
+                <div className="text-sm text-muted-foreground">
+                  Client: {caseData.client_name} • Jurisdiction: {JURISDICTION_NAMES[caseData.jurisdiction] || caseData.jurisdiction}
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] font-bold tracking-widest text-[var(--eai-text-secondary)]">Current status</div>
-              <div className="text-[18px] font-black text-[var(--eai-primary)]">{currentStage.replace(/_/g, ' ')}</div>
+              <div className="text-xs font-bold tracking-widest text-muted-foreground">Current status</div>
+              <div className="text-lg font-black text-primary">{currentStage.replace(/_/g, ' ')}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Interactive Tracker */}
       <CaseStageTracker
         currentStage={currentStage}
         jurisdiction={caseData.jurisdiction}
@@ -227,10 +211,9 @@ export default function CaseFlowPage() {
         isEditable={true}
       />
 
-      {/* History Log */}
-      <Card className="apple-card">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-[16px] font-bold tracking-tight">
+          <CardTitle className="text-base font-bold tracking-tight">
             Lifecycle Audit Log
           </CardTitle>
         </CardHeader>
@@ -239,40 +222,38 @@ export default function CaseFlowPage() {
             {caseData.history?.map((entry, index) => (
               <div key={entry.id} className="flex items-start gap-3">
                 <div className="flex flex-col items-center">
-                  <div className="h-2 w-2 rounded-full bg-[var(--eai-primary)] mt-2" />
+                  <div className="h-2 w-2 rounded-full bg-primary mt-2" />
                   {index < (caseData.history?.length ?? 0) - 1 && (
-                    <div className="h-full w-px bg-[var(--eai-border)] my-1" />
+                    <div className="h-full w-px bg-border my-1" />
                   )}
                 </div>
                 <div className="flex-1 pb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-bold text-[var(--eai-text)]">
+                    <span className="text-sm font-bold">
                       {entry.action}
                     </span>
-                    <span className="text-[11px] text-[var(--eai-text-secondary)]">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(entry.created_at).toLocaleString()}
                     </span>
                   </div>
                   {entry.new_data && (
-                    <div className="text-[12px] text-[var(--eai-text-secondary)] font-mono mt-1">
-                      {/* Simplified data view */}
+                    <div className="text-xs text-muted-foreground font-mono mt-1">
                     </div>
                   )}
                 </div>
               </div>
             ))}
             {(!caseData.history || caseData.history.length === 0) && (
-              <div className="text-center py-4 text-[var(--eai-muted)]">No history recorded yet.</div>
+              <div className="text-center py-4 text-muted-foreground">No history recorded yet.</div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Case Notes */}
       {id && (
-        <Card className="apple-card">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-[16px] font-bold tracking-tight">
+            <CardTitle className="text-base font-bold tracking-tight">
               Case Notes & Communications
             </CardTitle>
           </CardHeader>

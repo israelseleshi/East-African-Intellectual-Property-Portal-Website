@@ -1,63 +1,8 @@
-"use client"
-
 import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-
-type ConfirmOptions = {
-  title?: string
-  description?: string
-  confirmLabel?: string
-  cancelLabel?: string
-  variant?: "default" | "destructive"
-}
-
-type ConfirmState = {
-  isOpen: boolean
-  options: ConfirmOptions
-  resolve: ((value: boolean) => void) | null
-}
-
-const initialState: ConfirmState = {
-  isOpen: false,
-  options: {},
-  resolve: null,
-}
-
-function useConfirm() {
-  const [state, setState] = React.useState<ConfirmState>(initialState)
-
-  const confirm = React.useCallback((options: ConfirmOptions = {}): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setState({
-        isOpen: true,
-        options,
-        resolve,
-      })
-    })
-  }, [])
-
-  const dialog = {
-    isOpen: state.isOpen,
-    options: state.options,
-    onConfirm: () => {
-      if (state.resolve) {
-        state.resolve(true)
-      }
-      setState(initialState)
-    },
-    onCancel: () => {
-      if (state.resolve) {
-        state.resolve(false)
-      }
-      setState(initialState)
-    },
-  }
-
-  return { confirm, dialog }
-}
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -85,6 +30,7 @@ const AlertDialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
 >(({ className, ...props }, ref) => (
   <AlertDialogPortal>
+    <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
@@ -147,7 +93,8 @@ const AlertDialogDescription = React.forwardRef<
     {...props}
   />
 ))
-AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName
+AlertDialogDescription.displayName =
+  AlertDialogPrimitive.Description.displayName
 
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
@@ -189,5 +136,4 @@ export {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
-  useConfirm,
 }

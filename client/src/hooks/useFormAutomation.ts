@@ -7,7 +7,7 @@ import { fillPdfForm, getPdfFields } from '../utils/pdfUtils';
 import { EipaFormData, Client, FormType } from '../pages/FormAutomation/types';
 
 export function useFormAutomation() {
-  const { addToast } = useToast();
+  const { toast: addToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const api = useApi();

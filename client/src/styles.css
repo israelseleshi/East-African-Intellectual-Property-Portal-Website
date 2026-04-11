@@ -5,11 +5,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Animation Easing Curves */
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-  /* Apple Pro Color Palette */
+:root {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Design Option 1: Light background / Option 2: Blue themed */
   --eai-bg: #F5F5F7;
+  
+  /* Alternative blue theme backgrounds */
+  --eai-bg-blue: #0e3155;
+  --eai-sidebar-blue: #0e3155;
+  
   --eai-surface: #FFFFFF;
   --eai-surface-glass: rgba(255, 255, 255, 0.7);
   --eai-text: #1D1D1F;
@@ -18,8 +31,8 @@
   --eai-border: rgba(0, 0, 0, 0.08);
   --eai-border-strong: rgba(0, 0, 0, 0.12);
 
-  --eai-primary: #003B5C;
-  --eai-primary-hover: #004B7C;
+  --eai-primary: #0e3155;
+  --eai-primary-hover: #1a4a7a;
   --eai-success: #34C759;
   --eai-warning: #FF9500;
   --eai-critical: #FF3B30;
@@ -27,32 +40,74 @@
   /* Shadows & Blurs */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-premium: 0 20px 40px rgba(0,0,0,0.04);
+--shadow-premium: 0 20px 40px rgba(0,0,0,0.04);
   --glass-blur: 20px;
 
   /* Spacing Tokens */
   --page-padding: 2rem;
   --section-gap: 2rem;
   --component-gap: 1.5rem;
+
+  /* Auth Page Design Options - use in localStorage with key "eai.authDesign" */
+  /* Option 1: Subtle contrast (default) */
+  --auth-page-bg: #F5F5F7;
+  --auth-form-bg: #FFFFFF;
+  /* Option 2: Glassmorphism */
+  /* --auth-page-bg: #F5F5F7; */
+  /* --auth-form-bg: rgba(255, 255, 255, 0.7); */
+  /* Option 3: Accent tint */
+  /* --auth-page-bg: #F0F4F8; */
+  /* --auth-form-bg: #FFFFFF; */
+  /* Option 4: Strong contrast */
+  /* --auth-page-bg: #E8E8ED; */
+  /* --auth-form-bg: #FFFFFF; */
+}
+
+/* Design Mode: Blue Theme - for opt-in only */
+html.blue-theme,
+html.blue-theme.dark {
+  --eai-bg: #0e3155;
+  --eai-surface: #0f3d6e;
+  --eai-surface-glass: rgba(15, 61, 110, 0.85);
+  --sidebar-background: #0e3155;
+}
+
+html.blue-theme .sidebar {
+  width: 260px !important;
+  max-width: 260px !important;
 }
 
 html.dark {
   --eai-bg: #000000;
   --eai-surface: #1C1C1E;
-  --eai-surface-glass: rgba(28, 28, 30, 0.7);
+  --eai-surface-glass: rgba(28, 28, 30, 0.85);
   --eai-text: #F5F5F7;
   --eai-text-secondary: #86868B;
   --eai-muted: rgba(255, 255, 255, 0.5);
   --eai-border: rgba(255, 255, 255, 0.12);
   --eai-border-strong: rgba(255, 255, 255, 0.18);
 
-  --eai-primary: #004B7C;
-  --eai-primary-hover: #005B9C;
+  --eai-primary: #0e3155;
+  --eai-primary-hover: #1a4a7a;
   --eai-success: #30D158;
   --eai-warning: #FF9F0A;
   --eai-critical: #FF453A;
 
   --shadow-premium: 0 20px 40px rgba(0,0,0,0.2);
+
+  /* Auth Page Design Options - dark */
+  /* Option 1: Subtle contrast (default) */
+  --auth-page-bg: #1C1C1E;
+  --auth-form-bg: #0D0D0D;
+  /* Option 2: Glassmorphism */
+  /* --auth-page-bg: #000000; */
+  /* --auth-form-bg: rgba(28, 28, 30, 0.7); */
+  /* Option 3: Accent tint */
+  /* --auth-page-bg: #0A0A0A; */
+  /* --auth-form-bg: #141414; */
+  /* Option 4: Strong contrast */
+  /* --auth-page-bg: #0D0D0D; */
+  /* --auth-form-bg: #1C1C1E; */
 }
 
 @layer base {
@@ -94,15 +149,15 @@ html.dark {
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --sidebar-background: 0 0% 98%;
+    --sidebar: var(--eai-bg);
+    --sidebar-foreground: var(--eai-text);
+    --sidebar-primary: var(--eai-primary);
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: var(--eai-bg);
+    --sidebar-accent-foreground: var(--eai-text);
+    --sidebar-border: var(--eai-border);
+    --sidebar-ring: var(--eai-primary);
+    --sidebar-background: var(--eai-bg);
   }
   .dark {
     --background: oklch(0.145 0 0);
@@ -128,15 +183,15 @@ html.dark {
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar: var(--eai-bg);
+    --sidebar-foreground: var(--eai-text);
+    --sidebar-primary: var(--eai-primary);
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-accent: var(--eai-surface);
+    --sidebar-accent-foreground: var(--eai-text);
+    --sidebar-border: var(--eai-border-strong);
+    --sidebar-ring: var(--eai-primary);
+    --sidebar-background: var(--eai-bg);
   }
   html {
     @apply font-mono;
@@ -304,6 +359,226 @@ body {
   min-height: 100vh;
 }
 
+.auth-logo {
+  transition: filter 150ms ease;
+}
+
+html.dark .auth-logo {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+/* Sidebar logo - white in dark mode globally */
+.sidebar-logo {
+  transition: filter 150ms ease;
+}
+
+html.dark .sidebar-logo,
+.dark .sidebar-logo {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+/* Sidebar styles - full width tabs with left-aligned text */
+[data-sidebar="sidebar"] {
+  background-color: var(--sidebar-background, var(--eai-bg)) !important;
+  background: var(--sidebar-background, var(--eai-bg)) !important;
+}
+
+.dark [data-sidebar="sidebar"],
+html.dark [data-sidebar="sidebar"] {
+  background-color: var(--eai-bg) !important;
+  background: var(--eai-bg) !important;
+}
+
+.blue-theme [data-sidebar="sidebar"],
+html.blue-theme.dark [data-sidebar="sidebar"] {
+  background-color: #0e3155 !important;
+  background: #0e3155 !important;
+}
+
+[data-sidebar="sidebar"] [data-sidebar="menu-button"] {
+  width: 100% !important;
+  justify-content: flex-start !important;
+  text-align: left;
+}
+
+[data-sidebar="sidebar"] [data-sidebar="menu-item"] {
+  width: 100%;
+}
+
+[data-sidebar="sidebar"] [data-sidebar="menu"] {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Sidebar menu items - ensure full width */
+[data-sidebar="sidebar"] [data-sidebar="menu-item"] > * {
+  width: 100%;
+}
+
+/* When collapsed, center icons */
+.sidebar-collapsed [data-sidebar="menu-button"] {
+  justify-content: center !important;
+}
+
+.sidebar-collapsed [data-sidebar="menu-button"] a,
+.sidebar-collapsed [data-sidebar="menu-button"] button {
+  justify-content: center !important;
+}
+
+.sidebar-collapsed [data-sidebar="menu-item"] {
+  justify-content: center;
+}
+
+/* Ensure full width background when collapsed */
+.sidebar-collapsed [data-sidebar="menu-button"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.sidebar-collapsed [data-sidebar="menu-button"] a,
+.sidebar-collapsed [data-sidebar="menu-button"] button {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Full width background for collapsed sidebar items */
+.sidebar-collapsed [data-sidebar="menu-item"] {
+  width: 100% !important;
+}
+
+.sidebar-collapsed [data-sidebar="menu-item"] > * {
+  width: 100% !important;
+}
+
+/* Ensure the anchor tag takes full width */
+.sidebar-collapsed a,
+.sidebar-collapsed [data-sidebar="menu-button"] a {
+  width: 100% !important;
+}
+
+/* Remove any padding limitations */
+.sidebar-collapsed [data-sidebar="menu-button"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Override shadcn collapsed icon size to allow full width */
+.sidebar-collapsed [data-sidebar="menu-button"],
+.sidebar-collapsed-btn {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+}
+
+.sidebar-collapsed [data-sidebar="menu-button"]::before,
+.sidebar-collapsed-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+/* Ensure the li takes full width */
+.sidebar-collapsed [data-sidebar="menu-item"],
+.sidebar-collapsed-item {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Make the button content centered */
+.sidebar-collapsed-btn a,
+.sidebar-collapsed-btn button {
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+/* Override the group-data-collapsible icon size */
+.sidebar-collapsed [data-sidebar="menu-button"],
+.sidebar-collapsed-btn {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Force full width with highest specificity */
+div[data-collapsible="icon"] .sidebar-collapsed [data-sidebar="menu-button"],
+div[data-collapsible="icon"] .sidebar-collapsed-btn {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Collapsed nav link styles */
+.sidebar-collapsed-nav {
+  width: 100%;
+}
+
+/* Ensure the sidebar menu item takes full width in collapsed state */
+.sidebar-collapsed [data-sidebar="menu-item"] {
+  width: 100%;
+}
+
+/* Full width background for collapsed items */
+.sidebar-collapsed [data-sidebar="menu-item"] .sidebar-collapsed-nav {
+  width: 100%;
+}
+
+/* Ensure sidebar text is visible in both themes */
+[data-sidebar="sidebar"] {
+  color: var(--sidebar-foreground);
+}
+
+/* Consistent height for sidebar menu items - both collapsed and expanded */
+[data-sidebar="sidebar"] [data-sidebar="menu-button"] a,
+[data-sidebar="sidebar"] [data-sidebar="menu-button"] button,
+.sidebar-expanded-btn a,
+.sidebar-expanded-btn button,
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) [data-sidebar="menu-button"] a,
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) [data-sidebar="menu-button"] button {
+  height: 2.5rem !important; /* h-10 = 40px */
+  min-height: 2.5rem !important;
+  max-height: 2.5rem !important;
+}
+
+/* Override shadcn default height for expanded state with highest specificity */
+.sidebar-expanded-btn,
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) .sidebar-expanded-btn,
+.sidebar-expanded-btn.peer\/menu-button {
+  height: 2.5rem !important;
+  min-height: 2.5rem !important;
+  max-height: 2.5rem !important;
+}
+
+/* Ensure nav links in expanded sidebar maintain compact height */
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) [data-sidebar="menu-item"] a,
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) [data-sidebar="menu-item"] button,
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) [data-sidebar="menu-item"] > * a,
+[data-sidebar="sidebar"]:not(.sidebar-collapsed) [data-sidebar="menu-item"] > * button {
+  height: 2.5rem !important;
+  min-height: 2.5rem !important;
+}
+
+/* Override any group-data-collapsible icon-only mode that expands height */
+.group[data-collapsible="icon"]:not(.sidebar-collapsed) [data-sidebar="menu-button"],
+.group[data-collapsible="icon"]:not(.sidebar-collapsed) .sidebar-expanded-btn {
+  height: 2.5rem !important;
+  min-height: 2.5rem !important;
+}
+
+/* Sidebar content should not center vertically */
+[data-sidebar="sidebar"] [data-sidebar="content"] {
+  align-items: stretch;
+}
+
+/* Remove default padding and centering from sidebar menu */
+[data-sidebar="sidebar"] [data-sidebar="menu"] {
+  height: auto;
+}
+
 /* Ensure all scrollable containers work properly */
 .overflow-y-auto {
   overflow-y: auto !important;
@@ -403,4 +678,10 @@ html {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+}
+
+/* Prevent flash of unstyled content */
+#root:empty::before {
+  content: "";
+  display: none;
 }

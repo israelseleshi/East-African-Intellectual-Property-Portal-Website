@@ -143,7 +143,7 @@ export function StageActionModal({ isOpen, onClose, onConfirm, currentStage, nex
                             {field.type === 'textarea' ? (
                                 <Textarea
                                     placeholder={field.placeholder}
-                                    className="apple-input min-h-[100px]"
+                                    className="min-h-[100px]"
                                     value={formData[field.key] || ''}
                                     onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                                     required={field.required}
@@ -151,12 +151,12 @@ export function StageActionModal({ isOpen, onClose, onConfirm, currentStage, nex
                             ) : (
                                 <div className="relative">
                                     {field.type === 'date' && (
-                                        <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--eai-muted)]" size={18} />
+                                        <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                                     )}
                                     <Input
                                         type={field.type}
                                         placeholder={field.placeholder}
-                                        className={`apple-input ${field.type === 'date' ? 'pl-10' : ''}`}
+                                        className={field.type === 'date' ? 'pl-10' : ''}
                                         value={formData[field.key] || ''}
                                         onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                                         required={field.required}

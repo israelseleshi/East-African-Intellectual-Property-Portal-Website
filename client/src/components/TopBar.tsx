@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
-import { Sun, Moon, MagnifyingGlass, SignOut } from '@phosphor-icons/react'
+import { Sun, Moon, MagnifyingGlass, SignOut, Palette } from '@phosphor-icons/react'
 import { useAuthStore } from '../store/authStore'
+import { Menu } from 'lucide-react'
+import { useSidebar } from '@/components/ui/sidebar'
+import { useState, useEffect } from 'react'
 
 type Props = {
   title: string
@@ -11,14 +14,28 @@ type Props = {
 }
 
 export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, children }: Props) {
+  const [designMode, setDesignMode] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('eai_design_mode') || 'default'
+    return 'default'
+  })
   const hint = useMemo(() => (navigator.platform.toLowerCase().includes('mac') ? 'Cmd' : 'Ctrl'), [])
   const { user, logout } = useAuthStore()
+  const { toggleSidebar } = useSidebar()
 
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/70 backdrop-blur-md">
       <div className="flex h-14 items-center justify-between px-2 sm:px-3 md:px-4">
-        <div className="min-w-0">
-          <div className="truncate text-[18px] sm:text-[20px] md:text-[24px] font-bold tracking-tight text-[var(--eai-text)]">{title}</div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={toggleSidebar}
+            className="flex md:hidden h-9 w-9 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] transition-all hover:bg-[var(--eai-bg)]"
+            aria-label="Toggle sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="min-w-0">
+            <div className="truncate text-[18px] sm:text-[20px] md:text-[24px] font-bold tracking-tight text-[var(--eai-text)]">{title}</div>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
@@ -36,6 +53,25 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
               </kbd>
             </button>
 
+            <button
+              type="button"
+              onClick={() => {
+                const newMode = designMode === 'default' ? 'blue' : 'default'
+                setDesignMode(newMode)
+                localStorage.setItem('eai_design_mode', newMode)
+                if (newMode === 'blue') {
+                  document.documentElement.classList.add('blue-theme')
+                } else {
+                  document.documentElement.classList.remove('blue-theme')
+                }
+              }}
+              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] text-[var(--eai-text)] transition-all hover:bg-[var(--eai-bg)] shadow-sm"
+              aria-label="Toggle design mode"
+              title={`Design: ${designMode}`}
+            >
+              <Palette size={18} className={designMode === 'blue' ? 'text-[#0e3155]' : 'text-gray-400'} />
+            </button>
+            
             <button
               type="button"
               onClick={onToggleTheme}

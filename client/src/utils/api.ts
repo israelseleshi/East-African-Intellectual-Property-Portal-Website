@@ -15,6 +15,7 @@ export const trademarkService = {
   createCase: casesApi.create,
   updateStatus: casesApi.updateStatus,
   updateFlowStage: casesApi.updateFlowStage,
+  updateCase: casesApi.updateCase,
   deleteCase: casesApi.remove
 };
 

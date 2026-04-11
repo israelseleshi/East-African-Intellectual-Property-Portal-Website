@@ -3,6 +3,8 @@ import { RefreshCcw } from 'lucide-react';
 import { FormSection, FormField, CheckboxGroup } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface PrioritySectionProps {
   formData: EipaFormData;
@@ -30,27 +32,25 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, hand
           />
         </FormField>
         <FormField label="Priority right declaration (if any)" className="sm:col-span-2">
-          <input
+          <Input
             value={formData.priority_right_declaration || ''}
             onChange={(e) => handleInputChange('priority_right_declaration', e.target.value)}
-            className="apple-input"
             placeholder="Enter declaration"
           />
         </FormField>
 
         <FormField label="Priority application date">
-          <input
+          <Input
             type="date"
             value={formData.priority_filing_date}
             onChange={(e) => handleInputChange('priority_filing_date', e.target.value)}
-            className="apple-input"
           />
         </FormField>
         <FormField label="Priority goods & services" className="sm:col-span-2">
-          <textarea
+          <Textarea
             value={formData.goods_and_services_covered_by_the_previous_application}
             onChange={(e) => handleInputChange('goods_and_services_covered_by_the_previous_application', e.target.value)}
-            className="apple-input min-h-[80px] py-3"
+            className="min-h-[80px]"
             placeholder="Enter goods and services covered..."
           />
         </FormField>

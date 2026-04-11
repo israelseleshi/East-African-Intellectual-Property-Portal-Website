@@ -3,6 +3,7 @@ import { Briefcase, UserCheck } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -25,10 +26,23 @@ const PREDEFINED_AGENTS = [
     subcity: 'Bole',
     woreda: '02',
     house_no: '',
-    telephone: '+25112131415',
-    email: 'fikadu@gmail.com',
+    telephone: '+251 911 213 141',
+    email: 'fikadu@eastafricanip.com',
     po_box: '1000',
     fax: '+251115839201'
+  },
+  {
+    id: 'eaip',
+    name: 'East African Intellectual Property',
+    country: 'Ethiopia',
+    city: 'Addis Ababa',
+    subcity: 'Bole',
+    woreda: '03',
+    house_no: 'New',
+    telephone: '+251 11 661 2911',
+    email: 'info@eastafricanip.com',
+    po_box: '1234',
+    fax: ''
   }
 ];
 
@@ -56,15 +70,17 @@ export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInpu
             icon={Briefcase}
             rightElement={
               <div className="flex items-center gap-2">
-                <UserCheck size={16} className="text-[var(--eai-muted)]" />
                 <Select onValueChange={onAgentSelect}>
-                  <SelectTrigger className="w-[200px] h-8 text-xs bg-[var(--eai-bg-secondary)] border-none">
+                  <SelectTrigger className="w-[180px] h-9">
                     <SelectValue placeholder="Quick load Agent" />
                   </SelectTrigger>
                   <SelectContent>
                     {PREDEFINED_AGENTS.map(agent => (
                       <SelectItem key={agent.id} value={agent.id}>
-                        {agent.name}
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{agent.name}</span>
+                          <span className="text-xs text-muted-foreground">{agent.city}, {agent.country}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -73,11 +89,10 @@ export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInpu
             }
         >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField label="Agent Name" className="sm:col-span-2">
-                    <input
+<FormField label="Agent Name" className="sm:col-span-2">
+                    <Input
                         value={formData.agent_name || ''}
                         onChange={(e) => handleInputChange('agent_name', e.target.value)}
-                        className="apple-input"
                         placeholder="Full name of agent"
                     />
                 </FormField>
@@ -89,66 +104,59 @@ export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInpu
                     />
                 </FormField>
                 <FormField label="City">
-                    <input
+                    <Input
                         value={formData.agent_city || ''}
                         onChange={(e) => handleInputChange('agent_city', e.target.value)}
-                        className="apple-input"
                         placeholder="City"
                     />
                 </FormField>
                 <FormField label="Sub-City">
-          <input
-            value={formData.agent_subcity || ''}
-            onChange={(e) => handleInputChange('agent_subcity', e.target.value)}
-            className="apple-input"
-            placeholder="Sub-city"
-          />
-        </FormField>
-        <FormField label="Wereda">
-          <input
-            value={formData.agent_woreda || ''}
-            onChange={(e) => handleInputChange('agent_woreda', e.target.value)}
-            className="apple-input"
-            placeholder="Wereda"
-          />
-        </FormField>
+                    <Input
+                        value={formData.agent_subcity || ''}
+                        onChange={(e) => handleInputChange('agent_subcity', e.target.value)}
+                        placeholder="Sub-city"
+                    />
+                </FormField>
+                <FormField label="Wereda">
+                    <Input
+                        value={formData.agent_woreda || ''}
+                        onChange={(e) => handleInputChange('agent_woreda', e.target.value)}
+                        placeholder="Wereda"
+                    />
+                </FormField>
                 <FormField label="House No.">
-                    <input
+                    <Input
                         value={formData.agent_house_no || ''}
                         onChange={(e) => handleInputChange('agent_house_no', e.target.value)}
-                        className="apple-input"
                         placeholder="House number"
                     />
                 </FormField>
                 <FormField label="Telephone">
-                    <input
+                    <Input
                         value={formData.agent_telephone || ''}
                         onChange={(e) => handleInputChange('agent_telephone', e.target.value)}
-                        className="apple-input"
                         placeholder="+251 ..."
                     />
                 </FormField>
                 <FormField label="P.O. Box">
-                    <input
+                    <Input
                         value={formData.agent_po_box || ''}
                         onChange={(e) => handleInputChange('agent_po_box', e.target.value)}
-                        className="apple-input"
                         placeholder="P.O. Box"
                     />
                 </FormField>
                 <FormField label="Email">
-                    <input
+                    <Input
+                        type="email"
                         value={formData.agent_email || ''}
                         onChange={(e) => handleInputChange('agent_email', e.target.value)}
-                        className="apple-input"
                         placeholder="agent@example.com"
                     />
                 </FormField>
                 <FormField label="Fax">
-                    <input
+                    <Input
                         value={formData.agent_fax || ''}
                         onChange={(e) => handleInputChange('agent_fax', e.target.value)}
-                        className="apple-input"
                         placeholder="Fax number"
                     />
                 </FormField>

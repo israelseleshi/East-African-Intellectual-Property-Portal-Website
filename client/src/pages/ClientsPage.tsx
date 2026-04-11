@@ -16,16 +16,18 @@ import {
   CaretRight,
   ArrowsMerge,
   CaretUp,
-  CaretDown
+  CaretDown,
+  MagnifyingGlass
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { clientService } from '@/utils/api';
 import type { ApplicantType } from '@/shared/database';
 import { useDebounce } from '@/hooks/use-debounce';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Client {
   id: string;
@@ -53,8 +55,7 @@ const CLIENT_TYPE_ICONS: Record<ApplicantType, typeof User> = {
 
 export default function ClientsPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-   searchParams.get('tour') === 'true';
+  const [searchParams] = useSearchParams();
   
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,12 +64,11 @@ export default function ClientsPage() {
   const [selectedType, setSelectedType] = useState<ApplicantType | 'ALL'>('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
-  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
-  const pageSize = 5;
+  const pageSize = viewMode === 'grid' ? 8 : 6;
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState<{
@@ -86,13 +86,13 @@ export default function ClientsPage() {
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
+      const currentPageSize = viewMode === 'grid' ? 8 : 6;
       const result = await clientService.getClients({
         q: debouncedSearch,
         type: selectedType === 'ALL' ? undefined : selectedType,
         page: currentPage,
-        limit: pageSize
+        limit: currentPageSize
       });
-      // Ensure we always have valid data structures even if API response is malformed
       const clientsData = result?.data || [];
       const metaData = result?.meta || { total: 0, totalPages: 1 };
       setClients(clientsData);
@@ -100,7 +100,6 @@ export default function ClientsPage() {
       setTotalRecords(metaData.total || 0);
     } catch (error: unknown) {
       console.error('Failed to fetch clients:', error);
-      // Reset to safe defaults on error
       setClients([]);
       setTotalPages(1);
       setTotalRecords(0);
@@ -113,7 +112,6 @@ export default function ClientsPage() {
     fetchClients();
   }, [fetchClients]);
 
-  // Reset to page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, selectedType]);
@@ -129,7 +127,7 @@ export default function ClientsPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === (clients || []).length) {
+    if (selectedIds.size === (clients || []).length && clients.length > 0) {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set((clients || []).map(c => c.id)));
@@ -247,76 +245,55 @@ export default function ClientsPage() {
     document.body.removeChild(link);
   };
 
-  // Tour Steps
-  
-
   if (loading) {
     return (
-      <div className="w-full space-y-8">
+      <div className="w-full space-y-8 p-6">
         <header className="flex items-center justify-between mb-8">
           <Skeleton className="h-10 w-48" />
           <div className="flex gap-2">
-            <Skeleton className="h-10 w-32 rounded-xl" />
-            <Skeleton className="h-10 w-24 rounded-xl" />
+            <Skeleton className="h-10 w-32 rounded-md" />
+            <Skeleton className="h-10 w-24 rounded-md" />
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="apple-card border-none shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="border shadow-sm">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                  <Skeleton className="h-4 w-12 rounded-full" />
+                  <Skeleton className="h-12 w-12 rounded-lg" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
                 </div>
                 <div className="space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="apple-card p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-[var(--eai-border)] pb-4">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--eai-border)] last:border-0">
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-5 w-1/3" />
-                  <Skeleton className="h-4 w-1/4" />
-                </div>
-                <Skeleton className="h-4 w-24" />
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4" id="clients-header">
-        <div className="space-y-1">
-          <h1 className="text-h1">Clients</h1>
-          <p className="text-body text-[var(--eai-text-secondary)]">Manage and organize your client database.</p>
+    <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+          <p className="text-muted-foreground text-sm">Manage and organize your client database across jurisdictions.</p>
         </div>
-        <div className="flex items-center gap-2" id="bulk-actions">
+        <div className="flex flex-wrap items-center gap-3">
           {selectedIds.size > 0 && (
-            <>
+            <div className="flex items-center gap-2 mr-2">
               {selectedIds.size === 2 && (
                 <Button
                   onClick={() => setShowMergeDialog(true)}
                   disabled={isMerging}
-                  variant="outline"
-                  className="flex items-center gap-2 rounded-xl apple-button-secondary"
+                  variant="secondary"
+                  className="flex items-center gap-2"
                 >
-                  <ArrowsMerge size={18} />
+                  <ArrowsMerge size={16} />
                   <span>Merge</span>
                 </Button>
               )}
@@ -324,151 +301,147 @@ export default function ClientsPage() {
                 onClick={handleBulkDelete}
                 disabled={isDeleting}
                 variant="destructive"
-                className="flex items-center gap-2 rounded-xl"
+                className="flex items-center gap-2"
               >
-                <Trash size={18} />
+                <Trash size={16} />
                 <span>Delete {selectedIds.size}</span>
               </Button>
-            </>
+            </div>
           )}
           <Button
             onClick={handleExportCSV}
             variant="outline"
-            className="apple-button-secondary flex items-center gap-2"
+            className="flex items-center gap-2 bg-background"
           >
-            <FileArrowDown size={18} />
+            <FileArrowDown size={16} />
             <span>Export CSV</span>
           </Button>
           <Button
-            id="new-client-btn"
             onClick={() => navigate('/clients/new')}
-            className="apple-button-primary flex items-center gap-2 shadow-lg shadow-[var(--eai-primary)]/20"
+            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            <Plus size={18} weight="bold" />
-            <span className="text-label text-white">New Client</span>
+            <Plus size={16} weight="bold" />
+            <span>New Client</span>
           </Button>
         </div>
       </header>
 
-      {/* Merge Dialog */}
       {showMergeDialog && (selectedClients || []).length === 2 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="apple-card max-w-md w-full mx-4 p-6 space-y-4">
-            <h2 className="text-h2">Merge Clients</h2>
-            <p className="text-body text-[var(--eai-text-secondary)]">
-              Combine the following two clients into one. All trademark cases and invoices will be transferred to the selected target client.
-            </p>
-            
-            <div className="space-y-2">
-              {selectedClients.map((client) => (
-                <label 
-                  key={client.id} 
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${mergeTargetId === client.id ? 'border-[var(--eai-primary)] bg-[var(--eai-primary)]/10' : 'border-[var(--eai-border)] hover:bg-[var(--eai-bg)]'}`}
-                >
-                  <input
-                    type="radio"
-                    name="mergeTarget"
-                    value={client.id}
-                    checked={mergeTargetId === client.id}
-                    onChange={(e) => setMergeTargetId(e.target.value as string)}
-                    className="sr-only"
-                  />
-                  <div className="flex-1">
-                    <div className="text-body font-bold">{client.name}</div>
-                    <div className="text-micro text-[var(--eai-text-secondary)]">Email</div>
-                  </div>
-                  <div className="text-micro font-bold text-[var(--eai-primary)]">
-                    Keep
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3 pt-4 border-t border-[var(--eai-border)]">
-              <Button
-                onClick={() => setShowMergeDialog(false)}
-                variant="outline"
-                className="flex-1 apple-button-secondary"
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <Card className="max-w-lg w-full shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl">Merge Clients</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Combine the following two clients. All trademark cases and invoices will be transferred to the target client.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                {selectedClients.map((client) => (
+                  <label 
+                    key={client.id} 
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${mergeTargetId === client.id ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent/50'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="mergeTarget"
+                      value={client.id}
+                      checked={mergeTargetId === client.id}
+                      onChange={(e) => setMergeTargetId(e.target.value as string)}
+                      className="sr-only"
+                    />
+                    <div className={`p-2 rounded-lg ${mergeTargetId === client.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      {mergeTargetId === client.id ? <CheckSquare size={20} weight="fill" /> : <Square size={20} />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold">{client.name}</div>
+                      <div className="text-sm text-muted-foreground">{client.email || 'No email provided'}</div>
+                    </div>
+                    <Badge variant={mergeTargetId === client.id ? "default" : "outline"}>
+                      Target
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex items-center justify-end gap-3 pt-2">
+              <Button onClick={() => setShowMergeDialog(false)} variant="ghost">Cancel</Button>
+              <Button onClick={handleMerge} disabled={!mergeTargetId || isMerging}>
+                {isMerging ? 'Merging...' : 'Confirm Merge'}
               </Button>
-              <Button
-                onClick={handleMerge}
-                disabled={!mergeTargetId || isMerging}
-                className="flex-1 apple-button-primary"
-              >
-                {isMerging ? 'Merging...' : 'Merge Clients'}
-              </Button>
-            </div>
-          </div>
+            </CardFooter>
+          </Card>
         </div>
       )}
 
-      <div className="apple-card p-4 bg-[var(--eai-surface)] mt-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative flex-1 max-w-md" id="search-clients">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Fuzzy search by name, email, or city..."
-              className="apple-input w-full"
-            />
-          </div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm">
+        <div className="relative flex-1 max-w-md group">
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search clients..."
+            className="pl-10 bg-background border-muted hover:border-border transition-colors"
+          />
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-[var(--eai-border)] bg-[var(--eai-bg)]/30 px-3 py-1.5 h-10" id="type-filter">
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as ApplicantType | 'ALL')}
-                className="bg-transparent text-label outline-none cursor-pointer text-[var(--eai-text)]"
-              >
-                <option value="ALL">All Types</option>
-                <option value="INDIVIDUAL">Individual</option>
-                <option value="COMPANY">Company</option>
-                <option value="PARTNERSHIP">Partnership</option>
-              </select>
-            </div>
-            
-            <div className="flex items-center gap-1 border border-[var(--eai-border)] bg-[var(--eai-bg)]/30 rounded-xl h-10 overflow-hidden" id="view-toggle">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-[var(--eai-primary)] text-white' : 'text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)]'}`}
-                title="Grid View"
-              >
-                <SquaresFour size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`p-2 transition-colors ${viewMode === 'table' ? 'bg-[var(--eai-primary)] text-white' : 'text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)]'}`}
-                title="Table View"
-              >
-                <List size={20} />
-              </button>
-            </div>
+        <div className="flex items-center gap-3">
+          <Select value={selectedType} onValueChange={(val) => setSelectedType(val as any)}>
+            <SelectTrigger className="w-[160px] bg-background">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Types</SelectItem>
+              <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+              <SelectItem value="COMPANY">Company</SelectItem>
+              <SelectItem value="PARTNERSHIP">Partnership</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <div className="flex items-center bg-muted/50 p-1 rounded-lg border">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+              title="Grid View"
+            >
+              <SquaresFour size={18} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+              title="Table View"
+            >
+              <List size={18} weight={viewMode === 'table' ? 'fill' : 'regular'} />
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="mt-8" id="clients-grid">
+      <div className="mt-6">
         {(clients || []).length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center apple-card">
-            <div className="p-6 rounded-full bg-[var(--eai-bg)] mb-6">
-              <Building size={48} weight="duotone" className="text-[var(--eai-text-secondary)] opacity-20" />
+          <Card className="flex flex-col items-center justify-center py-24 text-center border-dashed">
+            <div className="p-4 rounded-full bg-muted/50 mb-4">
+              <Building size={48} weight="duotone" className="text-muted-foreground opacity-50" />
             </div>
-            <div className="text-h2 text-[var(--eai-text)]">No clients found</div>
-            <p className="text-body text-[var(--eai-text-secondary)] mt-2 max-w-xs mx-auto">
-              {searchQuery ? 'Try broadening your fuzzy search or changing filters.' : 'Start your practice by adding your first client.'}
+            <h3 className="text-xl font-semibold mb-2">No clients found</h3>
+            <p className="text-muted-foreground max-w-sm mx-auto">
+              {searchQuery ? 'We couldn’t find any clients matching your search or filters.' : 'Add your first client to start managing their intellectual property portfolio.'}
             </p>
-          </div>
+            {!searchQuery && (
+              <Button onClick={() => navigate('/clients/new')} className="mt-6">
+                <Plus className="mr-2" size={16} /> Add Client
+              </Button>
+            )}
+          </Card>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {sortedClients.map((client) => {
               const Icon = CLIENT_TYPE_ICONS[client.type] || Building;
               const isSelected = selectedIds.has(client.id);
               return (
                 <Card
                   key={client.id}
-                  className={`apple-card group p-5 cursor-pointer border-2 transition-all duration-300 relative overflow-hidden ${isSelected ? 'border-[var(--eai-primary)] bg-[var(--eai-primary)]/5' : 'border-transparent bg-[var(--eai-surface)] hover:bg-[var(--eai-bg)]/50'}`}
+                  className={`group relative flex flex-col cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 overflow-hidden ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
                   onClick={() => navigate(`/clients/${client.id}`)}
                 >
                   <button
@@ -476,146 +449,114 @@ export default function ClientsPage() {
                       e.stopPropagation();
                       toggleSelect(client.id);
                     }}
-                    className={`absolute top-3 right-3 z-10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-background/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
                   >
-                    {isSelected ? (
-                      <CheckSquare size={20} weight="fill" className="text-[var(--eai-primary)]" />
-                    ) : (
-                      <Square size={20} className="text-[var(--eai-text-secondary)]" />
-                    )}
+                    {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
                   </button>
 
-                  <div className="flex items-start gap-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-300 shadow-sm ${isSelected ? 'bg-[var(--eai-primary)] text-white scale-110' : 'bg-[var(--eai-bg)] text-[var(--eai-primary)] group-hover:scale-110'}`}>
-                      <Icon size={24} weight="duotone" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-h3 truncate group-hover:text-[var(--eai-primary)] transition-colors">
-                        {client.name}
-                      </h3>
-                      <span className="text-micro px-2 py-0.5 mt-2 inline-block bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] rounded-full font-bold">
-                        {CLIENT_TYPE_LABELS[client.type]}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 space-y-2.5 border-t border-[var(--eai-border)] pt-4">
-                    {client.email && (
-                      <div className="flex items-center gap-2 text-label text-[var(--eai-text-secondary)]">
-                        <Envelope size={14} weight="bold" />
-                        <span className="truncate">{client.email}</span>
+                  <CardContent className="flex-1 p-5 pt-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className={`p-3 rounded-xl transition-colors ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
+                        <Icon size={24} weight="duotone" />
                       </div>
-                    )}
-                    {(client.city || client.nationality) && (
-                      <div className="flex items-center gap-2 text-label text-[var(--eai-text-secondary)]">
-                        <MapPin size={14} weight="bold" />
+                      <div className="flex-1 min-w-0 pt-1">
+                        <h3 className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                          {client.name}
+                        </h3>
+                        <Badge variant="secondary" className="mt-1 text-xs font-medium">
+                          {CLIENT_TYPE_LABELS[client.type]}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 mt-auto pt-4 border-t border-border/50">
+                      {client.email && (
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <Envelope size={16} className="shrink-0" />
+                          <span className="truncate">{client.email}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <MapPin size={16} className="shrink-0" />
                         <span className="truncate">
-                          {[client.city, client.nationality].filter(Boolean).join(', ')}
+                          {[client.city, client.nationality].filter(Boolean).join(', ') || 'No location provided'}
                         </span>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </CardContent>
                 </Card>
               );
             })}
           </div>
         ) : (
-          <div className="apple-card overflow-hidden" id="clients-table">
+          <Card className="overflow-hidden border shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead className="bg-[var(--eai-bg)]/30 border-b border-[var(--eai-border)]">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs uppercase bg-muted/50 border-b">
                   <tr>
-                    <th className="px-6 py-4 w-10">
-                      <button onClick={toggleSelectAll}>
+                    <th className="px-4 py-3 w-12">
+                      <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground">
                         {selectedIds.size === (clients || []).length && (clients || []).length > 0 ? (
-                          <CheckSquare size={20} weight="fill" className="text-[var(--eai-primary)]" />
+                          <CheckSquare size={18} weight="fill" className="text-primary" />
                         ) : (
-                          <Square size={20} className="text-[var(--eai-text-secondary)]" />
+                          <Square size={18} />
                         )}
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-label">
-                      <button 
-                        onClick={() => handleSort('name')}
-                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
-                      >
-                        Client
-                        {sortConfig?.key === 'name' && (
-                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
-                        )}
+                    <th className="px-4 py-3 font-semibold">
+                      <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-primary transition-colors">
+                        Client {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-label">
-                      <button 
-                        onClick={() => handleSort('type')}
-                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
-                      >
-                        Type
-                        {sortConfig?.key === 'type' && (
-                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
-                        )}
+                    <th className="px-4 py-3 font-semibold">
+                      <button onClick={() => handleSort('type')} className="flex items-center gap-1 hover:text-primary transition-colors">
+                        Type {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-label">
-                      <button 
-                        onClick={() => handleSort('email')}
-                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
-                      >
-                        Email
-                        {sortConfig?.key === 'email' && (
-                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
-                        )}
+                    <th className="px-4 py-3 font-semibold">
+                      <button onClick={() => handleSort('email')} className="flex items-center gap-1 hover:text-primary transition-colors">
+                        Email {sortConfig?.key === 'email' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-label">
-                      <button 
-                        onClick={() => handleSort('location')}
-                        className="flex items-center gap-1 hover:text-[var(--eai-primary)] transition-colors"
-                      >
-                        Location
-                        {sortConfig?.key === 'location' && (
-                          sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />
-                        )}
+                    <th className="px-4 py-3 font-semibold">
+                      <button onClick={() => handleSort('location')} className="flex items-center gap-1 hover:text-primary transition-colors">
+                        Location {sortConfig?.key === 'location' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
                       </button>
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--eai-border)]">
+                <tbody className="divide-y divide-border">
                   {sortedClients.map((client) => {
                     const Icon = CLIENT_TYPE_ICONS[client.type] || Building;
                     const isSelected = selectedIds.has(client.id);
                     return (
                       <tr
                         key={client.id}
-                        className={`group cursor-pointer transition-colors ${isSelected ? 'bg-[var(--eai-primary)]/5' : 'hover:bg-[var(--eai-bg)]/40'}`}
+                        className={`group cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : 'bg-background'}`}
                         onClick={() => navigate(`/clients/${client.id}`)}
                       >
-                        <td className="px-6 py-5" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => toggleSelect(client.id)}>
-                            {isSelected ? (
-                              <CheckSquare size={20} weight="fill" className="text-[var(--eai-primary)]" />
-                            ) : (
-                              <Square size={20} className="text-[var(--eai-text-secondary)]" />
-                            )}
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => toggleSelect(client.id)} className="text-muted-foreground hover:text-foreground">
+                            {isSelected ? <CheckSquare size={18} weight="fill" className="text-primary" /> : <Square size={18} />}
                           </button>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors shadow-sm ${isSelected ? 'bg-[var(--eai-primary)] text-white' : 'bg-[var(--eai-bg)] text-[var(--eai-text-secondary)] group-hover:bg-white group-hover:text-[var(--eai-primary)]'}`}>
-                              <Icon size={20} weight="duotone" />
+                            <div className="p-2 rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                              <Icon size={16} weight="duotone" />
                             </div>
-                            <span className={`text-body font-bold transition-colors ${isSelected ? 'text-[var(--eai-primary)]' : 'text-[var(--eai-text)]'}`}>{client.name}</span>
+                            <span className="font-medium">{client.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-5">
-                          <span className="text-micro px-2 py-0.5 bg-[var(--eai-primary)]/10 text-[var(--eai-primary)] rounded-full font-bold">
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="font-normal bg-background">
                             {CLIENT_TYPE_LABELS[client.type]}
-                          </span>
+                          </Badge>
                         </td>
-                        <td className="px-6 py-5 text-label text-[var(--eai-text-secondary)]">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {client.email || '—'}
                         </td>
-                        <td className="px-6 py-5 text-label text-[var(--eai-text-secondary)]">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {[client.city, client.nationality].filter(Boolean).join(', ') || '—'}
                         </td>
                       </tr>
@@ -624,33 +565,33 @@ export default function ClientsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Pagination Controls */}
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between mt-8 px-2" id="pagination">
-            <p className="text-label text-[var(--eai-text-secondary)]">
-              Showing <span className="font-bold text-[var(--eai-text)]">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-bold text-[var(--eai-text)]">{Math.min(currentPage * pageSize, totalRecords)}</span> of <span className="font-bold text-[var(--eai-text)]">{totalRecords}</span> clients
+          <div className="flex items-center justify-between mt-6 px-1">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, totalRecords)}</span> of <span className="font-medium text-foreground">{totalRecords}</span> clients
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="apple-button-secondary h-9 w-9 p-0 rounded-xl"
+                className="h-8 w-8"
               >
-                <CaretLeft size={18} weight="bold" />
+                <CaretLeft size={16} />
               </Button>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 px-2">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                   <Button
                     key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
+                    variant={currentPage === page ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setCurrentPage(page)}
-                    className={`h-9 min-w-[36px] rounded-xl text-label ${currentPage === page ? 'apple-button-primary shadow-md' : 'apple-button-secondary'}`}
+                    className={`h-8 w-8 p-0 ${currentPage === page ? '' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     {page}
                   </Button>
@@ -658,12 +599,12 @@ export default function ClientsPage() {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="apple-button-secondary h-9 w-9 p-0 rounded-xl"
+                className="h-8 w-8"
               >
-                <CaretRight size={18} weight="bold" />
+                <CaretRight size={16} />
               </Button>
             </div>
           </div>
@@ -672,4 +613,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-

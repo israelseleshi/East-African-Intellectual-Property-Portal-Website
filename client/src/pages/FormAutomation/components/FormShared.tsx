@@ -1,5 +1,9 @@
-import React from 'react';
-import { CountrySelector } from '@/components/CountrySelector';
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CountrySelector } from '@/components/CountrySelector'
 
 interface FormSectionProps {
   id?: string;
@@ -10,16 +14,20 @@ interface FormSectionProps {
 }
 
 export const FormSection: React.FC<FormSectionProps> = ({ id, title, icon: Icon, children, rightElement }) => (
-  <section className="apple-card p-6 space-y-6" id={id}>
-    <div className="flex items-center justify-between border-b border-[var(--eai-border)] pb-4">
-      <div className="flex items-center gap-2">
-        <Icon className="text-[var(--eai-primary)]" size={20} />
-        <h2 className="text-h3">{title}</h2>
+  <Card className="border shadow-sm" id={id}>
+    <CardHeader className="pb-4 border-b">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className="text-primary" size={20} />
+          <CardTitle className="text-lg">{title}</CardTitle>
+        </div>
+        {rightElement}
       </div>
-      {rightElement}
-    </div>
-    {children}
-  </section>
+    </CardHeader>
+    <CardContent className="space-y-6 pt-6">
+      {children}
+    </CardContent>
+  </Card>
 );
 
 interface FormFieldProps {
@@ -31,8 +39,8 @@ interface FormFieldProps {
 }
 
 export const FormField: React.FC<FormFieldProps> = ({ label, children, className = '', amharic, id }) => (
-  <div className={`space-y-1.5 ${className}`} id={id}>
-    <label className={`text-label text-[var(--eai-text)] ${amharic ? 'font-amharic' : ''}`}>{label}</label>
+  <div className={`space-y-2 ${className}`} id={id}>
+    <Label className={`text-sm font-medium ${amharic ? 'font-amharic' : ''}`}>{label}</Label>
     {children}
   </div>
 );
@@ -47,17 +55,15 @@ interface CheckboxGroupProps {
 
 export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ label, options, values, onChange, columns = 1 }) => (
   <div className="space-y-3">
-    {label && <p className="text-label text-[var(--eai-text-secondary)]">{label}</p>}
+    {label && <Label className="text-sm font-medium text-muted-foreground">{label}</Label>}
     <div className={`grid grid-cols-1 ${columns > 1 ? `sm:grid-cols-${columns}` : ''} gap-2`}>
       {options.map(opt => (
         <label key={opt.id} className="flex items-center gap-2 cursor-pointer group">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={!!values[opt.id]}
-            onChange={(e) => onChange(opt.id, e.target.checked)}
-            className="h-5 w-5 rounded-xl border-[var(--eai-border)] text-[var(--eai-primary)] focus:ring-[var(--eai-primary)]"
+            onCheckedChange={(checked) => onChange(opt.id, checked as boolean)}
           />
-          <span className="text-body group-hover:text-[var(--eai-primary)] transition-colors">{opt.label}</span>
+          <span className="text-sm group-hover:text-primary transition-colors">{opt.label}</span>
         </label>
       ))}
     </div>
@@ -75,11 +81,6 @@ export const COUNTRIES = [
   { name: 'Eritrea', code: 'ER', flag: '/flags/eritrea-flag.png' },
   { name: 'Somalia', code: 'SO', flag: '/flags/somalia-flag.png' },
   { name: 'Sudan', code: 'SD', flag: '/flags/sudan-image.png' },
-  { name: 'United Kingdom', code: 'GB', flag: 'https://flagcdn.com/w40/gb.png' },
-  { name: 'United States', code: 'US', flag: 'https://flagcdn.com/w40/us.png' },
-  { name: 'United Arab Emirates', code: 'AE', flag: 'https://flagcdn.com/w40/ae.png' },
-  { name: 'China', code: 'CN', flag: 'https://flagcdn.com/w40/cn.png' },
-  { name: 'India', code: 'IN', flag: 'https://flagcdn.com/w40/in.png' },
 ];
 
 interface CountrySelectProps {
@@ -91,8 +92,8 @@ interface CountrySelectProps {
 
 export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onChange, placeholder = "Select country", label }) => {
   return (
-    <div className="space-y-1.5 w-full">
-      {label && <label className="text-label text-[var(--eai-text)]">{label}</label>}
+    <div className="space-y-2 w-full">
+      {label && <Label className="text-sm font-medium">{label}</Label>}
       <CountrySelector 
         value={value} 
         onChange={onChange} 

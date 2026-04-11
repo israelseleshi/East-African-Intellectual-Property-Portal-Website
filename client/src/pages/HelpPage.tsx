@@ -16,7 +16,7 @@ export default function HelpPage() {
                 },
                 {
                     question: "How do I upload the signed Power of Attorney?",
-                    answer: "Go to the 'Trademarks' docket, click on the specific case, and use the 'Add File' button in the Documents section. Select 'POA' as the document type."
+                    answer: "Go to the 'Trademarks' page, click on the specific case, and use the 'Add File' button in the Documents section. Select 'POA' as the document type."
                 }
             ]
         },

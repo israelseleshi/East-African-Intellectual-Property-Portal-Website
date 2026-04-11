@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useLayoutEffect, type CSSProperties } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 
 import CommandPalette from '../components/CommandPalette'
 import AppTour from '../components/AppTour'
-import Sidebar from '../components/Sidebar'
-import TopBar from '../components/TopBar'
+import AppSidebar from '../components/NewSidebar'
+import TopBar from '../components/TopBars'
+import { Toaster } from '@/components/ui/sonner'
 import { usePageTitleStore } from '../store/pageTitleStore'
 import { applyTheme, getInitialTheme, type ThemeMode } from './theme'
 import { useHotkeys } from './useHotkeys'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 
 const pageVariants: Variants = {
   initial: {
@@ -34,8 +36,6 @@ const pageVariants: Variants = {
     }
   }
 }
-
-const SIDEBAR_KEY = 'eai.sidebarCollapsed'
 
 function usePageTitle() {
   const location = useLocation()
@@ -106,35 +106,25 @@ export default function AppShell() {
     location.pathname === '/login' ||
     location.pathname === '/signup' ||
     location.pathname === '/verify-otp' ||
-    location.pathname === '/signup/super_admin'
+    location.pathname === '/signup/super_admin' ||
+    location.pathname === '/forgot-password'
 
   const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme())
   const [commandOpen, setCommandOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    const raw = localStorage.getItem(SIDEBAR_KEY)
-    return raw === '1'
-  })
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  useEffect(() => {
-    if (isAuthPage) {
-      applyTheme('light')
-      if (theme !== 'light') setTheme('light')
-      return
-    }
-    applyTheme(theme)
-  }, [theme, isAuthPage])
+  useLayoutEffect(() => {
+    applyTheme('light')
+    
+    const pageBg = '#E8E8ED'
+    const formBg = '#FFFFFF'
+    document.documentElement.style.setProperty('--auth-page-bg', pageBg)
+    document.documentElement.style.setProperty('--auth-form-bg', formBg)
+  }, [])
   const [version, setVersion] = useState<{ gitSha?: string | null; buildTime?: string | null }>({})
 
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-  }, [])
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed((v) => {
-      const next = !v
-      localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0')
-      return next
-    })
   }, [])
 
   useHotkeys((e) => {
@@ -177,37 +167,50 @@ export default function AppShell() {
   }, [])
 
   return (
-    <div className={`flex h-screen w-full overflow-hidden ${theme}`}>
-      <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} theme={theme} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar
-          title={title}
-          onToggleTheme={toggleTheme}
-          onOpenCommand={() => setCommandOpen(true)}
-          theme={theme}
-        />
-        <main className="flex-1 overflow-hidden bg-background p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 2xl:p-10 pb-20 md:pb-6 lg:pb-8">
-          <ScrollArea className="h-full">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location.pathname}
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="mx-auto w-full max-w-[100%] sm:max-w-[95%] md:max-w-[92%] lg:max-w-[88rem] xl:max-w-[96rem] 2xl:max-w-[110rem]"
-              >
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
-          </ScrollArea>
-        </main>
-        <div className="text-[11px] text-muted-foreground px-4 pb-2 text-right">
-          {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : ''}
+    <SidebarProvider defaultOpen={sidebarOpen}>
+      <div className="flex h-screen w-full overflow-hidden light">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <TopBar
+            title={title}
+            onOpenCommand={() => setCommandOpen(true)}
+          />
+          <main className="flex-1 overflow-hidden bg-[var(--auth-page-bg)] p-3 md:p-4">
+            <ScrollArea className="h-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="w-full"
+                >
+                  <Outlet />
+                </motion.div>
+              </AnimatePresence>
+            </ScrollArea>
+          </main>
+          <div className="text-[11px] text-muted-foreground px-4 pb-2 text-right">
+            {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : ''}
+          </div>
         </div>
+        <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+        <AppTour />
+        <Toaster 
+          position="top-right" 
+          closeButton 
+          richColors 
+          toastOptions={{
+            classNames: {
+              success: 'bg-green-600 text-white border-green-700',
+              error: 'bg-red-600 text-white border-red-700',
+              info: 'bg-blue-600 text-white border-blue-700',
+              warning: 'bg-yellow-600 text-white border-yellow-700',
+            }
+          }}
+        />
       </div>
-      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-      <AppTour />
-    </div>
+    </SidebarProvider>
   )
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Phone } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { EipaFormData } from '../types';
+import { Input } from '@/components/ui/input';
 
 interface ContactSectionProps {
   formData: EipaFormData;
@@ -17,26 +18,24 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ formData, handle
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label="Telephone">
-          <input
+          <Input
             value={formData.telephone}
             onChange={(e) => handleInputChange('telephone', e.target.value)}
-            className="apple-input"
             placeholder="+251 ..."
           />
         </FormField>
         <FormField label="Email address">
-          <input
+          <Input
+            type="email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            className="apple-input"
             placeholder="name@example.com"
           />
         </FormField>
         <FormField label="Fax">
-          <input
+          <Input
             value={formData.fax}
             onChange={(e) => handleInputChange('fax', e.target.value)}
-            className="apple-input"
             placeholder="Enter fax number"
           />
         </FormField>
