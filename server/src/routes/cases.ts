@@ -149,15 +149,18 @@ const getString = (source: Record<string, unknown>, keys: string[]): string | un
 };
 
 const getOptionalString = (source: Record<string, unknown>, keys: string[]): string | null | undefined => {
+  let hasKey = false;
   for (const key of keys) {
     if (key in source) {
+      hasKey = true;
       const value = source[key];
-      if (typeof value !== 'string') return null;
-      const normalized = value.trim();
-      return normalized ? normalized : null;
+      if (typeof value === 'string') {
+        const normalized = value.trim();
+        if (normalized) return normalized;
+      }
     }
   }
-  return undefined;
+  return hasKey ? null : undefined;
 };
 
 const getBoolean = (source: Record<string, unknown>, keys: string[]): boolean | undefined => {
@@ -609,23 +612,26 @@ router.post('/', authenticateToken, async (req, res) => {
     const renewalSignYear = getOptionalString(payload, ['renewal_sign_year']) ?? null;
 
     const agentData = {
-      name: getOptionalString(payload, ['agent_name']),
-      country: getOptionalString(payload, ['agent_country']),
-      city: getOptionalString(payload, ['agent_city']),
-      subcity: getOptionalString(payload, ['agent_subcity']),
-      woreda: getOptionalString(payload, ['agent_woreda', 'agent_wereda']),
-      houseNo: getOptionalString(payload, ['agent_house_no']),
-      telephone: getOptionalString(payload, ['agent_telephone']),
-      email: getOptionalString(payload, ['agent_email']),
-      poBox: getOptionalString(payload, ['agent_po_box']),
-      fax: getOptionalString(payload, ['agent_fax'])
+      name: getOptionalString(payload, ['agent_name', 'renewal_agent_name']),
+      country: getOptionalString(payload, ['agent_country', 'renewal_agent_country']),
+      city: getOptionalString(payload, ['agent_city', 'renewal_agent_city']),
+      subcity: getOptionalString(payload, ['agent_subcity', 'renewal_agent_subcity']),
+      woreda: getOptionalString(payload, ['agent_woreda', 'agent_wereda', 'renewal_agent_wereda']),
+      houseNo: getOptionalString(payload, ['agent_house_no', 'renewal_agent_house_no']),
+      telephone: getOptionalString(payload, ['agent_telephone', 'renewal_agent_telephone']),
+      email: getOptionalString(payload, ['agent_email', 'renewal_agent_email']),
+      poBox: getOptionalString(payload, ['agent_po_box', 'renewal_agent_pobox', 'agent_pobox']),
+      fax: getOptionalString(payload, ['agent_fax', 'renewal_agent_fax'])
     };
+
+    const rawMarkImage = getOptionalString(payload, ['markImage', 'mark_image', 'image_field']);
+    const markImagePath = typeof rawMarkImage === 'string'
+      ? saveMarkImageToUploads(rawMarkImage, applicantName, markName)
+      : null;
 
     let agentId: string | null = null;
     if (hasAgentData(agentData)) {
       const agentName = agentData.name || 'Unnamed Agent';
-      const agentCountry = agentData.country || 'Unknown';
-      const agentCity = agentData.city || 'Unknown';
       const agentEmail = agentData.email || '';
       const agentTelephone = agentData.telephone || '';
 
@@ -651,8 +657,8 @@ router.post('/', authenticateToken, async (req, res) => {
           [
             agentId,
             agentName,
-            agentCountry,
-            agentCity,
+            agentData.country || 'Unknown',
+            agentData.city || 'Unknown',
             agentData.subcity ?? null,
             agentData.woreda ?? null,
             agentData.houseNo ?? null,
@@ -664,11 +670,6 @@ router.post('/', authenticateToken, async (req, res) => {
         );
       }
     }
-
-    const rawMarkImage = getOptionalString(payload, ['markImage', 'mark_image', 'image_field']);
-    const markImagePath = typeof rawMarkImage === 'string'
-      ? saveMarkImageToUploads(rawMarkImage, applicantName, markName)
-      : null;
 
     const newCaseId = crypto.randomUUID();
     await connection.execute(
@@ -691,7 +692,7 @@ router.post('/', authenticateToken, async (req, res) => {
         chk_priority_accompanies, chk_priority_submitted_later,
         renewal_app_no, renewal_reg_no, renewal_reg_date,
         renewal_sign_day, renewal_sign_month, renewal_sign_year
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newCaseId,
         getString(payload, ['jurisdiction']) || 'ET',
@@ -954,8 +955,18 @@ router.post('/:id/renewal', authenticateToken, async (req, res) => {
       renewal_sign_month: z.string().optional(),
       renewal_sign_year: z.string().optional(),
       remark: z.string().optional(),
-      clientInstructions: z.string().optional()
-    });
+      clientInstructions: z.string().optional(),
+      agent_name: z.string().optional(),
+      agent_country: z.string().optional(),
+      agent_city: z.string().optional(),
+      agent_subcity: z.string().optional(),
+      agent_woreda: z.string().optional(),
+      agent_house_no: z.string().optional(),
+      agent_telephone: z.string().optional(),
+      agent_email: z.string().optional(),
+      agent_po_box: z.string().optional(),
+      agent_fax: z.string().optional()
+    }).passthrough();
 
     const parsedBody = renewalSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -984,6 +995,69 @@ router.post('/:id/renewal', authenticateToken, async (req, res) => {
       const payload = parsedBody.data;
       const updates: string[] = [];
       const values: (string | null)[] = [];
+
+      // Handle Agent Logic for Renewal
+      const agentData = {
+        name: getOptionalString(payload, ['agent_name', 'renewal_agent_name']),
+        country: getOptionalString(payload, ['agent_country', 'renewal_agent_country']),
+        city: getOptionalString(payload, ['agent_city', 'renewal_agent_city']),
+        subcity: getOptionalString(payload, ['agent_subcity', 'renewal_agent_subcity']),
+        woreda: getOptionalString(payload, ['agent_woreda', 'agent_wereda', 'renewal_agent_wereda', 'agent_wereda']),
+        houseNo: getOptionalString(payload, ['agent_house_no', 'renewal_agent_house_no']),
+        telephone: getOptionalString(payload, ['agent_telephone', 'renewal_agent_telephone']),
+        email: getOptionalString(payload, ['agent_email', 'renewal_agent_email']),
+        poBox: getOptionalString(payload, ['agent_po_box', 'renewal_agent_pobox', 'agent_pobox']),
+        fax: getOptionalString(payload, ['agent_fax', 'renewal_agent_fax'])
+      };
+
+      let agentId: string | null = null;
+      if (hasAgentData(agentData)) {
+        const agentName = agentData.name || 'Unnamed Agent';
+        const agentEmail = agentData.email || '';
+        const agentTelephone = agentData.telephone || '';
+
+        const [existingAgentRows] = await connection.execute(
+          `SELECT id FROM agents
+           WHERE name = ?
+             AND COALESCE(email, '') = ?
+             AND COALESCE(telephone, '') = ?
+           ORDER BY created_at DESC
+           LIMIT 1`,
+          [agentName, agentEmail, agentTelephone]
+        );
+
+        const existingAgents = existingAgentRows as Array<{ id: string }>;
+        if (existingAgents.length > 0) {
+          agentId = existingAgents[0].id;
+        } else {
+          agentId = crypto.randomUUID();
+          await connection.execute(
+            `INSERT INTO agents (
+              id, name, country, city, subcity, woreda, house_no, telephone, email, po_box, fax
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              agentId,
+              agentName,
+              agentData.country || 'Unknown',
+              agentData.city || 'Unknown',
+              agentData.subcity ?? null,
+              agentData.woreda ?? null,
+              agentData.houseNo ?? null,
+              agentData.telephone ?? null,
+              agentData.email ?? null,
+              agentData.poBox ?? null,
+              agentData.fax ?? null
+            ]
+          );
+        }
+      }
+
+      if (agentId) {
+        updates.push('agent_id = ?');
+        values.push(agentId);
+        updates.push('representative_name = ?');
+        values.push(agentData.name || null);
+      }
 
       if (payload.renewal_app_no !== undefined) {
         updates.push('renewal_app_no = ?');
@@ -1017,6 +1091,9 @@ router.post('/:id/renewal', authenticateToken, async (req, res) => {
         updates.push('client_instructions = ?');
         values.push(payload.clientInstructions || null);
       }
+
+      // No agent address updates here since they are in the agents table
+      // and we shouldn't have duplicate columns in trademark_cases
 
       updates.push('status = ?');
       values.push('RENEWAL');

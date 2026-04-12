@@ -183,6 +183,16 @@ export default function FormInspectorPage() {
           renewal_sign_year: normalizedFormData.renewal_sign_year as string || undefined,
           remark: normalizedFormData.remark as string || undefined,
           clientInstructions: normalizedFormData.clientInstructions as string || undefined,
+          agent_name: normalizedFormData.renewal_agent_name as string || normalizedFormData.agent_name as string || undefined,
+          agent_country: normalizedFormData.renewal_agent_country as string || normalizedFormData.agent_country as string || undefined,
+          agent_city: normalizedFormData.renewal_agent_city as string || normalizedFormData.agent_city as string || undefined,
+          agent_subcity: normalizedFormData.renewal_agent_subcity as string || normalizedFormData.agent_subcity as string || undefined,
+          agent_wereda: normalizedFormData.renewal_agent_wereda as string || normalizedFormData.agent_woreda as string || undefined,
+          agent_house_no: normalizedFormData.renewal_agent_house_no as string || normalizedFormData.agent_house_no as string || undefined,
+          agent_telephone: normalizedFormData.renewal_agent_telephone as string || normalizedFormData.agent_telephone as string || undefined,
+          agent_email: normalizedFormData.renewal_agent_email as string || normalizedFormData.agent_email as string || undefined,
+          agent_po_box: normalizedFormData.renewal_agent_pobox as string || normalizedFormData.agent_po_box as string || undefined,
+          agent_fax: normalizedFormData.renewal_agent_fax as string || normalizedFormData.agent_fax as string || undefined,
         };
 
         const response = await trademarkService.initiateRenewal(caseIdParam, renewalPayload) as { success?: boolean; message?: string };

@@ -81,11 +81,9 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
 
   const quickLoadTrigger = (
     <Select
-      value={selectedSample || 'placeholder'}
+      value={Object.keys(sampleGoodsServicesData).find(key => sampleGoodsServicesData[key].label === selectedSample) || ''}
       onValueChange={(value) => {
-        if (value !== 'placeholder') {
-          handleLoadSample(value);
-        }
+        handleLoadSample(value);
       }}
     >
       <SelectTrigger className="w-[180px] h-9">

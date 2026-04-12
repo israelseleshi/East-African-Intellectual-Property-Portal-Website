@@ -180,7 +180,6 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       for (const matchedName of matches) {
         try {
           const field = form.getField(matchedName);
-          console.log(`[PDF-ENGINE] Filling field "${matchedName}" with value: "${strValue}"`);
 
           // Image fields (PDFButton type in the PDF)
           if ((matchedName.toLowerCase().includes('image') || matchedName.toLowerCase().includes('logo'))
@@ -252,10 +251,8 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     };
 
     const isRenewal = pdfUrl.includes('renewal_form.pdf');
-    console.log(`[PDF-ENGINE] Detected form type: ${isRenewal ? 'RENEWAL' : 'APPLICATION'}`);
 
     if (isRenewal) {
-      console.log('--- Filling Renewal Form ---');
       await fillField(['renewal_applicant_name'], data.renewal_applicant_name);
       await fillField(['renewal_applicant_name_amharic'], data.renewal_applicant_name_amharic, 11);
       await fillField(['renewal_address_street'], data.renewal_address_street);
@@ -308,9 +305,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['renewal_sign_year'], data.renewal_sign_year);
 
     } else {
-      console.log('--- Filling Application Form ---');
       // I. Applicant Details
-      console.log('--- Section I ---');
       const appAmharicName = data.applicant_name_amharic || (data as any).renewal_applicant_name_amharic;
       await fillField(['applicant_name_english', 'applicant_name_english_2'], data.applicant_name_english);
       await fillField(['applicant_name_amharic'], appAmharicName, 11);
@@ -336,7 +331,6 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       setCheckbox(data.chk_company, ['chk_company']);
 
       // II. Agent Details
-      console.log('--- Section II: Agent Details ---');
       await fillField(['agent_name'], data.agent_name);
       await fillField(['agent_country'], data.agent_country);
       await fillField(['agent_city'], data.agent_city);
@@ -349,13 +343,11 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['agent_fax'], data.agent_fax);
 
       // III. Use of Mark
-      console.log('--- Section III ---');
       setCheckbox(data.chk_goods || (data as any).chk_goods === 1 || (data as any).chk_goods === true, ['chk_goods']);
       setCheckbox(data.chk_services || (data as any).chk_services === 1 || (data as any).chk_services === true, ['chk_services']);
       setCheckbox(data.chk_collective || (data as any).chk_collective === 1 || (data as any).chk_collective === true, ['chk_collective']);
 
       // IV. Mark Specification
-      console.log('--- Section IV ---');
       setCheckbox(data.mark_type_figurative || data.type_figur || (data as any).is_figurative === 1 || (data as any).is_figurative === true, ['mark_type_figurative', 'type_figur']);
       setCheckbox(data.mark_type_word || data.type_word || (data as any).is_word === 1 || (data as any).is_word === true, ['mark_type_word', 'type_word']);
       setCheckbox(data.mark_type_mixed || data.k_type_mi || (data as any).is_mixed === 1 || (data as any).is_mixed === true, ['mark_type_mixed', 'k_type_mi']);
@@ -375,7 +367,6 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       }
 
       // V. Priority Right
-      console.log('--- Section V ---');
       await fillField(['priority_filing_date'], data.priority_filing_date);
       await fillField(['priority_country'], data.priority_country);
       await fillField(['goods_and_services_covered_by_the_previous_application'], data.goods_and_services_covered_by_the_previous_application);
@@ -385,7 +376,6 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['priority_filing_date_1'], data.priority_filing_date_1);
 
       // VI. Classification
-      console.log('--- Section VI ---');
       await fillField(['goods_services_list_1'], data.goods_services_list_1);
       await fillField(['goods_services_list_2'], data.goods_services_list_2);
       await fillField(['goods_services_list_3'], data.goods_services_list_3);
@@ -396,7 +386,6 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['disclaimer_text_english'], data.disclaimer_text_english);
 
       // VII. Checklist & Signature
-      console.log('--- Section VII ---');
       setCheckbox(data.chk_list_copies, ['chk_list_copies']);
       setCheckbox(data.chk_list_status, ['chk_list_status', 'chk_list_statutes']);
       setCheckbox(data.chk_list_poa, ['chk_list_poa']);

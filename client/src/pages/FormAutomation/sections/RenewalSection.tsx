@@ -285,14 +285,18 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
 
   const quickLoadAgentTrigger = (
     <div id="quick-agent-select-renewal">
-      <Select onValueChange={onAgentSelect} disabled={loadingAgents}>
+      <Select 
+        value={agents.find(a => a.name === (formData.renewal_agent_name || formData.agent_name))?.id || ''}
+        onValueChange={onAgentSelect} 
+        disabled={loadingAgents}
+      >
         <SelectTrigger className="w-[180px] h-9">
           <SelectValue placeholder={loadingAgents ? "Loading..." : "Load Agent"} />
         </SelectTrigger>
         <SelectContent>
           {agents.length > 0 ? agents.map(agent => (
             <SelectItem key={agent.id} value={agent.id}>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-left">
                 <span className="font-semibold">{agent.name}</span>
                 <span className="text-xs text-muted-foreground">{agent.city}, {agent.country}</span>
               </div>
@@ -540,11 +544,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={CheckSquare}
         rightElement={
           <Select
-            value={selectedUseOfMark || 'placeholder'}
+            value={Object.keys(sampleUseOfMarkData).find(key => sampleUseOfMarkData[key].label === selectedUseOfMark) || ''}
             onValueChange={(value) => {
-              if (value !== 'placeholder') {
-                handleLoadUseOfMarkSample(value);
-              }
+              handleLoadUseOfMarkSample(value);
             }}
           >
             <SelectTrigger className="w-[180px] h-9">
@@ -637,11 +639,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={FileText}
         rightElement={
           <Select
-            value={selectedCaseDetails || 'placeholder'}
+            value={Object.keys(sampleCaseDetailsData).find(key => sampleCaseDetailsData[key].label === selectedCaseDetails) || ''}
             onValueChange={(value) => {
-              if (value !== 'placeholder') {
-                handleLoadCaseDetailsSample(value);
-              }
+              handleLoadCaseDetailsSample(value);
             }}
           >
             <SelectTrigger className="w-[180px] h-9">
@@ -684,11 +684,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={List}
         rightElement={
           <Select
-            value={selectedClassification || 'placeholder'}
+            value={Object.keys(sampleClassificationData).find(key => sampleClassificationData[key].label === selectedClassification) || ''}
             onValueChange={(value) => {
-              if (value !== 'placeholder') {
-                handleLoadClassificationSample(value);
-              }
+              handleLoadClassificationSample(value);
             }}
           >
             <SelectTrigger className="w-[180px] h-9">
@@ -747,11 +745,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={PenTool}
         rightElement={
           <Select
-            value={selectedSignature || 'placeholder'}
+            value={Object.keys(sampleSignatureData).find(key => sampleSignatureData[key].label === selectedSignature) || ''}
             onValueChange={(value) => {
-              if (value !== 'placeholder') {
-                handleLoadSignatureSample(value);
-              }
+              handleLoadSignatureSample(value);
             }}
           >
             <SelectTrigger className="w-[180px] h-9">
