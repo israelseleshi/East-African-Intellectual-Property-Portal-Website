@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const repoRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(__dirname, '../../');
 const errors = [];
 
 const requiredDirectories = ['client', 'server', 'scripts', 'docs', 'forms', 'reports'];
@@ -17,6 +17,9 @@ const allowedTopLevelDirectories = new Set([
   'backups',
   'forms-upload',
   'node_modules',
+  'cypress',
+  '@test_logs',
+  'test_logs',
 ]);
 
 function existsAtRoot(name) {
