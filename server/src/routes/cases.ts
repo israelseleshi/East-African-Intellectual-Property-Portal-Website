@@ -92,7 +92,16 @@ const updateCaseSchema = z.object({
   mark_image: z.string().optional(),
   niceClasses: z.array(z.coerce.number().int().positive()).optional(),
   goodsServices: z.string().optional(),
-  goods_services: z.string().optional()
+  goods_services: z.string().optional(),
+  disclaimer_english: z.string().nullable().optional(),
+  disclaimer_amharic: z.string().nullable().optional(),
+  chk_goods: z.union([z.boolean(), z.number()]).optional(),
+  chk_services: z.union([z.boolean(), z.number()]).optional(),
+  chk_collective: z.union([z.boolean(), z.number()]).optional(),
+  is_word: z.union([z.boolean(), z.number()]).optional(),
+  is_figurative: z.union([z.boolean(), z.number()]).optional(),
+  is_mixed: z.union([z.boolean(), z.number()]).optional(),
+  is_three_dim: z.union([z.boolean(), z.number()]).optional()
 }).passthrough();
 
 const CASE_STATUSES = new Set([
@@ -227,22 +236,6 @@ const mapPriority = (payload: Record<string, unknown>): 'YES' | 'NO' => {
     getBoolean(payload, ['chk_priority_accompanies', 'chk_priority_submitted_later'])
   );
   return hasPriority ? 'YES' : 'NO';
-};
-
-const buildDisclaimer = (payload: Record<string, unknown>): string | null => {
-  const english = getOptionalString(payload, ['disclaimer_text_english']);
-  const amharic = getOptionalString(payload, ['disclaimer_text_amharic']);
-  const generic = getOptionalString(payload, ['disclaimer']);
-
-  if (generic !== undefined) return generic;
-
-  const parts = [
-    typeof amharic === 'string' && amharic ? `AM: ${amharic}` : null,
-    typeof english === 'string' && english ? `EN: ${english}` : null
-  ].filter((part): part is string => Boolean(part));
-
-  if (parts.length === 0) return null;
-  return parts.join('\n');
 };
 
 const saveMarkImageToUploads = (
@@ -460,7 +453,9 @@ router.post('/', authenticateToken, async (req, res) => {
     const markTransliteration = getOptionalString(payload, ['mark_transliteration']) ?? null;
     const markLanguage = getOptionalString(payload, ['mark_language_requiring_traslation', 'mark_language_requiring_translation']) ?? null;
     const markThreeDimFeatures = getOptionalString(payload, ['mark_has_three_dim_features']) ?? null;
-    const disclaimer = buildDisclaimer(payload);
+
+    const disclaimer_english = getOptionalString(payload, ['disclaimer_text_english', 'disclaimer_english']) ?? null;
+    const disclaimer_amharic = getOptionalString(payload, ['disclaimer_text_amharic', 'disclaimer_amharic']) ?? null;
 
     const priority = mapPriority(payload);
     const priorityCountry = getOptionalString(payload, ['priorityCountry', 'priority_country']) ?? null;
@@ -482,6 +477,15 @@ router.post('/', authenticateToken, async (req, res) => {
     const chkListDrawing = Boolean(getBoolean(payload, ['chk_list_drawing']));
     const chkListPayment = Boolean(getBoolean(payload, ['chk_list_payment']));
     const chkListOther = Boolean(getBoolean(payload, ['chk_list_other']));
+
+    // Mark Type/Form flags from FormAutomation
+    const isWord = Boolean(getBoolean(payload, ['mark_type_word', 'type_word']));
+    const isFigurative = Boolean(getBoolean(payload, ['mark_type_figurative', 'type_figur']));
+    const isMixed = Boolean(getBoolean(payload, ['mark_type_mixed', 'k_type_mi']));
+    const isThreeDim = Boolean(getBoolean(payload, ['mark_type_three_dim', 'type_thre']));
+    const chkGoods = Boolean(getBoolean(payload, ['chk_goods']));
+    const chkServices = Boolean(getBoolean(payload, ['chk_services']));
+    const chkCollective = Boolean(getBoolean(payload, ['chk_collective']));
 
     const agentData = {
       name: getOptionalString(payload, ['agent_name']),
@@ -556,11 +560,13 @@ router.post('/', authenticateToken, async (req, res) => {
         mark_image, mark_description,
         translation, mark_transliteration, mark_language_requiring_traslation,
         mark_has_three_dim_features, is_three_dimensional,
-        disclaimer,
+        disclaimer_english, disclaimer_amharic,
         chk_list_copies, chk_list_status, chk_list_poa, chk_list_priority_docs,
         chk_list_drawing, chk_list_payment, chk_list_other,
+        is_word, is_figurative, is_mixed, is_three_dim,
+        chk_goods, chk_services, chk_collective,
         representative_name
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newCaseId,
         getString(payload, ['jurisdiction']) || 'ET',
@@ -586,7 +592,8 @@ router.post('/', authenticateToken, async (req, res) => {
         markLanguage,
         markThreeDimFeatures,
         isThreeDimensional,
-        disclaimer,
+        disclaimer_english,
+        disclaimer_amharic,
         chkListCopies,
         chkListStatus,
         chkListPoa,
@@ -594,6 +601,13 @@ router.post('/', authenticateToken, async (req, res) => {
         chkListDrawing,
         chkListPayment,
         chkListOther,
+        isWord,
+        isFigurative,
+        isMixed,
+        isThreeDim,
+        chkGoods,
+        chkServices,
+        chkCollective,
         agentData.name || null
       ]
     );

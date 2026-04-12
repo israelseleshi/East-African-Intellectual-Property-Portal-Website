@@ -210,12 +210,13 @@ router.post('/', authenticateToken, async (req, res) => {
     const clientId = crypto.randomUUID();
 
     await query(
-      'INSERT INTO clients (id, name, local_name, type, nationality, residence_country, email, address_street, address_zone, wereda, city, house_no, zip_code, po_box, telephone, fax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO clients (id, name, local_name, type, gender, nationality, residence_country, email, address_street, address_zone, wereda, city, state_name, city_code, state_code, house_no, zip_code, po_box, telephone, fax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         clientId,
         data.name,
         data.localName || data.local_name || null,
         data.type || 'INDIVIDUAL',
+        data.gender || null,
         data.nationality || '',
         data.residence_country || data.residenceCountry || '',
         data.email || '',
@@ -223,6 +224,9 @@ router.post('/', authenticateToken, async (req, res) => {
         data.address_zone || data.addressZone || '',
         data.wereda || '',
         data.city || '',
+        data.stateName || data.state_name || '',
+        data.cityCode || data.city_code || '',
+        data.stateCode || data.state_code || '',
         data.house_no || data.houseNo || '',
         data.zipCode || data.zip_code || '',
         data.po_box || data.poBox || '',
@@ -317,6 +321,9 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     if (data.addressZone !== undefined || data.address_zone !== undefined) updates.address_zone = data.addressZone || data.address_zone || null;
     if (data.wereda !== undefined) updates.wereda = data.wereda;
     if (data.city !== undefined) updates.city = data.city;
+    if (data.stateName !== undefined || data.state_name !== undefined) updates.state_name = data.stateName || data.state_name || null;
+    if (data.cityCode !== undefined || data.city_code !== undefined) updates.city_code = data.cityCode || data.city_code || null;
+    if (data.stateCode !== undefined || data.state_code !== undefined) updates.state_code = data.stateCode || data.state_code || null;
     if (data.houseNo !== undefined || data.house_no !== undefined) updates.house_no = data.houseNo || data.house_no || null;
     if (data.zipCode !== undefined || data.zip_code !== undefined) updates.zip_code = data.zipCode || data.zip_code || null;
     if (data.poBox !== undefined || data.po_box !== undefined) updates.po_box = data.poBox || data.po_box || null;

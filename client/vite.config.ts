@@ -16,6 +16,14 @@ export default defineConfig({
     port: 5173
   },
   build: {
-    chunkSizeWarningLimit: 2000
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('fonts')) return 'fonts';
+        }
+      }
+    }
   }
 })
+

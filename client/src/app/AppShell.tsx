@@ -69,6 +69,8 @@ function usePageTitle() {
         return 'Reports'
       case '/help':
         return 'Help & Support'
+      case '/trash':
+        return 'Trash'
       case '/login':
         return 'Login'
       case '/signup':
@@ -175,7 +177,7 @@ export default function AppShell() {
             title={title}
             onOpenCommand={() => setCommandOpen(true)}
           />
-          <main className="flex-1 overflow-hidden bg-[var(--auth-page-bg)] p-3 md:p-4">
+          <main className="flex-1 overflow-hidden bg-[var(--auth-page-bg)]">
             <ScrollArea className="h-full">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -192,7 +194,7 @@ export default function AppShell() {
             </ScrollArea>
           </main>
           <div className="text-[11px] text-muted-foreground px-4 pb-2 text-right">
-            {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : ''}
+            {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : 'Build EAIP-1.0.0-PROD'}
           </div>
         </div>
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />

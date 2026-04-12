@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["es5", "dom"],
+    "target": "ESNext",
+    "lib": ["ESNext", "dom"],
     "types": ["cypress", "node"],
     "baseUrl": "..",
     "paths": {
@@ -9,7 +9,8 @@
     },
     "allowJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "moduleResolution": "node"
   },
   "include": ["**/*.ts"]
 }

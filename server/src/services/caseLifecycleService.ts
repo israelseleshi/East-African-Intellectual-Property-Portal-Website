@@ -395,6 +395,16 @@ export const caseLifecycleService = {
       if (data.clientInstructions !== undefined) caseUpdates.client_instructions = data.clientInstructions;
       if (data.remark !== undefined) caseUpdates.remark = data.remark;
 
+      if (data.disclaimer_english !== undefined) caseUpdates.disclaimer_english = data.disclaimer_english;
+      if (data.disclaimer_amharic !== undefined) caseUpdates.disclaimer_amharic = data.disclaimer_amharic;
+      if (data.chk_goods !== undefined) caseUpdates.chk_goods = data.chk_goods;
+      if (data.chk_services !== undefined) caseUpdates.chk_services = data.chk_services;
+      if (data.chk_collective !== undefined) caseUpdates.chk_collective = data.chk_collective;
+      if (data.is_word !== undefined) caseUpdates.is_word = data.is_word;
+      if (data.is_figurative !== undefined) caseUpdates.is_figurative = data.is_figurative;
+      if (data.is_mixed !== undefined) caseUpdates.is_mixed = data.is_mixed;
+      if (data.is_three_dim !== undefined) caseUpdates.is_three_dim = data.is_three_dim;
+
       const eipaForm = (typeof data.eipaForm === 'object' && data.eipaForm !== null)
         ? data.eipaForm as Record<string, unknown>
         : null;
@@ -453,18 +463,11 @@ export const caseLifecycleService = {
         const priorityDeclaration = pickOptionalString(eipaForm, ['priority_right_declaration', 'priority_declaration']);
         if (priorityDeclaration !== undefined) caseUpdates.priority_declaration = priorityDeclaration;
 
-        const disclaimerEnglish = pickOptionalString(eipaForm, ['disclaimer_text_english']);
-        const disclaimerAmharic = pickOptionalString(eipaForm, ['disclaimer_text_amharic']);
-        const disclaimer = pickOptionalString(eipaForm, ['disclaimer']);
-        if (disclaimer !== undefined) {
-          caseUpdates.disclaimer = disclaimer;
-        } else if (disclaimerEnglish !== undefined || disclaimerAmharic !== undefined) {
-          const parts = [
-            typeof disclaimerAmharic === 'string' && disclaimerAmharic ? `AM: ${disclaimerAmharic}` : null,
-            typeof disclaimerEnglish === 'string' && disclaimerEnglish ? `EN: ${disclaimerEnglish}` : null
-          ].filter((item): item is string => Boolean(item));
-          caseUpdates.disclaimer = parts.length > 0 ? parts.join('\n') : null;
-        }
+        const disclaimerEnglish = pickOptionalString(eipaForm, ['disclaimer_text_english', 'disclaimer_english']);
+        const disclaimerAmharic = pickOptionalString(eipaForm, ['disclaimer_text_amharic', 'disclaimer_amharic']);
+
+        if (disclaimerEnglish !== undefined) caseUpdates.disclaimer_english = disclaimerEnglish;
+        if (disclaimerAmharic !== undefined) caseUpdates.disclaimer_amharic = disclaimerAmharic;
 
         const listCopies = pickBoolean(eipaForm, ['chk_list_copies']);
         if (listCopies !== undefined) caseUpdates.chk_list_copies = listCopies;
@@ -486,6 +489,22 @@ export const caseLifecycleService = {
 
         const listOther = pickBoolean(eipaForm, ['chk_list_other']);
         if (listOther !== undefined) caseUpdates.chk_list_other = listOther;
+
+        const chkGoods = pickBoolean(eipaForm, ['chk_goods']);
+        if (chkGoods !== undefined) caseUpdates.chk_goods = chkGoods;
+        const chkServices = pickBoolean(eipaForm, ['chk_services']);
+        if (chkServices !== undefined) caseUpdates.chk_services = chkServices;
+        const chkCollective = pickBoolean(eipaForm, ['chk_collective']);
+        if (chkCollective !== undefined) caseUpdates.chk_collective = chkCollective;
+
+        const isWord = pickBoolean(eipaForm, ['type_word', 'is_word']);
+        if (isWord !== undefined) caseUpdates.is_word = isWord;
+        const isFigurative = pickBoolean(eipaForm, ['type_figur', 'is_figurative']);
+        if (isFigurative !== undefined) caseUpdates.is_figurative = isFigurative;
+        const isMixed = pickBoolean(eipaForm, ['k_type_mi', 'is_mixed']);
+        if (isMixed !== undefined) caseUpdates.is_mixed = isMixed;
+        const isThreeDim = pickBoolean(eipaForm, ['type_thre', 'is_three_dim']);
+        if (isThreeDim !== undefined) caseUpdates.is_three_dim = isThreeDim;
 
         if (data.markType === undefined) {
           const markTypeInfo = mapMarkTypeFromEipa(eipaForm);

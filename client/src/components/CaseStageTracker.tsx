@@ -43,7 +43,7 @@ interface CaseStageTrackerProps {
 }
 
 const STAGES: { key: CaseFlowStage; label: string; description: string; icon: typeof FileText; actionLabel?: string }[] = [
-  { key: 'DATA_COLLECTION', label: 'Data Collection', description: 'Gathering client and mark information', icon: FileText, actionLabel: 'Record Filing' },
+  { key: 'DATA_COLLECTION', label: 'Data Collection', description: 'Gathering client and mark information', icon: FileText, actionLabel: 'Collected' },
   { key: 'FILED', label: 'Filed', description: 'Application submitted to registry', icon: FileText, actionLabel: 'Proceed to Exam' },
   { key: 'FORMAL_EXAM', label: 'Formal Exam', description: 'Paperwork review by registry', icon: ShieldCheck, actionLabel: 'Pass Formalities' },
   { key: 'SUBSTANTIVE_EXAM', label: 'Substantive Exam', description: 'Uniqueness review (20 days)', icon: ShieldCheck, actionLabel: 'Record Result' },
@@ -179,11 +179,11 @@ export default function CaseStageTracker({
               return (
                 <div key={stage.key} className="flex flex-col items-center justify-center relative z-10 w-20 mx-1">
                   <div
-                    className={`h-10 w-10 flex items-center justify-center rounded-full border-4 transition-all duration-500 scale-100 mb-4 ${isCurrent
+                    className={`h-10 w-10 flex items-center justify-center rounded-full border-4 transition-all duration-500 scale-100 mb-4 cursor-default ${isCurrent
                       ? 'border-primary bg-background text-primary shadow-lg shadow-primary/20'
                       : isCompleted
                         ? 'border-green-500 bg-green-500 text-white'
-                        : 'border-border bg-background text-muted-foreground'
+                        : 'border-border bg-background text-muted-foreground opacity-50'
                       }`}
                   >
                     {isCompleted ? <CheckCircle weight="bold" size={18} /> : <stage.icon size={18} />}

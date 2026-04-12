@@ -1,0 +1,11 @@
+[
+  {
+    "type": "console",
+    "method": "info",
+    "timestamp": "2026-04-11T21:57:45.465Z",
+    "content": [
+      "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools",
+      "font-weight:bold"
+    ]
+  }
+]

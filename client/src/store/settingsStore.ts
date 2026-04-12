@@ -20,7 +20,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      sidebarFontSize: 'sm',
+      sidebarFontSize: 'xl',
       topBarDesign: 'minimal',
       dashboardDesign: 'command',
       invoiceDesign: 'classic',

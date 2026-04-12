@@ -223,12 +223,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
         const normalizedMarkTransliteration = pickString(['mark_transliteration']) || null;
         const normalizedMarkLanguage = pickString(['mark_language_requiring_traslation', 'mark_language_requiring_translation']) || null;
         const normalizedThreeDimFeatures = pickString(['mark_has_three_dim_features']) || null;
-        const disclaimerAmharic = pickString(['disclaimer_text_amharic']);
-        const disclaimerEnglish = pickString(['disclaimer_text_english']);
-        const normalizedDisclaimer = [
-            disclaimerAmharic ? `AM: ${disclaimerAmharic}` : null,
-            disclaimerEnglish ? `EN: ${disclaimerEnglish}` : null
-        ].filter((part): part is string => Boolean(part)).join('\n') || null;
+        const disclaimerAmharic = pickString(['disclaimer_text_amharic', 'disclaimer_amharic']) || null;
+        const disclaimerEnglish = pickString(['disclaimer_text_english', 'disclaimer_english']) || null;
 
         const normalizedPriority = (priority === 'YES' || priority === 'NO')
             ? priority
@@ -325,7 +321,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     color_indication, status, filing_number, priority,
                     priority_country, priority_filing_date, goods_prev_application, priority_declaration,
                     mark_description, translation, mark_transliteration, mark_language_requiring_traslation,
-                    mark_has_three_dim_features, is_three_dimensional, disclaimer,
+                    mark_has_three_dim_features, is_three_dimensional, disclaimer_english, disclaimer_amharic,
                     chk_list_copies, chk_list_status, chk_list_poa, chk_list_priority_docs,
                     chk_list_drawing, chk_list_payment, chk_list_other,
                     client_instructions, remark,
@@ -351,7 +347,8 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     normalizedMarkLanguage,
                     normalizedThreeDimFeatures,
                     normalizedIsThreeDimensional,
-                    normalizedDisclaimer,
+                    disclaimerEnglish,
+                    disclaimerAmharic,
                     chkListCopies ? 1 : 0,
                     chkListStatus ? 1 : 0,
                     chkListPoa ? 1 : 0,

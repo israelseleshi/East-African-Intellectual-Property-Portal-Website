@@ -160,19 +160,19 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <motion.div variants={cardVariants}>
-          <Card className="w-full my-4 rounded-xl shadow-lg">
-            <motion.div 
-              className="flex justify-center pt-6 pb-2"
-              variants={itemVariants}
-            >
-              <motion.img
-                src="/eaip-logo.png"
-                alt="EAIP Logo"
-                className="h-16 w-auto object-contain dark:brightness-0 dark:invert"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </motion.div>
+          <Card className="w-full my-4 rounded-none shadow-lg">
+                <motion.div 
+                  className="flex justify-center pt-6 pb-2"
+                  variants={itemVariants}
+                >
+                  <motion.img
+                    src="/eaip-logo.png"
+                    alt="EAIP Logo"
+                    className="h-16 w-auto object-contain"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </motion.div>
             <CardHeader className="space-y-1 text-center">
               <motion.div
                 variants={itemVariants}

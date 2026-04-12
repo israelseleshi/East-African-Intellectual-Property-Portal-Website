@@ -14,7 +14,7 @@
     "migrate:mark-image-base64:dry": "npm run migrate:mark-image-base64:dry --prefix server",
     "healthcheck:mark-image-schema": "npm run healthcheck:mark-image-schema --prefix server",
     "sync:tables": "node server/generate_tables.js",
-    "audit:structure": "node scripts/audit-structure.js"
+    "audit:structure": "node scripts/dev-tools/audit-structure.js"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",

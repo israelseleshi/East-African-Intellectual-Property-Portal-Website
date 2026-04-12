@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from '@phosphor-icons/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  FileText, 
+  ClockClockwise, 
+  ArrowLeft, 
+  User, 
+  MapPin, 
+  CaretRight,
+  ShieldCheck,
+  CheckCircle,
+  Archive,
+  CloudArrowUp,
+  Calendar,
+  Clock
+} from '@phosphor-icons/react';
 import CaseStageTracker from '@/components/CaseStageTracker';
 import { trademarkService } from '@/utils/api';
 import { useToast } from '@/components/ui/toast';
@@ -211,42 +226,106 @@ export default function CaseFlowPage() {
         isEditable={true}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-bold tracking-tight">
-            Lifecycle Audit Log
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {caseData.history?.map((entry, index) => (
-              <div key={entry.id} className="flex items-start gap-3">
-                <div className="flex flex-col items-center">
-                  <div className="h-2 w-2 rounded-full bg-primary mt-2" />
-                  {index < (caseData.history?.length ?? 0) - 1 && (
-                    <div className="h-full w-px bg-border my-1" />
-                  )}
-                </div>
-                <div className="flex-1 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold">
-                      {entry.action}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(entry.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  {entry.new_data && (
-                    <div className="text-xs text-muted-foreground font-mono mt-1">
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {(!caseData.history || caseData.history.length === 0) && (
-              <div className="text-center py-4 text-muted-foreground">No history recorded yet.</div>
-            )}
+      <Card className="shadow-sm border-border overflow-hidden">
+        <CardHeader className="bg-muted/30 border-b border-border py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-bold tracking-tight flex items-center gap-2">
+              <ClockClockwise size={20} className="text-primary" />
+              Lifecycle Audit Log
+            </CardTitle>
+            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+              {caseData.history?.length || 0} Entries
+            </Badge>
           </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[400px]">
+            <div className="p-6">
+              {caseData.history && caseData.history.length > 0 ? (
+                <div className="relative space-y-0">
+                  {/* Vertical Timeline line */}
+                  <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />
+                  
+                  {caseData.history.map((entry, index) => {
+                    const date = new Date(entry.created_at);
+                    const isNewest = index === 0;
+                    
+                    return (
+                      <div key={entry.id} className="relative pl-10 pb-8 group last:pb-0">
+                        {/* Timeline dot */}
+                        <div className={`absolute left-0 top-1 h-8 w-8 rounded-full border-4 flex items-center justify-center z-10 transition-colors
+                          ${isNewest ? 'bg-primary border-primary/20 text-white shadow-sm' : 'bg-background border-border text-muted-foreground'}
+                        `}>
+                          {entry.action.includes('FILE') ? <CloudArrowUp size={14} /> : 
+                           entry.action.includes('SUBMIT') ? <ShieldCheck size={14} /> :
+                           entry.action.includes('UPDATE') ? <FileText size={14} /> :
+                           <CheckCircle size={14} />}
+                        </div>
+                        
+                        <div className={`p-4 rounded-xl border transition-all hover:shadow-md
+                          ${isNewest ? 'bg-primary/5 border-primary/20 bg-card shadow-sm' : 'bg-background border-border'}
+                        `}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                            <h4 className={`text-sm font-bold uppercase tracking-tight ${isNewest ? 'text-primary' : 'text-foreground'}`}>
+                              {entry.action.replace(/_/g, ' ')}
+                            </h4>
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                              <Calendar size={12} />
+                              {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              <Separator orientation="vertical" className="h-2" />
+                              <Clock size={12} />
+                              {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                          
+                          {entry.new_data && (
+                            <div className="mt-3 space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                {(() => {
+                                  let data = entry.new_data;
+                                  if (typeof data === 'string') {
+                                    try {
+                                      data = JSON.parse(data);
+                                    } catch (e) {
+                                      return <span className="text-xs text-muted-foreground">{data}</span>;
+                                    }
+                                  }
+                                  
+                                  if (typeof data !== 'object' || data === null) return null;
+
+                                  return Object.entries(data).map(([key, val]) => {
+                                    if (!val || key === 'deadlines') return null;
+                                    
+                                    // Handle nested objects if any (like from the stringified example)
+                                    let displayVal = val;
+                                    if (typeof val === 'object' && val !== null) {
+                                      displayVal = JSON.stringify(val);
+                                    }
+
+                                    return (
+                                      <div key={key} className="flex items-center gap-1.5 bg-background border border-border px-2 py-1 rounded-md text-[11px]">
+                                        <span className="font-bold text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                        <span className="font-medium truncate max-w-[200px]">{String(displayVal)}</span>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Archive size={48} className="text-muted-foreground/20 mb-4" />
+                  <p className="text-sm font-medium text-muted-foreground">No history recorded yet.</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
 

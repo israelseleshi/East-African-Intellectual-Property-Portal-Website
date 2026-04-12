@@ -80,9 +80,9 @@ const buildEipaFormFromNormalizedData = (
     k_type_mi: markType === 'MIXED',
     type_thre: markType === 'THREE_DIMENSION' || toBool(caseData.is_three_dimensional),
 
-    disclaimer: caseData.disclaimer || '',
-    disclaimer_text_amharic: caseData.disclaimer || '',
-    disclaimer_text_english: caseData.disclaimer || '',
+    disclaimer: caseData.disclaimer_english || '',
+    disclaimer_text_amharic: caseData.disclaimer_amharic || '',
+    disclaimer_text_english: caseData.disclaimer_english || '',
 
     priority_country: caseData.priority_country || '',
     priority_filing_date: normalizeDate(caseData.priority_filing_date),

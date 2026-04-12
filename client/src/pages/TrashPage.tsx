@@ -145,9 +145,9 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="w-full">
       {/* Header */}
-      <div id="trash-header" className="flex items-center justify-between mb-6">
+      <div id="trash-header" className="flex items-center justify-between mb-8 px-4 md:px-8 py-6 border-b border-[var(--eai-border)] bg-white">
         <div>
           <h1 className="text-2xl font-bold">Trash</h1>
           <p className="text-gray-500">Deleted items are kept here for 30 days before permanent deletion</p>
@@ -159,108 +159,114 @@ export default function TrashPage() {
         )}
       </div>
 
-      {/* Filter */}
-      <div id="filter-buttons" className="flex gap-2 mb-6">
-        <button
-          onClick={() => setSelectedType('all')}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${selectedType === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-        >
-          All Types
-        </button>
-        {Object.entries(RESOURCE_LABELS).map(([type, label]) => (
+      <div className="max-w-6xl mx-auto px-4 md:px-8 pb-12">
+        {/* Filter */}
+        <div id="filter-buttons" className="flex gap-2 mb-6">
           <button
-            key={type}
-            onClick={() => setSelectedType(type as ResourceType)}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${selectedType === type
+            onClick={() => setSelectedType('all')}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${selectedType === 'all'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            {label}s
+            All Types
           </button>
-        ))}
-      </div>
-
-      {/* Items List */}
-      {filteredItems.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-lg">
-          <span className="text-6xl block mb-4">🗑️</span>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Trash is empty</h3>
-          <p className="text-gray-500">Deleted items will appear here</p>
+          {Object.entries(RESOURCE_LABELS).map(([type, label]) => (
+            <button
+              key={type}
+              onClick={() => setSelectedType(type as ResourceType)}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${selectedType === type
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              {label}s
+            </button>
+          ))}
         </div>
-      ) : (
-        <div id="trash-table" className="bg-white border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Type</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Deleted</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
-                      {RESOURCE_LABELS[item.type]}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{item.name}</div>
-                    {item.details && (
-                      <div className="text-sm text-gray-500">
-                        {Object.entries(item.details).map(([key, value]) => (
-                          <span key={key} className="mr-3">
-                            {key}: {String(value)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {formatDistanceToNow(new Date(item.deleted_at), { addSuffix: true })}
-                    {item.deleted_by && <div className="text-xs">by {item.deleted_by}</div>}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        id="restore-btn"
-                        size="sm"
-                        onClick={() => handleRestore(item)}
-                      >
-                        Restore
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handlePermanentDelete(item)}
-                      >
-                        Delete Forever
-                      </Button>
-                    </div>
-                  </td>
+
+        {/* Items List */}
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-16 bg-gray-50 rounded-lg border">
+            <span className="text-6xl block mb-4">🗑️</span>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Trash is empty</h3>
+            <p className="text-gray-500">Deleted items will appear here</p>
+          </div>
+        ) : (
+          <div id="trash-table" className="apple-card overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-[var(--eai-border)]">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Type</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Deleted</th>
+                  <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-[var(--eai-border)]">
+                {filteredItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium uppercase tracking-wider">
+                        {RESOURCE_LABELS[item.type]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{item.name}</div>
+                      {item.details && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {Object.entries(item.details).map(([key, value]) => (
+                            <span key={key} className="mr-3">
+                              {key}: {String(value)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {formatDistanceToNow(new Date(item.deleted_at), { addSuffix: true })}
+                      {item.deleted_by && <div className="text-xs text-gray-400 mt-0.5">by {item.deleted_by}</div>}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          id="restore-btn"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRestore(item)}
+                        >
+                          Restore
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handlePermanentDelete(item)}
+                        >
+                          Delete Forever
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {/* Info Box */}
-      <div id="info-box" className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-        <h4 className="font-medium mb-2">About Soft Deletes</h4>
-        <ul className="list-disc list-inside space-y-1">
-          <li>Items in trash are not visible to users but can be restored</li>
-          <li>After 30 days, items may be permanently deleted automatically</li>
-          <li>Only administrators can permanently delete items</li>
-          <li>Restored items return to their original location with all data intact</li>
-        </ul>
+        {/* Info Box */}
+        <div id="info-box" className="mt-8 bg-blue-50/50 border border-blue-100 rounded-lg p-6 text-sm text-blue-800">
+          <h4 className="font-bold mb-3 flex items-center gap-2">
+            <span className="text-blue-500">ℹ️</span> About Soft Deletes
+          </h4>
+          <ul className="grid md:grid-cols-2 gap-x-8 gap-y-2 list-disc list-inside">
+            <li>Items in trash are not visible to users but can be restored</li>
+            <li>Restored items return with all data intact</li>
+            <li>After 30 days, items may be permanently deleted</li>
+            <li>Only administrators can permanently delete items</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
+
 }

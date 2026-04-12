@@ -25,7 +25,7 @@ const PREDEFINED_AGENTS = [
     city: 'Addis Ababa',
     subcity: 'Bole',
     woreda: '02',
-    house_no: '',
+    house_no: '365',
     telephone: '+251 911 213 141',
     email: 'fikadu@eastafricanip.com',
     po_box: '1000',

@@ -217,7 +217,7 @@ export default function FormInspectorPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="w-full mx-auto px-4 pt-8">
+      <div className="w-full mx-auto pt-8 px-4 md:px-8">
 
         <FormHeader
           formType={formType}

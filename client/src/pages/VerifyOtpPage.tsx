@@ -212,7 +212,7 @@ export default function VerifyOtpPage() {
         className="w-full max-w-md"
       >
         <motion.div variants={cardVariants}>
-          <Card className="w-full my-4 rounded-xl shadow-lg">
+          <Card className="w-full my-4 rounded-none shadow-lg">
             <motion.div 
               className="flex justify-center pt-6 pb-2"
               variants={itemVariants}

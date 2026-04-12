@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockwise, DownloadSimple, Info, Buildings, MapPin, Phone, Envelope, Calendar, CheckSquare, List, WarningCircle, X, Upload, XCircle } from '@phosphor-icons/react'
+import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockwise, DownloadSimple, Info, Buildings, MapPin, Phone, Envelope, Calendar, CheckSquare, List, WarningCircle, X, Upload, XCircle, User, IdentificationCard } from '@phosphor-icons/react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CountrySelector } from '@/components/CountrySelector'
 import { trademarkService } from '@/utils/api'
 import { usePageTitleStore } from '@/store/pageTitleStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { fillPdfForm } from '@/utils/pdfUtils'
 
 type NiceMapping = { id: string; classNo: number; description?: string }
@@ -49,7 +49,20 @@ type TrademarkCaseDetail = {
   nextRenewalDate?: string
   next_renewal_date?: string
   eipaForm?: Record<string, unknown> | null
+  is_word?: boolean | number
+  is_figurative?: boolean | number
+  is_mixed?: boolean | number
+  is_three_dim?: boolean | number
+  chk_goods?: boolean | number
+  chk_services?: boolean | number
+  chk_collective?: boolean | number
+  transmission?: string
+  mark_transliteration?: string
+  mark_language_requiring_traslation?: string
+  mark_has_three_dim_features?: string
+  translation?: string
   client?: {
+    id?: string
     name?: string
     localName?: string
     nationality?: string
@@ -62,6 +75,7 @@ type TrademarkCaseDetail = {
     houseNo?: string
     poBox?: string
     fax?: string
+    created_at?: string
   }
   agent?: {
     name?: string
@@ -239,7 +253,6 @@ export default function TrademarkDetailInfoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const setOverrideTitle = usePageTitleStore((state) => state.setOverrideTitle)
   const clearOverride = usePageTitleStore((state) => state.clearOverride)
-  const { toast } = useToast()
 
   const getDisplayValue = (name: string, fallback: any) => {
     if (isEditing && name in formData) return formData[name]
@@ -288,6 +301,9 @@ export default function TrademarkDetailInfoPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const eipa = tm?.eipaForm as Record<string, unknown> | null
+  const eipaField = (key: string) => eipa?.[key] as any
+
   const startEditing = () => {
     if (!tm) return
     setFormData({
@@ -302,9 +318,13 @@ export default function TrademarkDetailInfoPage() {
       
       // Applicant
       'client.name': tm.client?.name || eipaField('applicant_name_english') || '',
+      'client.localName': tm.client?.localName || eipaField('applicant_name_amharic') || '',
       'client.nationality': tm.client?.nationality || eipaField('nationality') || '',
-      'client.country': tm.client?.city || eipaField('residence_country') || '',
+      'client.residence_country': eipaField('residence_country') || '',
       'client.city': tm.client?.city || eipaField('city_name') || '',
+      'client.city_code': eipaField('city_code') || '',
+      'client.state_name': eipaField('state_name') || '',
+      'client.state_code': eipaField('state_code') || '',
       'client.subcity': eipaField('address_zone') || '',
       'client.wereda': tm.client?.wereda || eipaField('wereda') || '',
       'client.houseNo': tm.client?.houseNo || eipaField('house_no') || '',
@@ -312,29 +332,40 @@ export default function TrademarkDetailInfoPage() {
       'client.phone': tm.client?.phone || eipaField('telephone') || '',
       'client.fax': tm.client?.fax || eipaField('fax') || '',
       'client.email': tm.client?.email || eipaField('email') || '',
+      'client.address_street': eipaField('address_street') || '',
+      'client.zip_code': eipaField('zip_code') || '',
       
+      // Applicant Gender/Type
+      chk_female: !!eipaField('chk_female'),
+      chk_male: !!eipaField('chk_male'),
+      chk_company: !!eipaField('chk_company'),
+
       // Agent
       'agent.name': tm.agent?.name || eipaField('agent_name') || '',
       'agent.country': tm.agent?.country || eipaField('agent_country') || '',
       'agent.city': tm.agent?.city || eipaField('agent_city') || '',
       'agent.subcity': tm.agent?.subcity || eipaField('agent_subcity') || '',
+      'agent.woreda': eipaField('agent_woreda') || '',
+      'agent.house_no': eipaField('agent_house_no') || '',
       'agent.poBox': tm.agent?.poBox || eipaField('agent_pobox') || '',
       'agent.telephone': tm.agent?.telephone || eipaField('agent_telephone') || '',
       'agent.email': tm.agent?.email || eipaField('agent_email') || '',
+      'agent.fax': eipaField('agent_fax') || '',
       
-      // Mark Type Checkboxes
-      chk_goods: !!eipaField('chk_goods'),
-      chk_services: !!eipaField('chk_services'),
-      chk_collective: !!eipaField('chk_collective'),
+      // Mark Type Checkboxes (Goods, Services, Collective)
+      chk_goods: !!eipaField('chk_goods') || !!tm.chk_goods,
+      chk_services: !!eipaField('chk_services') || !!tm.chk_services,
+      chk_collective: !!eipaField('chk_collective') || !!tm.chk_collective,
       
-      // Mark Form Checkboxes
-      type_word: !!eipaField('type_word'),
-      type_figur: !!eipaField('type_figur'),
-      type_thre: !!eipaField('type_thre'),
+      // Mark Form Checkboxes (Word, Figurative, 3D, Mixed)
+      type_word: !!eipaField('type_word') || !!tm.is_word,
+      type_figur: !!eipaField('type_figur') || !!tm.is_figurative,
+      type_thre: !!eipaField('type_thre') || !!tm.is_three_dim,
+      k_type_mi: !!eipaField('k_type_mi') || !!tm.is_mixed,
 
       // More details
-      mark_translation: eipaField('mark_translation') || '',
-      mark_transliteration: eipaField('mark_transliteration') || '',
+      mark_translation: eipaField('mark_translation') || tm.translation || '',
+      mark_transliteration: eipaField('mark_transliteration') || tm.mark_transliteration || '',
       mark_language_requiring_translation: eipaField('mark_language_requiring_translation') || '',
       mark_has_three_dim_features: eipaField('mark_has_three_dim_features') || '',
 
@@ -383,9 +414,46 @@ export default function TrademarkDetailInfoPage() {
 
       // EIPA Form data (for checkboxes and other extra fields)
       const eipaPayload: Record<string, any> = { ...(tm?.eipaForm || {}) };
+      
+      // Map back to EIPA form keys
+      const eipaMap: Record<string, string> = {
+        'client.name': 'applicant_name_english',
+        'client.localName': 'applicant_name_amharic',
+        'client.nationality': 'nationality',
+        'client.residence_country': 'residence_country',
+        'client.city': 'city_name',
+        'client.city_code': 'city_code',
+        'client.state_name': 'state_name',
+        'client.state_code': 'state_code',
+        'client.subcity': 'address_zone',
+        'client.wereda': 'wereda',
+        'client.houseNo': 'house_no',
+        'client.poBox': 'po_box',
+        'client.phone': 'telephone',
+        'client.fax': 'fax',
+        'client.email': 'email',
+        'client.address_street': 'address_street',
+        'client.zip_code': 'zip_code',
+        'agent.name': 'agent_name',
+        'agent.country': 'agent_country',
+        'agent.city': 'agent_city',
+        'agent.subcity': 'agent_subcity',
+        'agent.woreda': 'agent_woreda',
+        'agent.house_no': 'agent_house_no',
+        'agent.poBox': 'agent_pobox',
+        'agent.telephone': 'agent_telephone',
+        'agent.email': 'agent_email',
+        'agent.fax': 'agent_fax'
+      };
+
+      Object.entries(eipaMap).forEach(([formKey, eipaKey]) => {
+        if (formData[formKey] !== undefined) eipaPayload[eipaKey] = formData[formKey];
+      });
+
       const eipaKeys = [
+        'chk_female', 'chk_male', 'chk_company',
         'chk_goods', 'chk_services', 'chk_collective', 
-        'type_word', 'type_figur', 'type_thre',
+        'type_word', 'type_figur', 'type_thre', 'k_type_mi',
         'mark_translation', 'mark_transliteration', 'mark_language_requiring_translation', 'mark_has_three_dim_features',
         'priority_country', 'priority_filing_date', 'disclaimer_text_english', 'disclaimer_text_amharic'
       ];
@@ -399,7 +467,7 @@ export default function TrademarkDetailInfoPage() {
       if (Object.keys(payload).length > 0) {
         const res = await trademarkService.updateCase(id, payload)
         if (res.success) {
-          toast({ title: 'Case Updated', description: res.message })
+          toast.success(res.message || 'Case Updated Successfully')
           await load()
           setIsEditing(false)
           setFormData({})
@@ -411,7 +479,7 @@ export default function TrademarkDetailInfoPage() {
       }
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } }
-      toast({ title: 'Update Failed', description: err?.response?.data?.error || 'Failed to save case', variant: 'destructive' })
+      toast.error(err?.response?.data?.error || 'Failed to save case')
     } finally {
       setIsSaving(false)
     }
@@ -430,9 +498,8 @@ export default function TrademarkDetailInfoPage() {
 
   const handleDownloadForm = async () => {
     if (!tm) return
+    const loadingToastId = toast.loading('Preparing PDF...')
     try {
-      toast({ title: 'Preparing PDF...', description: 'Please wait while we generate your form' })
-
       const isRenewal = (tm.status || '').toUpperCase() === 'RENEWAL' || (tm.markType || tm.mark_type || '').toUpperCase() === 'RENEWAL'
       const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
       
@@ -448,15 +515,12 @@ export default function TrademarkDetailInfoPage() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast({ title: 'Download Started' })
+      toast.success('Download Started', { id: loadingToastId })
     } catch (err) {
       console.error('Download error:', err)
-      toast({ title: 'Download Failed', description: 'Could not generate PDF form', variant: 'destructive' })
+      toast.error('Download Failed: Could not generate PDF form', { id: loadingToastId })
     }
   }
-
-  const eipa = tm?.eipaForm as Record<string, unknown> | null
-  const eipaField = (key: string) => eipa?.[key] as string | null | undefined
 
   const markName = tm?.markName || tm?.mark_name || tm?.wordMark || '—'
   const filingNo = tm?.filingNumber || tm?.filing_number || '—'
@@ -467,7 +531,7 @@ export default function TrademarkDetailInfoPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+      <div className="w-full mx-auto p-4 md:p-8 space-y-6">
         <header className="flex items-center gap-4 mb-8">
           <Skeleton className="h-10 w-10 rounded-lg" />
           <div><Skeleton className="h-8 w-64" /><Skeleton className="h-4 w-48 mt-2" /></div>
@@ -481,7 +545,7 @@ export default function TrademarkDetailInfoPage() {
 
   if (!tm) {
     return (
-      <div className="max-w-6xl mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-24">
+      <div className="w-full mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-24">
         <div className="text-xl font-bold">Trademark not found</div>
         <Button onClick={() => navigate('/trademarks')} className="mt-4">Back to Trademarks</Button>
       </div>
@@ -492,7 +556,7 @@ export default function TrademarkDetailInfoPage() {
   const isPublished = tm.status === 'PUBLISHED'
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
       <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/trademarks')} className="h-10 w-10 shrink-0">
@@ -532,30 +596,56 @@ export default function TrademarkDetailInfoPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* I. Applicant Summary (Condensed) */}
         <Card className="border-border shadow-sm bg-card">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><Info size={20} className="text-primary" /><CardTitle className="text-base">I. Applicant (Client) Details</CardTitle></div>
+          <CardHeader className="bg-muted/30 border-b border-border py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User size={18} className="text-primary" />
+                <CardTitle className="text-base font-bold">Applicant Information</CardTitle>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-primary hover:text-primary/80 hover:bg-primary/5 gap-1.5"
+                onClick={() => navigate(`/clients/${tm.client?.id || ''}`)}
+                disabled={!tm.client}
+              >
+                View Profile <ArrowLeft size={14} className="rotate-180" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <EditableField label="Applicant Name" value={getDisplayValue('client.name', tm.client?.name || eipaField('applicant_name_english'))} name={isEditing ? 'client.name' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Nationality" type="country" value={getDisplayValue('client.nationality', tm.client?.nationality || eipaField('nationality'))} name={isEditing ? 'client.nationality' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Country" type="country" value={getDisplayValue('client.country', eipaField('residence_country'))} name={isEditing ? 'client.country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="City" value={getDisplayValue('client.city', tm.client?.city || eipaField('city_name'))} name={isEditing ? 'client.city' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Sub-City" value={getDisplayValue('client.subcity', eipaField('address_zone'))} name={isEditing ? 'client.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Wereda" value={getDisplayValue('client.wereda', tm.client?.wereda || eipaField('wereda'))} name={isEditing ? 'client.wereda' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="House No." value={getDisplayValue('client.houseNo', tm.client?.houseNo || eipaField('house_no'))} name={isEditing ? 'client.houseNo' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="P.O. Box" value={getDisplayValue('client.poBox', tm.client?.poBox || eipaField('po_box'))} name={isEditing ? 'client.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Telephone" value={getDisplayValue('client.phone', tm.client?.phone || eipaField('telephone'))} name={isEditing ? 'client.phone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Fax" value={getDisplayValue('client.fax', tm.client?.fax || eipaField('fax'))} name={isEditing ? 'client.fax' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Email" value={getDisplayValue('client.email', tm.client?.email || eipaField('email'))} name={isEditing ? 'client.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
+                <IdentificationCard size={14} /> Identity & Type
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Full Name" value={tm.client?.name || eipaField('applicant_name_english')} />
+                <Field label="Local Name" value={tm.client?.localName || eipaField('applicant_name_amharic')} />
+                <Field label="Client Type" value={eipaField('chk_company') ? 'Company' : (eipaField('chk_male') || eipaField('chk_female') ? 'Individual' : '—')} />
+                <Field label="Gender" value={eipaField('chk_male') ? 'Male' : (eipaField('chk_female') ? 'Female' : '—')} />
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t border-border space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
+                <Envelope size={14} /> Contact Information
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Email" value={tm.client?.email || eipaField('email')} />
+                <Field label="Telephone" value={tm.client?.phone || eipaField('telephone')} />
+                <Field label="Fax" value={tm.client?.fax || eipaField('fax')} />
+                <Field label="Created" value={tm.client?.created_at ? new Date(tm.client.created_at).toLocaleDateString() : '—'} />
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* III. Agent Details */}
         <Card className="border-border shadow-sm bg-card">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><Buildings size={20} className="text-primary" /><CardTitle className="text-base">II. Agent Details</CardTitle></div>
+          <CardHeader className="bg-muted/30 border-b border-border py-3">
+            <div className="flex items-center gap-2"><Buildings size={18} className="text-primary" /><CardTitle className="text-base font-bold">Agent / Representative</CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -563,16 +653,20 @@ export default function TrademarkDetailInfoPage() {
               <EditableField label="Country" type="country" value={getDisplayValue('agent.country', tm.agent?.country || eipaField('agent_country'))} name={isEditing ? 'agent.country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="City" value={getDisplayValue('agent.city', tm.agent?.city || eipaField('agent_city'))} name={isEditing ? 'agent.city' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Sub-City" value={getDisplayValue('agent.subcity', tm.agent?.subcity || eipaField('agent_subcity'))} name={isEditing ? 'agent.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Wereda" value={getDisplayValue('agent.woreda', eipaField('agent_woreda'))} name={isEditing ? 'agent.woreda' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="House No." value={getDisplayValue('agent.house_no', eipaField('agent_house_no'))} name={isEditing ? 'agent.house_no' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="P.O. Box" value={getDisplayValue('agent.poBox', tm.agent?.poBox || eipaField('agent_pobox'))} name={isEditing ? 'agent.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Telephone" value={getDisplayValue('agent.telephone', tm.agent?.telephone || eipaField('agent_telephone'))} name={isEditing ? 'agent.telephone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Email" value={getDisplayValue('agent.email', tm.agent?.email || eipaField('agent_email'))} name={isEditing ? 'agent.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Fax" value={getDisplayValue('agent.fax', eipaField('agent_fax'))} name={isEditing ? 'agent.fax' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-sm bg-card md:col-span-2">
+        {/* IV. Mark Specification */}
+        <Card className="border-border shadow-sm bg-card">
           <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><FileText size={20} className="text-primary" /><CardTitle className="text-base">III. Mark Specification</CardTitle></div>
+            <div className="flex items-center gap-2"><FileText size={20} className="text-primary" /><CardTitle className="text-base">IV. Mark Specification</CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             {isEditing ? (
@@ -582,42 +676,17 @@ export default function TrademarkDetailInfoPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="relative aspect-video w-full max-w-sm mx-auto rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-primary transition-all"
                 >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                   {(markImagePreview || getDisplayValue('mark_image', tm.mark_image)) ? (
                     <div className="relative w-full h-full p-4">
-                      <img
-                        src={markImagePreview || resolveMarkImageUrl(getDisplayValue('mark_image', tm.mark_image))}
-                        alt="Mark preview"
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const originalUrl = resolveMarkImageUrl(tm.mark_image);
-                          if (target.src !== originalUrl) {
-                            target.src = originalUrl;
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeImage();
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-destructive"
-                      >
+                      <img src={markImagePreview || resolveMarkImageUrl(getDisplayValue('mark_image', tm.mark_image))} alt="Mark preview" className="w-full h-full object-contain" />
+                      <button onClick={(e) => { e.stopPropagation(); removeImage(); }} className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md text-destructive">
                         <XCircle size={24} />
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-center space-y-2">
-                      <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
-                        <Upload size={24} />
-                      </div>
+                      <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors"><Upload size={24} /></div>
                       <div className="space-y-1">
                         <p className="text-sm font-bold">Click to upload mark image</p>
                         <p className="text-xs text-muted-foreground">PNG, JPG, SVG up to 2MB</p>
@@ -631,18 +700,19 @@ export default function TrademarkDetailInfoPage() {
                 <MarkInfoThumbnail markImage={tm.mark_image} label={markName} />
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <EditableField label="Mark Name" value={getDisplayValue('markName', tm?.markName || tm?.mark_name || tm?.wordMark)} name={isEditing ? 'markName' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EditableField label="Mark Name" value={getDisplayValue('markName', markName)} name={isEditing ? 'markName' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Mark Type" value={getDisplayValue('markType', tm.markType || tm.mark_type || eipaField('mark_type'))} name={isEditing ? 'markType' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Color Indication" value={getDisplayValue('colorIndication', tm.colorIndication || tm.color_indication || eipaField('mark_color_indication'))} name={isEditing ? 'colorIndication' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t pt-4">
               <EditableField label="Goods Mark" type="checkbox" value={getDisplayValue('chk_goods', !!eipaField('chk_goods'))} name={isEditing ? 'chk_goods' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Service Mark" type="checkbox" value={getDisplayValue('chk_services', !!eipaField('chk_services'))} name={isEditing ? 'chk_services' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Collective Mark" type="checkbox" value={getDisplayValue('chk_collective', !!eipaField('chk_collective'))} name={isEditing ? 'chk_collective' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Type - Word" type="checkbox" value={getDisplayValue('type_word', !!eipaField('type_word'))} name={isEditing ? 'type_word' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Type - Figurative" type="checkbox" value={getDisplayValue('type_figur', !!eipaField('type_figur'))} name={isEditing ? 'type_figur' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Type - 3D" type="checkbox" value={getDisplayValue('type_thre', !!eipaField('type_thre'))} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Figurative" type="checkbox" value={getDisplayValue('type_figur', !!eipaField('type_figur') || !!tm.is_figurative)} name={isEditing ? 'type_figur' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - 3D" type="checkbox" value={getDisplayValue('type_thre', !!eipaField('type_thre') || !!tm.is_three_dim)} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Mixed" type="checkbox" value={getDisplayValue('k_type_mi', !!eipaField('k_type_mi') || !!tm.is_mixed)} name={isEditing ? 'k_type_mi' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
             <EditableField label="Mark Description" type="textarea" value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} name={isEditing ? 'markDescription' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -654,64 +724,54 @@ export default function TrademarkDetailInfoPage() {
           </CardContent>
         </Card>
 
+        {/* V. Priority / Disclaimer */}
         <Card className="border-border shadow-sm bg-card">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><WarningCircle size={20} className="text-primary" /><CardTitle className="text-base">IV. Priority / Disclaimer</CardTitle></div>
+          <CardHeader className="bg-muted/30 border-b border-border py-3">
+            <div className="flex items-center gap-2"><WarningCircle size={18} className="text-primary" /><CardTitle className="text-base font-bold">V. Priority / Disclaimer</CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <EditableField label="Priority Country" type="country" value={getDisplayValue('priority_country', eipaField('priority_country'))} name={isEditing ? 'priority_country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Priority Date" value={getDisplayValue('priority_filing_date', eipaField('priority_filing_date'))} name={isEditing ? 'priority_filing_date' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
-            <EditableField label="Disclaimer (English)" value={getDisplayValue('disclaimer_text_english', eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-            <EditableField label="Disclaimer (Amharic)" value={getDisplayValue('disclaimer_text_amharic', eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EditableField label="Disclaimer (English)" value={getDisplayValue('disclaimer_text_english', eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Disclaimer (Amharic)" value={getDisplayValue('disclaimer_text_amharic', eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            </div>
           </CardContent>
         </Card>
 
+        {/* VI. Nice Classification */}
         <Card className="border-border shadow-sm bg-card">
           <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><List size={20} className="text-primary" /><CardTitle className="text-base">V. Nice Classification</CardTitle></div>
+            <div className="flex items-center gap-2"><List size={20} className="text-primary" /><CardTitle className="text-base">VI. Nice Classification</CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="flex flex-wrap gap-2">
               {niceClasses.length ? niceClasses.map(c => (
-                <Badge key={c} variant="outline" className="px-3 py-1">{c}</Badge>
+                <Badge key={c} variant="outline" className="px-3 py-1">Class {c}</Badge>
               )) : <span className="text-muted-foreground">—</span>}
             </div>
-            {tm.niceMappings?.map(m => (
-              <div key={m.id} className="p-3 bg-muted/30 rounded-md">
-                <span className="text-xs font-bold text-primary">Class {m.classNo}</span>
-                <p className="text-sm mt-1">{m.description || '—'}</p>
-              </div>
-            ))}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold text-muted-foreground">Goods & Services Description</Label>
+              {isEditing ? (
+                <Textarea value={getDisplayValue('goodsServices', tm.goodsServices || tm.goods_services)} onChange={(e) => handleFieldChange('goodsServices', e.target.value)} className="min-h-[150px] text-sm" />
+              ) : (
+                <div className="p-4 bg-muted/30 rounded-md text-sm leading-relaxed">
+                  {tm.goodsServices || tm.goods_services || '—'}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
+        {/* VII. Key Dates */}
         <Card className="border-border shadow-sm bg-card md:col-span-2">
           <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><MapPin size={20} className="text-primary" /><CardTitle className="text-base">VI. Goods & Services</CardTitle></div>
+            <div className="flex items-center gap-2"><Calendar size={20} className="text-primary" /><CardTitle className="text-base">VII. Lifecycle & Key Dates</CardTitle></div>
           </CardHeader>
           <CardContent className="p-6">
-            {isEditing ? (
-              <Textarea
-                value={formData.goodsServices || tm.goodsServices || tm.goods_services || ''}
-                onChange={(e) => handleFieldChange('goodsServices', e.target.value)}
-                className="min-h-[100px] text-sm"
-              />
-            ) : (
-              <div className="p-4 bg-muted/30 rounded-md text-sm">
-                {tm.goodsServices || tm.goods_services || tm.mark_description || '—'}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-sm bg-card md:col-span-2">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><Calendar size={20} className="text-primary" /><CardTitle className="text-base">VII. Key Dates</CardTitle></div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
               <Field label="Application Date" value={safeDate(tm.applicationDate || tm.application_date)} />
               <Field label="Publication Date" value={safeDate(tm.publicationDate || tm.publication_date)} />
               <Field label="Registration Date" value={safeDate(tm.registrationDate || tm.registration_date)} />

@@ -139,11 +139,12 @@ export default function NewClientPage() {
                         <button
                           key={type}
                           type="button"
+                          data-type={type}
                           onClick={() => handleChange('type', type)}
                           className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                             formData.type === type
-                              ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                              : 'border-border bg-background hover:bg-muted text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                              ? 'border-[#0e3155] bg-[#0e3155]/5 text-[#0e3155] shadow-sm'
+                              : 'border-border bg-background hover:bg-muted text-muted-foreground hover:border-[#0e3155]/30 hover:text-foreground'
                           }`}
                         >
                           <Icon size={20} weight={formData.type === type ? "duotone" : "regular"} />
@@ -164,6 +165,7 @@ export default function NewClientPage() {
                     onChange={(e) => handleChange('name', e.target.value)}
                     placeholder="Enter full legal name"
                     className="h-11 bg-background"
+                    disabled={saving}
                     required
                   />
                 </div>
@@ -176,6 +178,7 @@ export default function NewClientPage() {
                     onChange={(e) => handleChange('local_name', e.target.value)}
                     placeholder="ሙሉ ስም እዚህ ያስገቡ"
                     className="h-11 font-amharic bg-background"
+                    disabled={saving}
                   />
                 </div>
               </div>
@@ -336,12 +339,34 @@ export default function NewClientPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="city_code" className="text-xs font-semibold text-muted-foreground">City Code</Label>
+                  <Input
+                    id="city_code"
+                    value={formData.city_code}
+                    onChange={(e) => handleChange('city_code', e.target.value)}
+                    placeholder="City Code"
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="state_name" className="text-xs font-semibold text-muted-foreground">State / Region</Label>
                   <Input
                     id="state_name"
                     value={formData.state_name}
                     onChange={(e) => handleChange('state_name', e.target.value)}
                     placeholder="State / Region"
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="state_code" className="text-xs font-semibold text-muted-foreground">State Code</Label>
+                  <Input
+                    id="state_code"
+                    value={formData.state_code}
+                    onChange={(e) => handleChange('state_code', e.target.value)}
+                    placeholder="State Code"
                     className="bg-background"
                   />
                 </div>

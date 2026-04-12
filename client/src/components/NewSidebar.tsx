@@ -33,8 +33,7 @@ const navItems: Array<{ label: string; to: string; icon: React.ForwardRefExoticC
   { label: 'Renewal Form', to: '/eipa-forms/renewal-form', icon: Shield },
   { label: 'Clients', to: '/clients', icon: Users },
   { label: 'Deadlines', to: '/deadlines', icon: Clock },
-  { label: 'Invoicing', to: '/invoicing', icon: CreditCard, requiresFinance: true },
-  { label: 'Help & Support', to: '/help', icon: HelpCircle }
+  { label: 'Invoicing', to: '/invoicing', icon: CreditCard, requiresFinance: true }
 ]
 
 function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

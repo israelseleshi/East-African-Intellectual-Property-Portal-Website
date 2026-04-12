@@ -247,8 +247,8 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="w-full space-y-8 p-6">
-        <header className="flex items-center justify-between mb-8">
+      <div className="w-full space-y-8">
+        <header className="flex items-center justify-between mb-8 px-4 md:px-8 pt-4 md:pt-8">
           <Skeleton className="h-10 w-48" />
           <div className="flex gap-2">
             <Skeleton className="h-10 w-32 rounded-md" />
@@ -277,8 +277,8 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="w-full space-y-8 bg-background text-foreground min-h-screen">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-muted-foreground text-sm">Manage and organize your client database across jurisdictions.</p>
@@ -374,7 +374,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm mx-4 md:mx-8">
         <div className="relative flex-1 max-w-md group">
           <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
           <Input
@@ -417,7 +417,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 mx-4 md:mx-8 pb-8">
         {(clients || []).length === 0 ? (
           <Card className="flex flex-col items-center justify-center py-24 text-center border-dashed">
             <div className="p-4 rounded-full bg-muted/50 mb-4">

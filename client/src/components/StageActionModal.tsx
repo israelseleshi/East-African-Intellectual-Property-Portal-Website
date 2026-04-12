@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar as CalendarIcon, Info } from '@phosphor-icons/react';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Info } from '@phosphor-icons/react';
 import type { CaseFlowStage } from '@/shared/database';
 
 interface StageActionModalProps {
@@ -39,6 +40,15 @@ interface ActionConfig {
 
 const ACTION_CONFIGS: Partial<Record<CaseFlowStage, ActionConfig>> = {
     DATA_COLLECTION: {
+        title: 'Collection Complete',
+        description: 'Mark data collection as complete and proceed to the filed stage.',
+        buttonLabel: 'Mark Collected',
+        fields: [
+            { key: 'triggerDate', label: 'Completion Date', type: 'date', defaultValue: new Date().toISOString().split('T')[0], required: true },
+            { key: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Add any specific notes about the collection process...' }
+        ]
+    },
+    FILED: {
         title: 'Record Official Filing',
         description: 'Enter the official filing number and date received from the registry receipt.',
         buttonLabel: 'Complete Filing',
@@ -148,15 +158,28 @@ export function StageActionModal({ isOpen, onClose, onConfirm, currentStage, nex
                                     onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                                     required={field.required}
                                 />
+                            ) : field.type === 'date' ? (
+                                <div className="relative">
+                                    <DatePicker
+                                        date={formData[field.key] ? new Date(formData[field.key]) : undefined}
+                                        onDateChange={(date) => {
+                                            if (date) {
+                                                const year = date.getFullYear();
+                                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                const day = String(date.getDate()).padStart(2, '0');
+                                                setFormData({ ...formData, [field.key]: `${year}-${month}-${day}` });
+                                            } else {
+                                                setFormData({ ...formData, [field.key]: '' });
+                                            }
+                                        }}
+                                        allowFuture={true}
+                                    />
+                                </div>
                             ) : (
                                 <div className="relative">
-                                    {field.type === 'date' && (
-                                        <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                                    )}
                                     <Input
                                         type={field.type}
                                         placeholder={field.placeholder}
-                                        className={field.type === 'date' ? 'pl-10' : ''}
                                         value={formData[field.key] || ''}
                                         onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                                         required={field.required}

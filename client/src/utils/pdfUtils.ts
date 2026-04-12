@@ -226,9 +226,10 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
         // those high-level methods trigger a GLOBAL updateAppearances() sweep across
         // ALL form fields, which crashes on any field containing Amharic text.
         if (field instanceof PDFTextField) {
-          // Use checkmark symbol instead of X
-          const marker = '✓';
-          const fontToUse = amharicFontName || timesRomanFontName;
+          // Use low-level DIRECT write to Avoid high-level .setText() which crashes on Amharic forms.
+          // Note: "X" is used instead of "✓" to avoid WinAnsi encoding errors during flattening.
+          const marker = 'X';
+          const fontToUse = timesRomanFontName;
           setFieldDirect((field as any).acroField, value ? marker : '', fontToUse, 12);
         } else if (field instanceof PDFCheckBox) {
           const acroField = (field as any).acroField;
@@ -285,7 +286,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['renewal_agent_house_no'], data.renewal_agent_house_no);
       await fillField(['renewal_agent_telephone'], data.renewal_agent_telephone);
       await fillField(['renewal_agent_email'], data.renewal_agent_email);
-      await fillField(['renewal_agent_pobox'], data.renewal_agent_pobox);
+      await fillField(['renewal_agent_pobox', 'renewal_agent_po_box'], data.renewal_agent_pobox || data.renewal_agent_po_box);
       await fillField(['renewal_agent_fax'], data.renewal_agent_fax);
 
       setCheckbox(data.renewal_chk_goods_mark, ['renewal_chk_goods_mark']);
@@ -344,7 +345,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['agent_house_no'], data.agent_house_no);
       await fillField(['agent_telephone'], data.agent_telephone);
       await fillField(['agent_email'], data.agent_email);
-      await fillField(['agent_po_box'], data.agent_po_box);
+      await fillField(['agent_po_box', 'agent_pobox'], data.agent_po_box || data.agent_pobox);
       await fillField(['agent_fax'], data.agent_fax);
 
       // III. Use of Mark
@@ -355,10 +356,10 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
 
       // IV. Mark Specification
       console.log('--- Section IV ---');
-      setCheckbox(data.mark_type_figurative, ['mark_type_figurative']);
-      setCheckbox(data.mark_type_word, ['mark_type_word']);
+      setCheckbox(data.mark_type_figurative || data.type_figur, ['mark_type_figurative', 'type_figur']);
+      setCheckbox(data.mark_type_word || data.type_word, ['mark_type_word', 'type_word']);
       setCheckbox(data.mark_type_mixed, ['mark_type_mixed']);
-      setCheckbox(data.mark_type_three_dim, ['mark_type_three_dim']);
+      setCheckbox(data.mark_type_three_dim || data.type_thre, ['mark_type_three_dim', 'type_thre']);
       await fillField(['mark_description'], data.mark_description);
       await fillField(['mark_translation'], data.mark_translation);
       await fillField(['mark_transliteration'], data.mark_transliteration);

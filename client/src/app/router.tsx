@@ -22,10 +22,10 @@ const SignUpPage = lazy(() => import('../pages/SignUpPage'))
 const VerifyOtpPage = lazy(() => import('../pages/VerifyOtpPage'))
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'))
 const FormInspectorPage = lazy(() => import('../pages/FormInspectorPage'))
-const HelpPage = lazy(() => import('../pages/HelpPage'))
 const TrashPage = lazy(() => import('../pages/TrashPage'))
 
 const withRouteSuspense = (node: ReactNode) => (
+
   <Suspense fallback={<div className="p-6 text-sm text-foreground/70">Loading page...</div>}>
     {node}
   </Suspense>
@@ -136,10 +136,10 @@ export const router = createBrowserRouter([
             { path: ':id', element: withRouteSuspense(<InvoiceDetailPage />) }
           ]
         },
-          { path: 'trash', element: withRouteSuspense(<TrashPage />) },
-          { path: 'help', element: withRouteSuspense(<HelpPage />) }
+          { path: 'trash', element: withRouteSuspense(<TrashPage />) }
         ]
       }
     ]
   }
 ])
+

@@ -342,12 +342,24 @@ export default function ClientDetailPage() {
                   <Input value={formData.city || ''} onChange={e => handleChange('city', e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
+                  <Label>City Code</Label>
+                  <Input value={formData.city_code || ''} onChange={e => handleChange('city_code', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
                   <Label>State / Region</Label>
                   <Input value={formData.state_name || ''} onChange={e => handleChange('state_name', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>State Code</Label>
+                  <Input value={formData.state_code || ''} onChange={e => handleChange('state_code', e.target.value)} />
                 </div>
                 <div className="space-y-1.5 md:col-span-1">
                   <Label>ZIP / Postal Code</Label>
                   <Input value={formData.zip_code || ''} onChange={e => handleChange('zip_code', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>House No.</Label>
+                  <Input value={formData.house_no || ''} onChange={e => handleChange('house_no', e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>P.O. Box</Label>
@@ -359,10 +371,13 @@ export default function ClientDetailPage() {
                 <Field label="Nationality" value={client.nationality} icon={Globe} />
                 <Field label="Residence" value={client.residence_country} icon={Globe} />
                 <Field label="City" value={client.city} icon={MapPin} />
+                <Field label="City Code" value={client.city_code} icon={MapPin} />
                 <Field label="Street" value={client.address_street} icon={MapPin} />
                 <Field label="Zone/Subcity" value={client.address_zone} icon={MapPin} />
                 <Field label="Wereda" value={client.wereda} icon={MapPin} />
+                <Field label="House No." value={client.house_no} icon={MapPin} />
                 <Field label="State" value={client.state_name} icon={MapPin} />
+                <Field label="State Code" value={client.state_code} icon={MapPin} />
                 <Field label="Postal/ZIP" value={client.zip_code} icon={MapPin} />
                 <Field label="P.O. Box" value={client.po_box} icon={MapPin} />
               </div>

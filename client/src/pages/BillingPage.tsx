@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
@@ -111,99 +111,7 @@ export default function BillingPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
 
-  const fetchClients = async () => {
-    try {
-      const result = await clientService.getClients({ page: 1, limit: 500 })
-      const clientList = Array.isArray(result) ? result : (result?.data || [])
-      setClients(clientList)
-    } catch (error) {
-      console.error('Failed to fetch clients:', error)
-      setClients([])
-    }
-  }
-
-  useEffect(() => {
-    if (isCreateInvoiceModalOpen) {
-      fetchClients()
-    }
-  }, [isCreateInvoiceModalOpen])
-
-  const addLineItem = () => {
-    setLineItems([...lineItems, { description: '', category: '', amount: '' }])
-  }
-
-  const removeLineItem = (index: number) => {
-    if (lineItems.length > 1) {
-      setLineItems(lineItems.filter((_, i) => i !== index))
-    }
-  }
-
-  const updateLineItem = (index: number, field: string, value: string) => {
-    const updated = [...lineItems]
-    updated[index] = { ...updated[index], [field]: value }
-    
-    if (field === 'category' && value) {
-      const selectedFee = EIPO_FEES.find(fee => fee.code === value)
-      if (selectedFee) {
-        updated[index].description = selectedFee.description
-        updated[index].amount = selectedFee.amount.toString()
-        updated[index].category = 'OFFICIAL_FEE'
-      }
-    }
-    
-    setLineItems(updated)
-  }
-
-  const handleCreateInvoice = async () => {
-    if (!newInvoice.clientId) {
-      addToast({ title: 'Error', description: 'Please select a client.', variant: 'destructive' })
-      return
-    }
-    
-    const validItems = lineItems.filter(item => item.description && item.amount)
-    if (validItems.length === 0) {
-      addToast({ title: 'Error', description: 'Please add at least one line item.', variant: 'destructive' })
-      return
-    }
-
-    setCreatingInvoice(true)
-    try {
-      await financialsApi.createInvoice({
-        clientId: newInvoice.clientId,
-        items: validItems.map(item => ({
-          description: item.description,
-          category: item.category,
-          amount: Number(item.amount)
-        })),
-        currency: newInvoice.currency,
-        dueDate: newInvoice.dueDate,
-        notes: newInvoice.notes
-      })
-
-      addToast({
-        title: 'Invoice Created',
-        description: 'The invoice has been created successfully.',
-      })
-
-      setIsCreateInvoiceModalOpen(false)
-      setNewInvoice({
-        clientId: '',
-        currency: 'USD',
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        notes: ''
-      })
-      setLineItems([{ description: '', category: 'OFFICIAL_FEE', amount: '' }])
-      fetchTransactions()
-    } catch (error) {
-      addToast({ title: 'Error', description: 'Failed to create invoice.', variant: 'destructive' })
-    } finally {
-      setCreatingInvoice(false)
-    }
-  }
-
-  const totalInvoiceAmount = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true)
       const data = await invoiceService.getAll()
@@ -239,10 +147,10 @@ export default function BillingPage() {
       setTransactions(mappedTransactions)
 
       if (data.length > 0) {
-        const totalRevenue = data.reduce((acc: number, inv: any) => acc + Number(inv.total_amount), 0)
+        const totalRevenue = data.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0)
         const outstanding = data
           .filter((inv: any) => inv.status !== 'PAID')
-          .reduce((acc: number, inv: any) => acc + Number(inv.total_amount), 0)
+          .reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0)
         const paidMtd = data
           .filter((inv: any) => {
             const issueDate = inv.issue_date ? new Date(inv.issue_date) : new Date()
@@ -251,7 +159,7 @@ export default function BillingPage() {
                    issueDate.getMonth() === now.getMonth() && 
                    issueDate.getFullYear() === now.getFullYear()
           })
-          .reduce((acc: number, inv: any) => acc + Number(inv.total_amount), 0)
+          .reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0)
         
         const uniqueClients = new Set(data.map((inv: any) => inv.client_name)).size
         const overdueCount = data.filter((inv: any) => inv.status === 'OVERDUE').length
@@ -269,37 +177,135 @@ export default function BillingPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const result = await clientService.getClients({ page: 1, limit: 500 })
+      const clientList = Array.isArray(result) ? result : (result?.data || [])
+      setClients(clientList)
+    } catch (error) {
+      console.error('Failed to fetch clients:', error)
+      setClients([])
+    }
+  }, [])
 
   useEffect(() => {
     fetchTransactions()
-  }, [])
+  }, [fetchTransactions])
+
+  useEffect(() => {
+    if (isCreateInvoiceModalOpen) {
+      fetchClients()
+    }
+  }, [isCreateInvoiceModalOpen, fetchClients])
+
+  const addLineItem = () => {
+    setLineItems([...lineItems, { description: '', category: 'OFFICIAL_FEE', amount: '' }])
+  }
+
+  const removeLineItem = (index: number) => {
+    if (lineItems.length > 1) {
+      setLineItems(lineItems.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateLineItem = (index: number, field: string, value: string) => {
+    const updated = [...lineItems]
+    updated[index] = { ...updated[index], [field]: value }
+    
+    if (field === 'category' && value) {
+      const selectedFee = EIPO_FEES.find(fee => fee.code === value)
+      if (selectedFee) {
+        updated[index].description = selectedFee.description
+        updated[index].amount = selectedFee.amount.toString()
+        updated[index].category = 'OFFICIAL_FEE'
+      }
+    }
+    setLineItems(updated)
+  }
+
+  const handleCreateInvoice = async () => {
+    if (!newInvoice.clientId) {
+      addToast({ title: 'Error', description: 'Please select a client', variant: 'destructive' });
+      return;
+    }
+
+    const validItems = lineItems.filter(item => item.description && item.amount);
+    if (validItems.length === 0) {
+      addToast({ title: 'Error', description: 'Please add at least one line item', variant: 'destructive' });
+      return;
+    }
+
+    setCreatingInvoice(true);
+    try {
+      await financialsApi.createInvoice({
+        clientId: newInvoice.clientId,
+        items: validItems.map(item => ({
+          description: item.description,
+          category: item.category,
+          amount: Number(item.amount)
+        })),
+        currency: newInvoice.currency,
+        dueDate: newInvoice.dueDate,
+        notes: newInvoice.notes
+      });
+
+      addToast({
+        title: 'Invoice Created',
+        description: 'The invoice has been created successfully.',
+      });
+
+      setIsCreateInvoiceModalOpen(false);
+      setNewInvoice({
+        clientId: '',
+        currency: 'USD',
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        notes: ''
+      });
+      setLineItems([{ description: '', category: 'OFFICIAL_FEE', amount: '' }]);
+      fetchTransactions();
+    } catch (error) {
+      addToast({ title: 'Error', description: 'Failed to create invoice.', variant: 'destructive' });
+    } finally {
+      setCreatingInvoice(false);
+    }
+  }
 
   const handleRecordPayment = async () => {
-    if (!selectedInvoice) return
+    if (!selectedInvoice || !paymentData.amount) return;
 
     try {
-      await financialsApi.recordPayment({
-        invoiceId: selectedInvoice.id,
-        ...paymentData,
-        amount: Number(paymentData.amount)
-      })
+      await financialsApi.recordPayment(selectedInvoice.id, {
+        amount: Number(paymentData.amount),
+        paymentDate: paymentData.paymentDate,
+        paymentMethod: paymentData.paymentMethod,
+        referenceNumber: paymentData.referenceNumber,
+        notes: paymentData.notes
+      });
 
       addToast({
         title: 'Payment Recorded',
-        description: 'The payment has been successfully logged.',
-      })
+        description: 'The payment has been recorded successfully.',
+      });
 
-      setIsPaymentModalOpen(false)
-      fetchTransactions()
+      setIsPaymentModalOpen(false);
+      setPaymentData({
+        amount: '',
+        paymentDate: new Date().toISOString().split('T')[0],
+        paymentMethod: 'BANK_TRANSFER',
+        referenceNumber: '',
+        notes: ''
+      });
+      fetchTransactions();
     } catch (error) {
-      addToast({
-        title: 'Error',
-        description: 'Failed to record payment.',
-        variant: 'destructive'
-      })
+      addToast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
     }
   }
+
+  const totalInvoiceAmount = useMemo(() => {
+    return lineItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+  }, [lineItems])
 
   const formatAmount = (val: number, txCurrency?: string) => {
     if (val == null || isNaN(val)) return '—'
@@ -316,7 +322,7 @@ export default function BillingPage() {
       const fromOk = !filters.dateFrom || (txDateObj ? txDateObj >= new Date(filters.dateFrom) : true)
       const toOk = !filters.dateTo || (txDateObj ? txDateObj <= new Date(`${filters.dateTo}T23:59:59`) : true)
       const statusOk = filters.status === '__all__' || tx.status === filters.status
-      const clientOk = filters.client === '__all__' || tx.clientName === filters.client
+      const clientOk = filters.client === '__all__' || tx.clientName.toLowerCase().includes(filters.client.toLowerCase())
       return fromOk && toOk && statusOk && clientOk
     })
   }, [transactions, filters])
@@ -599,8 +605,8 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="w-full space-y-8 bg-background text-foreground min-h-screen">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Billing & Ledger</h1>
           <p className="text-muted-foreground text-sm">Professional invoicing and financial fee management.</p>
@@ -614,461 +620,459 @@ export default function BillingPage() {
         </Button>
       </header>
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-primary to-blue-800 text-white">
-          <CardContent className="p-6 relative">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Receipt size={100} weight="duotone" />
-            </div>
-            <div className="flex items-center justify-between mb-6 relative z-10">
-              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <CurrencyDollar size={24} weight="bold" />
+      <div className="mx-4 md:mx-8 pb-8 space-y-8">
+        {/* Stats Cards */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-primary to-blue-800 text-white">
+            <CardContent className="p-6 relative">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Receipt size={100} weight="duotone" />
               </div>
-              <CreditCard size={24} weight="fill" className="opacity-50" />
-            </div>
-            <div className="text-sm text-white/70 relative z-10">Total Revenue</div>
-            <div className="text-3xl font-bold leading-none mt-1 relative z-10">{formatAmount(stats.totalRevenue)}</div>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium relative z-10">
-              <ChartLineUp size={16} />
-              <span>All time revenue</span>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <CurrencyDollar size={24} weight="bold" />
+                </div>
+                <CreditCard size={24} weight="fill" className="opacity-50" />
+              </div>
+              <div className="text-sm text-white/70 relative z-10">Total Revenue</div>
+              <div className="text-3xl font-bold leading-none mt-1 relative z-10">{formatAmount(stats.totalRevenue)}</div>
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium relative z-10">
+                <ChartLineUp size={16} />
+                <span>All time revenue</span>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card 
-          className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
-          onClick={() => setFilters(prev => ({ 
-            ...prev, 
-            status: (prev.status === 'OVERDUE' || prev.status === 'PARTIALLY_PAID' || prev.status === 'DRAFT')
-              ? '__all__' 
-              : 'OVERDUE' 
-          }))}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <WarningCircle size={24} weight="bold" />
+          <Card 
+            className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            onClick={() => setFilters(prev => ({ 
+              ...prev, 
+              status: (prev.status === 'OVERDUE') ? '__all__' : 'OVERDUE' 
+            }))}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <WarningCircle size={24} weight="bold" />
+                </div>
               </div>
-            </div>
-            <div className="text-sm text-white/70">Outstanding</div>
-            <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.outstanding)}</div>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium">
-              <Clock size={16} />
-              <span>{stats.overdueCount} overdue</span>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="text-sm text-white/70">Outstanding</div>
+              <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.outstanding)}</div>
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium">
+                <Clock size={16} />
+                <span>{stats.overdueCount} overdue</span>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card 
-          className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
-          onClick={() => setFilters(prev => ({ 
-            ...prev, 
-            status: (prev.status === 'PAID')
-              ? '__all__' 
-              : 'PAID' 
-          }))}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <ArrowUpRight size={24} weight="bold" />
+          <Card 
+            className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            onClick={() => setFilters(prev => ({ 
+              ...prev, 
+              status: (prev.status === 'PAID') ? '__all__' : 'PAID' 
+            }))}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <ArrowUpRight size={24} weight="bold" />
+                </div>
+                <ChartLineUp size={24} weight="fill" className="opacity-50" />
               </div>
-              <ChartLineUp size={24} weight="fill" className="opacity-50" />
-            </div>
-            <div className="text-sm text-white/70">Paid (MTD)</div>
-            <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.paidMtd)}</div>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium">
-              <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">Active</span>
-              <span>Across {stats.clientCount} clients</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <div className="text-sm text-white/70">Paid (MTD)</div>
+              <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.paidMtd)}</div>
+              <div className="mt-4 flex items-center gap-2 text-sm font-medium">
+                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">Active</span>
+                <span>Across {stats.clientCount} clients</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Filters */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-lg">Transaction History</CardTitle>
-              {filters.status !== '__all__' && (
-                <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
-                  Filter: {filters.status} <X size={12} className="ml-1" />
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                <Input
-                  placeholder="Search..."
-                  className="pl-9 w-[200px] bg-background"
-                  value={filters.client === '__all__' ? '' : filters.client}
-                  onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value || '__all__' }))}
-                />
+        {/* Filters */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg">Transaction History</CardTitle>
+                {filters.status !== '__all__' && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
+                    Filter: {filters.status} <X size={12} className="ml-1" />
+                  </Badge>
+                )}
               </div>
-              <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
-                <SelectTrigger className="w-[140px] bg-background">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All Status</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                  <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
-                  <SelectItem value="OVERDUE">Overdue</SelectItem>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={resetFilters}>
-                <X size={14} /> Clear
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {filteredTransactions.length === 0 ? (
-            <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
-              <div className="h-16 w-16 bg-muted flex items-center justify-center rounded-2xl">
-                <Receipt size={32} className="text-muted-foreground opacity-50" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">No transactions found</h3>
-                <p className="text-muted-foreground text-sm">Your ledger will appear here once invoices are generated.</p>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                  <Input
+                    placeholder="Search..."
+                    className="pl-9 w-[200px] bg-background"
+                    value={filters.client === '__all__' ? '' : filters.client}
+                    onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value || '__all__' }))}
+                  />
+                </div>
+                <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
+                  <SelectTrigger className="w-[140px] bg-background">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Status</SelectItem>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
+                    <SelectItem value="OVERDUE">Overdue</SelectItem>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={resetFilters}>
+                  <X size={14} /> Clear
+                </Button>
               </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 font-semibold">Client</th>
-                    <th className="px-6 py-3 font-semibold">Trademark</th>
-                    <th className="px-6 py-3 font-semibold">Type</th>
-                    <th className="px-6 py-3 font-semibold">Date</th>
-                    <th className="px-6 py-3 font-semibold">Amount</th>
-                    <th className="px-6 py-3 font-semibold">Status</th>
-                    <th className="px-6 py-3 font-semibold text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {paginatedTransactions.map((tx, index) => (
-                    <tr
-                      key={tx.id}
-                      className="group hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/invoicing/${tx.id}`)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="font-medium">{tx.clientName || 'Client'}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium">{tx.markName || '—'}</div>
-                      </td>
-                      <td className="px-6 py-4 font-medium">{tx.type}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{tx.date}</td>
-                      <td className="px-6 py-4 font-bold">{formatAmount(tx.amount, tx.currency)}</td>
-                      <td className="px-6 py-4">
-                        <Badge 
-                          variant={
-                            tx.status === 'PAID' ? 'default' : 
-                            tx.status === 'PARTIALLY_PAID' ? 'secondary' :
-                            tx.status === 'OVERDUE' ? 'destructive' : 'outline'
-                          }
-                          className={`font-medium ${
-                            tx.status === 'PAID' ? 'bg-green-500 hover:bg-green-600' :
-                            tx.status === 'PARTIALLY_PAID' ? 'bg-blue-500 hover:bg-blue-600' :
-                            tx.status === 'OVERDUE' ? 'bg-red-500 hover:bg-red-600' :
-                            'bg-gray-500 hover:bg-gray-600'
-                          }`}
-                        >
-                          {tx.status === 'PARTIALLY_PAID' ? 'Partially Paid' : tx.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          {tx.status !== 'PAID' && (
+          </CardHeader>
+          <CardContent className="p-0">
+            {filteredTransactions.length === 0 ? (
+              <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
+                <div className="h-16 w-16 bg-muted flex items-center justify-center rounded-2xl">
+                  <Receipt size={32} className="text-muted-foreground opacity-50" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">No transactions found</h3>
+                  <p className="text-muted-foreground text-sm">Your ledger will appear here once invoices are generated.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="px-6 py-3 font-semibold">Client</th>
+                      <th className="px-6 py-3 font-semibold">Trademark</th>
+                      <th className="px-6 py-3 font-semibold">Type</th>
+                      <th className="px-6 py-3 font-semibold">Date</th>
+                      <th className="px-6 py-3 font-semibold">Amount</th>
+                      <th className="px-6 py-3 font-semibold">Status</th>
+                      <th className="px-6 py-3 font-semibold text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {paginatedTransactions.map((tx) => (
+                      <tr
+                        key={tx.id}
+                        className="group hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/invoicing/${tx.id}`)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="font-medium">{tx.clientName || 'Client'}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium">{tx.markName || '—'}</div>
+                        </td>
+                        <td className="px-6 py-4 font-medium">{tx.type}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{tx.date}</td>
+                        <td className="px-6 py-4 font-bold">{formatAmount(tx.amount, tx.currency)}</td>
+                        <td className="px-6 py-4">
+                          <Badge 
+                            variant={
+                              tx.status === 'PAID' ? 'default' : 
+                              tx.status === 'PARTIALLY_PAID' ? 'secondary' :
+                              tx.status === 'OVERDUE' ? 'destructive' : 'outline'
+                            }
+                            className={`font-medium ${
+                              tx.status === 'PAID' ? 'bg-green-500 hover:bg-green-600' :
+                              tx.status === 'PARTIALLY_PAID' ? 'bg-blue-500 hover:bg-blue-600' :
+                              tx.status === 'OVERDUE' ? 'bg-red-500 hover:bg-red-600' :
+                              'bg-gray-500 hover:bg-gray-600'
+                            }`}
+                          >
+                            {tx.status === 'PARTIALLY_PAID' ? 'Partially Paid' : tx.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            {tx.status !== 'PAID' && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedInvoice(tx)
+                                  setPaymentData(prev => ({ ...prev, amount: tx.amount.toString() }))
+                                  setIsPaymentModalOpen(true)
+                                }}
+                                title="Record Payment"
+                              >
+                                <CheckCircle size={16} />
+                              </Button>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setSelectedInvoice(tx)
-                                setPaymentData(prev => ({ ...prev, amount: tx.amount.toString() }))
-                                setIsPaymentModalOpen(true)
+                                handleDownload(tx)
                               }}
-                              title="Record Payment"
+                              title="Download PDF"
                             >
-                              <CheckCircle size={16} />
+                              <Download size={16} />
                             </Button>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDownload(tx)
-                            }}
-                            title="Download PDF"
-                          >
-                            <Download size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          
-          {filteredTransactions.length > 0 && (
-            <div className="flex items-center justify-between border-t px-6 py-4">
-              <div className="text-sm text-muted-foreground">
-                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of{' '}
-                <span className="font-medium">{filteredTransactions.length}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <CaretLeft size={16} />
-                </Button>
-                <span className="text-sm px-2">
-                  Page <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  <CaretRight size={16} />
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Payment Recording Modal */}
-      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bank size={20} className="text-primary" />
-              Record Payment
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Amount Received</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
-                <Input 
-                  type="number"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Payment Date</Label>
-                <DatePicker 
-                  date={paymentData.paymentDate ? new Date(paymentData.paymentDate) : undefined}
-                  onDateChange={(date) => setPaymentData({...paymentData, paymentDate: date ? date.toISOString().split('T')[0] : ''})}
-                  placeholder="Select payment date"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Method</Label>
-                <Select 
-                  value={paymentData.paymentMethod}
-                  onValueChange={(val) => setPaymentData({...paymentData, paymentMethod: val})}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
-                    <SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="CHECK">Check</SelectItem>
-                    <SelectItem value="MOBILE_MONEY">Mobile Money</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Reference Number</Label>
-              <Input 
-                value={paymentData.referenceNumber}
-                onChange={(e) => setPaymentData({...paymentData, referenceNumber: e.target.value})}
-                placeholder="Receipt # or Bank Ref"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea 
-                value={paymentData.notes}
-                onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleRecordPayment}>Post Payment</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Invoice Modal */}
-      <Dialog open={isCreateInvoiceModalOpen} onOpenChange={setIsCreateInvoiceModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileArrowDown size={20} className="text-primary" />
-              Create New Invoice
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Client *</Label>
-                <Select 
-                  value={newInvoice.clientId}
-                  onValueChange={(val) => setNewInvoice({...newInvoice, clientId: val})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </tbody>
+                </table>
               </div>
-
-              <div className="space-y-2">
-                <Label>Currency</Label>
-                <Select 
-                  value={newInvoice.currency}
-                  onValueChange={(val) => setNewInvoice({...newInvoice, currency: val})}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD - US Dollars</SelectItem>
-                    <SelectItem value="ETB">ETB - Ethiopian Birr</SelectItem>
-                    <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Due Date</Label>
-                <DatePicker 
-                  date={newInvoice.dueDate ? new Date(newInvoice.dueDate) : undefined}
-                  onDateChange={(date) => setNewInvoice({...newInvoice, dueDate: date ? date.toISOString().split('T')[0] : ''})}
-                  placeholder="Select due date"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total Amount</Label>
-                <div className="h-10 px-3 flex items-center bg-muted rounded-md border font-bold">
-                  {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
-                  {totalInvoiceAmount.toLocaleString()}
+            )}
+            
+            {filteredTransactions.length > 0 && (
+              <div className="flex items-center justify-between border-t px-6 py-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of{' '}
+                  <span className="font-medium">{filteredTransactions.length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <CaretLeft size={16} />
+                  </Button>
+                  <span className="text-sm px-2">
+                    Page <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <CaretRight size={16} />
+                  </Button>
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Payment Recording Modal */}
+        <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Bank size={20} className="text-primary" />
+                Record Payment
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Amount Received</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
+                  <Input 
+                    type="number"
+                    value={paymentData.amount}
+                    onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Payment Date</Label>
+                  <DatePicker 
+                    date={paymentData.paymentDate ? new Date(paymentData.paymentDate) : undefined}
+                    onDateChange={(date) => setPaymentData({...paymentData, paymentDate: date ? date.toISOString().split('T')[0] : ''})}
+                    placeholder="Select payment date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Method</Label>
+                  <Select 
+                    value={paymentData.paymentMethod}
+                    onValueChange={(val) => setPaymentData({...paymentData, paymentMethod: val})}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                      <SelectItem value="CASH">Cash</SelectItem>
+                      <SelectItem value="CHECK">Check</SelectItem>
+                      <SelectItem value="MOBILE_MONEY">Mobile Money</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Reference Number</Label>
+                <Input 
+                  value={paymentData.referenceNumber}
+                  onChange={(e) => setPaymentData({...paymentData, referenceNumber: e.target.value})}
+                  placeholder="Receipt # or Bank Ref"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Textarea 
+                  value={paymentData.notes}
+                  onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                />
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Line Items *</Label>
-                <Button variant="ghost" size="sm" onClick={addLineItem}>
-                  <Plus size={14} /> Add Item
-                </Button>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleRecordPayment}>Post Payment</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Invoice Modal */}
+        <Dialog open={isCreateInvoiceModalOpen} onOpenChange={setIsCreateInvoiceModalOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileArrowDown size={20} className="text-primary" />
+                Create New Invoice
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Client *</Label>
+                  <Select 
+                    value={newInvoice.clientId}
+                    onValueChange={(val) => setNewInvoice({...newInvoice, clientId: val})}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Currency</Label>
+                  <Select 
+                    value={newInvoice.currency}
+                    onValueChange={(val) => setNewInvoice({...newInvoice, currency: val})}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD - US Dollars</SelectItem>
+                      <SelectItem value="ETB">ETB - Ethiopian Birr</SelectItem>
+                      <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
-              <div className="space-y-3">
-                {lineItems.map((item, index) => (
-                  <div key={index} className="flex gap-3 items-start p-4 bg-muted/30 rounded-lg border">
-                    <div className="flex-1 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label className="text-xs">Fee Type</Label>
-                          <Select 
-                            value={item.category}
-                            onValueChange={(val) => updateLineItem(index, 'category', val)}
-                          >
-                            <SelectTrigger><SelectValue placeholder="Select a fee..." /></SelectTrigger>
-                            <SelectContent>
-                              {EIPO_FEES.map((fee) => (
-                                <SelectItem key={fee.code} value={fee.code}>
-                                  {fee.description} ({fee.amount.toLocaleString()} ETB)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs">Amount</Label>
-                          <Input 
-                            type="number"
-                            placeholder="0.00"
-                            value={item.amount}
-                            onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <Input 
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                      />
-                    </div>
-                    {lineItems.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeLineItem(index)}
-                        className="text-destructive"
-                      >
-                        <Trash size={16} />
-                      </Button>
-                    )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Due Date</Label>
+                  <DatePicker 
+                    date={newInvoice.dueDate ? new Date(newInvoice.dueDate) : undefined}
+                    onDateChange={(date) => setNewInvoice({...newInvoice, dueDate: date ? date.toISOString().split('T')[0] : ''})}
+                    placeholder="Select due date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Amount</Label>
+                  <div className="h-10 px-3 flex items-center bg-muted rounded-md border font-bold">
+                    {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
+                    {totalInvoiceAmount.toLocaleString()}
                   </div>
-                ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Line Items *</Label>
+                  <Button variant="ghost" size="sm" onClick={addLineItem}>
+                    <Plus size={14} /> Add Item
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {lineItems.map((item, index) => (
+                    <div key={index} className="flex gap-3 items-start p-4 bg-muted/30 rounded-lg border">
+                      <div className="flex-1 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Fee Type</Label>
+                            <Select 
+                              value={item.category}
+                              onValueChange={(val) => updateLineItem(index, 'category', val)}
+                            >
+                              <SelectTrigger><SelectValue placeholder="Select a fee..." /></SelectTrigger>
+                              <SelectContent>
+                                {EIPO_FEES.map((fee) => (
+                                  <SelectItem key={fee.code} value={fee.code}>
+                                    {fee.description} ({fee.amount.toLocaleString()} ETB)
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Amount</Label>
+                            <Input 
+                              type="number"
+                              placeholder="0.00"
+                              value={item.amount}
+                              onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <Input 
+                          placeholder="Description"
+                          value={item.description}
+                          onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        />
+                      </div>
+                      {lineItems.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeLineItem(index)}
+                          className="text-destructive"
+                        >
+                          <Trash size={16} />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Textarea 
+                  value={newInvoice.notes}
+                  onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
+                  placeholder="Internal notes..."
+                />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Notes (Optional)</Label>
-              <Textarea 
-                value={newInvoice.notes}
-                onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
-                placeholder="Internal notes..."
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateInvoiceModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateInvoice} disabled={creatingInvoice}>
-              {creatingInvoice ? 'Creating...' : 'Create Invoice'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateInvoiceModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateInvoice} disabled={creatingInvoice}>
+                {creatingInvoice ? 'Creating...' : 'Create Invoice'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }

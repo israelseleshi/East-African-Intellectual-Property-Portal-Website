@@ -111,6 +111,20 @@ html.dark {
 }
 
 @layer base {
+  @font-face {
+    font-family: 'Abyssinica SIL';
+    src: url('/fonts/AbyssinicaSIL-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+.font-amharic {
+  font-family: 'Abyssinica SIL', 'JetBrains Mono Variable', sans-serif !important;
+}
+
+@layer base {
   * {
     border-color: hsl(var(--border));
     @apply border-border outline-ring/50;
