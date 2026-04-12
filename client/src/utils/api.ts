@@ -46,13 +46,50 @@ export const documentService = {
 
 export const invoiceService = {
   create: financialsApi.createInvoice,
-  getAll: financialsApi.listInvoices
+  getAll: financialsApi.listInvoices,
+  listDeleted: financialsApi.listDeletedInvoices,
+  restore: financialsApi.restoreInvoice
 };
 
 export const metaService = {
   getNiceClasses: async () => {
     const response = await api.get('/nice-classes');
     return response.data;
+  }
+};
+
+export const systemService = {
+  getTrash: async () => {
+    // Collect from multiple trash endpoints
+    const [cases, clients, invoices] = await Promise.all([
+      api.get('/cases/trash'),
+      api.get('/clients/trash').catch(() => ({ data: [] })),
+      financialsApi.listDeletedInvoices().catch(() => [])
+    ]);
+    
+    const formattedCases = (cases.data || []).map((c: any) => ({ ...c, type: 'trademark_cases' }));
+    const formattedClients = (clients.data || []).map((c: any) => ({ ...c, type: 'clients' }));
+    const formattedInvoices = (invoices || []).map((i: any) => ({ ...i, type: 'invoices' }));
+
+    return {
+      items: [...formattedCases, ...formattedClients, ...formattedInvoices].sort(
+        (a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime()
+      )
+    };
+  },
+  restoreFromTrash: async (type: string, id: string) => {
+    if (type === 'invoices') {
+      return financialsApi.restoreInvoice(id);
+    }
+    const endpoint = type === 'trademark_cases' ? '/cases' : '/clients';
+    return api.post(`${endpoint}/${id}/restore`);
+  },
+  purgeFromTrash: async (type: string, id: string) => {
+    if (type === 'invoices') {
+      return financialsApi.deleteInvoice(id);
+    }
+    const endpoint = type === 'trademark_cases' ? `/cases/${id}/permanent` : `/clients/${id}/permanent`;
+    return api.delete(endpoint);
   }
 };
 

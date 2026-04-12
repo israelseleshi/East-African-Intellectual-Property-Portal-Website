@@ -136,8 +136,8 @@ async listInvoices() {
     return invoicesWithItems;
   },
 
-  async getInvoiceById(invoiceId: string) {
-    const invoice = await financialRepository.getInvoiceById(invoiceId);
+  async getInvoiceById(invoiceId: string, includeDeleted = false) {
+    const invoice = await financialRepository.getInvoiceById(invoiceId, includeDeleted);
     if (!invoice) return null;
 
     const [items, payments] = await Promise.all([
@@ -213,5 +213,14 @@ async listInvoices() {
     } finally {
       connection.release();
     }
+  },
+
+  async restoreInvoice(invoiceId: string) {
+    await financialRepository.restoreInvoice(invoiceId);
+    return { success: true as const };
+  },
+
+  async listDeletedInvoices() {
+    return financialRepository.listDeletedInvoices();
   }
 };

@@ -134,16 +134,17 @@ export const financialRepository = {
     return rows as RowDataPacket[];
   },
 
-  async getInvoiceById(invoiceId: string): Promise<RowDataPacket | null> {
+  async getInvoiceById(invoiceId: string, includeDeleted = false): Promise<RowDataPacket | null> {
+    const deletedClause = includeDeleted ? '' : 'AND i.deleted_at IS NULL';
     const [rows] = await pool.execute(
       `SELECT i.*, c.name AS client_name,
               tc.id AS trademark_id,
               tc.mark_name
        FROM invoices i
        JOIN clients c ON c.id = i.client_id
-       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id AND ii.deleted_at IS NULL
+       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id ${includeDeleted ? '' : 'AND ii.deleted_at IS NULL'}
        LEFT JOIN trademark_cases tc ON tc.id = ii.case_id
-       WHERE i.id = ? AND i.deleted_at IS NULL
+       WHERE i.id = ? ${deletedClause}
        ORDER BY ii.id ASC
        LIMIT 1`,
       [invoiceId]
@@ -212,5 +213,26 @@ export const financialRepository = {
         [item.id, invoiceId, item.caseId ?? null, item.description, item.category, item.amount]
       );
     }
+  },
+
+  async restoreInvoice(invoiceId: string): Promise<void> {
+    await pool.execute('UPDATE invoice_items SET deleted_at = NULL WHERE invoice_id = ?', [invoiceId]);
+    await pool.execute('UPDATE invoices SET deleted_at = NULL WHERE id = ?', [invoiceId]);
+  },
+
+  async listDeletedInvoices(): Promise<RowDataPacket[]> {
+    const [rows] = await pool.execute(`
+      SELECT i.*, c.name as client_name,
+             tc.id as trademark_id,
+             tc.mark_name
+      FROM invoices i
+      JOIN clients c ON i.client_id = c.id
+      LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+      LEFT JOIN trademark_cases tc ON tc.id = ii.case_id
+      WHERE i.deleted_at IS NOT NULL
+      GROUP BY i.id
+      ORDER BY i.deleted_at DESC
+    `);
+    return rows as RowDataPacket[];
   }
 };

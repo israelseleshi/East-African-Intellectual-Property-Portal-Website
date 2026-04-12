@@ -3,7 +3,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { getConnection } from '../database/db.js';
+import { getConnection, pool } from '../database/db.js';
 import { CASE_FLOW_STAGES } from '../database/types.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { caseQueryService } from '../services/caseQueryService.js';
@@ -11,6 +11,7 @@ import { caseLifecycleService } from '../services/caseLifecycleService.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 import { uploadDir } from '../utils/constants.js';
 import { sanitizeFilename } from '../utils/filing.js';
+import { ResultSetHeader } from 'mysql2';
 
 const router = express.Router();
 
@@ -303,6 +304,92 @@ const extractNiceClasses = (payload: Record<string, unknown>): Array<{ classNo: 
 
 const hasAgentData = (agent: Record<string, string | null | undefined>): boolean =>
   Object.values(agent).some((value) => typeof value === 'string' && value.trim().length > 0);
+
+router.get('/trash', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT id, mark_name as name, deleted_at, status, jurisdiction
+      FROM trademark_cases 
+      WHERE deleted_at IS NOT NULL
+      ORDER BY deleted_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    logRouteError(req, 'cases.trash', error);
+    sendApiError(req, res, 500, { code: 'TRASH_FETCH_FAILED', message: 'Failed to fetch trash' });
+  }
+});
+
+router.post('/:id/restore', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      'UPDATE trademark_cases SET deleted_at = NULL WHERE id = ?',
+      [req.params.id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Case not found in trash' });
+    }
+    res.json({ success: true, message: 'Case restored' });
+  } catch (error) {
+    logRouteError(req, 'cases.restore', error);
+    sendApiError(req, res, 500, { code: 'RESTORE_FAILED', message: 'Failed to restore case' });
+  }
+});
+
+router.delete('/:id/permanent', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      'DELETE FROM trademark_cases WHERE id = ? AND deleted_at IS NOT NULL',
+      [req.params.id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Case not found in trash or already purged' });
+    }
+    res.json({ success: true, message: 'Case permanently deleted' });
+  } catch (error) {
+    logRouteError(req, 'cases.permanentDelete', error);
+    sendApiError(req, res, 500, { code: 'DELETE_FAILED', message: 'Failed to purge case' });
+  }
+});
+
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      'UPDATE trademark_cases SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
+      [req.params.id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Case not found or already deleted' });
+    }
+    res.json({ success: true, message: 'Case moved to trash' });
+  } catch (error) {
+    logRouteError(req, 'cases.delete', error);
+    sendApiError(req, res, 500, { code: 'DELETE_FAILED', message: 'Failed to delete case' });
+  }
+});
+
+router.post('/bulk-delete', authenticateToken, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return sendApiError(req, res, 400, { code: 'INVALID_IDS', message: 'Invalid or empty ids array' });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    const [result] = await pool.execute(
+      `UPDATE trademark_cases SET deleted_at = NOW() WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+      ids
+    ) as [ResultSetHeader, unknown[]];
+
+    res.json({ success: true, deleted: result.affectedRows, message: `${result.affectedRows} case(s) moved to trash` });
+  } catch (error) {
+    logRouteError(req, 'cases.bulkDelete', error);
+    sendApiError(req, res, 500, { code: 'BULK_DELETE_FAILED', message: 'Failed to bulk delete cases' });
+  }
+});
 
 router.get('/', authenticateToken, async (req, res) => {
   try {

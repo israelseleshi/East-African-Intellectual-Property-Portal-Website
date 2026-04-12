@@ -40,5 +40,10 @@ export const casesApi = {
   async remove(id: string) {
     const response = await apiClient.delete(`/cases/${id}`);
     return response.data;
+  },
+
+  async bulkDelete(ids: string[]) {
+    const response = await apiClient.post('/cases/bulk-delete', { ids });
+    return response.data;
   }
 };

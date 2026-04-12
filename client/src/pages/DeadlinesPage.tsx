@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const JURISDICTION_FLAGS: Record<string, string> = {
   ALL: '🌍',
@@ -139,7 +140,7 @@ export default function DeadlinesPage() {
 
   if (loading) {
     return (
-      <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
+      <div className="w-full p-4 md:p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
         <header className="flex items-center justify-between">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-10 w-64" />
@@ -153,7 +154,7 @@ export default function DeadlinesPage() {
   }
 
   return (
-    <div className="w-full space-y-8 bg-background text-foreground min-h-screen">
+    <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Statutory Deadlines</h1>
@@ -168,10 +169,10 @@ export default function DeadlinesPage() {
               <div className="flex items-center gap-3">
                 <div className="relative flex-1 md:w-[200px]">
                   <Funnel className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                  <Input placeholder="Search deadlines..." className="pl-9 bg-background" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  <Input placeholder="Search deadlines..." className="pl-9 bg-[#E8E8ED]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
                 <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
-                  <SelectTrigger className="w-[140px] bg-background"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectTrigger className="w-[140px] bg-[#E8E8ED]"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
@@ -200,7 +201,7 @@ export default function DeadlinesPage() {
                 </DropdownMenu>
 
                 <Select value={trademarkFilter} onValueChange={setTrademarkFilter}>
-                  <SelectTrigger className="w-[180px] bg-background"><SelectValue placeholder="All Trademarks" /></SelectTrigger>
+                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]"><SelectValue placeholder="All Trademarks" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Trademarks</SelectItem>
                     {uniqueTrademarks.map(t => (<SelectItem key={t} value={t || ''}>{t}</SelectItem>))}
@@ -208,7 +209,7 @@ export default function DeadlinesPage() {
                 </Select>
 
                 <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger className="w-[180px] bg-background"><SelectValue placeholder="All Clients" /></SelectTrigger>
+                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]"><SelectValue placeholder="All Clients" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Clients</SelectItem>
                     {uniqueClients.map(c => (<SelectItem key={c} value={c || ''}>{c}</SelectItem>))}
@@ -227,30 +228,32 @@ export default function DeadlinesPage() {
                   </h3>
                 </div>
                 {filteredDeadlines.length > 0 ? (
-                  <div className="divide-y divide-border h-[600px] overflow-y-auto">
-                    {filteredDeadlines.map((d) => {
-                      const daysLeft = getDaysRemaining(d.due_date)
-                      const isOverdue = daysLeft < 0
-                      const isUrgent = daysLeft >= 0 && daysLeft <= 7
-                      return (
-                        <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                          <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-lg border">
-                            <span className="text-[10px] font-bold uppercase">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
-                            <span className="text-lg font-bold leading-none">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold truncate">{d.mark || 'Unnamed Mark'}</h3>
-                              <Badge variant="outline" className="text-xs"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-1" />{d.jurisdiction}</Badge>
-                              <Badge className="text-xs">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
+                  <ScrollArea className="h-[600px]">
+                    <div className="divide-y divide-border">
+                      {filteredDeadlines.map((d) => {
+                        const daysLeft = getDaysRemaining(d.due_date)
+                        const isOverdue = daysLeft < 0
+                        const isUrgent = daysLeft >= 0 && daysLeft <= 7
+                        return (
+                          <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
+                            <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-lg border">
+                              <span className="text-[10px] font-bold uppercase">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
+                              <span className="text-lg font-bold leading-none">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
                             </div>
-                            <p className="text-sm text-muted-foreground truncate">{d.client}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold truncate">{d.mark || 'Unnamed Mark'}</h3>
+                                <Badge variant="outline" className="text-xs"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-1" />{d.jurisdiction}</Badge>
+                                <Badge className="text-xs">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">{d.client}</p>
+                            </div>
+                            <ChevronsRight size={20} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
                           </div>
-                          <ChevronsRight size={20} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      )
-                    })}
-                  </div>
+                        )
+                      })}
+                    </div>
+                  </ScrollArea>
                 ) : (
                   <div className="px-6 py-12 text-center">
                     <CalendarIcon size={48} className="mx-auto text-muted-foreground opacity-50 mb-4" />
@@ -270,7 +273,7 @@ export default function DeadlinesPage() {
                       value={currentMonth.getFullYear().toString()}
                       onValueChange={(val) => setYear(parseInt(val))}
                     >
-                      <SelectTrigger className="h-8 w-[100px] border-none bg-transparent hover:bg-muted font-semibold text-lg p-0 focus:ring-0">
+                      <SelectTrigger className="h-8 w-[100px] border border-black bg-transparent hover:bg-muted font-semibold text-lg px-2 focus:ring-0">
                         <SelectValue placeholder="Year" />
                       </SelectTrigger>
                       <SelectContent>
@@ -286,7 +289,7 @@ export default function DeadlinesPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-center text-sm">
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (<div key={day} className="font-bold text-muted-foreground py-2">{day}</div>))}
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (<div key={`header-${day}-${idx}`} className="font-bold text-muted-foreground py-2">{day}</div>))}
                   {Array.from({ length: startDayOfMonth(currentMonth) }).map((_, i) => (<div key={`empty-${i}`} className="py-2" />))}
                   {Array.from({ length: daysInMonth(currentMonth) }, (_, i) => i + 1).map(day => {
                     const hasDeadline = isDeadlineOnDate(day)
@@ -297,7 +300,7 @@ export default function DeadlinesPage() {
                         className={`py-3 rounded-lg transition-all cursor-pointer relative text-center 
                           ${isSelected(day) ? "bg-primary text-primary-foreground shadow-md font-bold" : "hover:bg-muted/50"} 
                           ${isToday(day) ? "ring-2 ring-primary ring-offset-2" : ""} 
-                          ${hasDeadline && !isSelected(day) ? "text-primary" : ""}`}
+                          ${hasDeadline && !isSelected(day) ? "bg-orange-100 text-orange-600 font-bold" : ""}`}
                       >
                         {day}
                         {hasDeadline && isToday(day) && !isSelected(day) && (
@@ -312,13 +315,8 @@ export default function DeadlinesPage() {
                     <div className="text-xs font-bold uppercase text-muted-foreground mb-3">{selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</div>
                     <div className="space-y-2">
                       {(() => {
-                        const selectedDeadlines = filteredDeadlines.filter(d => {
-                            if (!d.due_date || !selectedDate) return false;
-                            const dDate = new Date(d.due_date);
-                            return dDate.getFullYear() === selectedDate.getFullYear() && 
-                                   dDate.getMonth() === selectedDate.getMonth() && 
-                                   dDate.getDate() === selectedDate.getDate();
-                        });
+                        const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+                        const selectedDeadlines = filteredDeadlines.filter(d => d.due_date && d.due_date.startsWith(selectedDateStr))
                         if (selectedDeadlines.length === 0) return <p className="text-sm text-muted-foreground">No deadlines</p>
                         return selectedDeadlines.map(d => (
                           <div key={d.id} className="p-3 bg-muted/50 rounded-lg flex items-center justify-between border border-border/50 hover:bg-muted transition-colors cursor-pointer" onClick={() => navigate(`/deadlines/${d.id}`)}>

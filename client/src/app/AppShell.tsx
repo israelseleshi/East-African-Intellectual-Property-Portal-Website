@@ -11,7 +11,8 @@ import { usePageTitleStore } from '../store/pageTitleStore'
 import { applyTheme, getInitialTheme, type ThemeMode } from './theme'
 import { useHotkeys } from './useHotkeys'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarProvider, useSidebar } from '@/components/ui/sidebar'
+import { Menu } from "lucide-react"
 
 const pageVariants: Variants = {
   initial: {
@@ -63,8 +64,8 @@ function usePageTitle() {
         return 'Clients'
       case '/clients/new':
         return 'New Client'
-      case '/invoicing':
-        return 'Invoicing'
+      case '/billing':
+        return 'Billing'
       case '/reports':
         return 'Reports'
       case '/help':
@@ -98,6 +99,22 @@ function usePageTitle() {
   }, [title])
 
   return title
+}
+
+function MobileMenuButton() {
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  if (!isMobile) return null
+
+  return (
+    <button
+      onClick={() => setOpenMobile(true)}
+      className="flex items-center justify-center p-4 md:hidden"
+      aria-label="Open sidebar"
+    >
+      <Menu className="h-6 w-6" />
+    </button>
+  )
 }
 
 export default function AppShell() {
@@ -173,11 +190,13 @@ export default function AppShell() {
       <div className="flex h-screen w-full overflow-hidden light">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <TopBar
+          {/* <TopBar
             title={title}
             onOpenCommand={() => setCommandOpen(true)}
-          />
+          /> */}
           <main className="flex-1 overflow-hidden bg-[var(--auth-page-bg)]">
+            {/* Top row with hamburger icon for mobile to open sidebar */}
+            <MobileMenuButton />
             <ScrollArea className="h-full">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -186,29 +205,32 @@ export default function AppShell() {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="w-full"
+                  className="w-full overflow-hidden"
                 >
                   <Outlet />
                 </motion.div>
               </AnimatePresence>
             </ScrollArea>
           </main>
-          <div className="text-[11px] text-muted-foreground px-4 pb-2 text-right">
-            {version.gitSha ? `Build ${version.gitSha.slice(0, 7)}${version.buildTime ? ` • ${version.buildTime}` : ''}` : 'Build EAIP-1.0.0-PROD'}
-          </div>
         </div>
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
         <AppTour />
         <Toaster 
-          position="top-right" 
-          closeButton 
+          position="top-right"
+          closeButton={false}
           richColors 
           toastOptions={{
+            style: {
+              background: '#15803d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0px',
+            },
             classNames: {
-              success: 'bg-green-600 text-white border-green-700',
-              error: 'bg-red-600 text-white border-red-700',
-              info: 'bg-blue-600 text-white border-blue-700',
-              warning: 'bg-yellow-600 text-white border-yellow-700',
+              success: '!bg-green-700 !text-white',
+              error: '!bg-red-700 !text-white',
+              info: '!bg-blue-700 !text-white',
+              warning: '!bg-yellow-600 !text-white',
             }
           }}
         />

@@ -128,6 +128,20 @@ router.get('/invoices', authenticateToken, requireSuperAdmin, async (req, res) =
     }
 });
 
+// IMPORTANT: /invoices/trash must come BEFORE /invoices/:id to avoid route conflict
+router.get('/invoices/trash', authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+        const rows = await financialService.listDeletedInvoices();
+        res.json(rows);
+    } catch (error) {
+        logRouteError(req, 'financials.listDeletedInvoices', error);
+        sendApiError(req, res, 500, {
+            code: 'INVOICES_TRASH_FETCH_FAILED',
+            message: 'Failed to fetch deleted invoices'
+        });
+    }
+});
+
 router.get('/invoices/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const parsed = invoiceIdParamsSchema.safeParse(req.params);
@@ -139,7 +153,8 @@ router.get('/invoices/:id', authenticateToken, requireSuperAdmin, async (req, re
             });
         }
 
-        const invoice = await financialService.getInvoiceById(parsed.data.id);
+        const includeDeleted = req.query.includeDeleted === 'true';
+        const invoice = await financialService.getInvoiceById(parsed.data.id, includeDeleted);
         if (!invoice) {
             return sendApiError(req, res, 404, {
                 code: 'INVOICE_NOT_FOUND',
@@ -217,6 +232,28 @@ router.delete('/invoices/:id', authenticateToken, requireSuperAdmin, async (req,
         sendApiError(req, res, 500, {
             code: 'INVOICE_DELETE_FAILED',
             message: 'Failed to delete invoice'
+        });
+    }
+});
+
+router.post('/invoices/:id/restore', authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+        const parsed = invoiceIdParamsSchema.safeParse(req.params);
+        if (!parsed.success) {
+            return sendApiError(req, res, 400, {
+                code: 'INVALID_INVOICE_ID',
+                message: 'Invalid invoice id',
+                details: parsed.error.flatten()
+            });
+        }
+
+        const result = await financialService.restoreInvoice(parsed.data.id);
+        res.json(result);
+    } catch (error) {
+        logRouteError(req, 'financials.restoreInvoice', error);
+        sendApiError(req, res, 500, {
+            code: 'INVOICE_RESTORE_FAILED',
+            message: 'Failed to restore invoice'
         });
     }
 });

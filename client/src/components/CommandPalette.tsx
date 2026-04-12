@@ -50,7 +50,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
       { label: 'Trademarks', path: '/trademarks', icon: Archive },
       { label: 'Deadlines & Alerts', path: '/deadlines', icon: Clock },
       { label: 'EIPA Forms', path: '/eipa-forms', icon: FileText },
-      ...(canAccessFinance(user) ? [{ label: 'Invoicing', path: '/invoicing', icon: CreditCard }] : []),
+      ...(canAccessFinance(user) ? [{ label: 'Billing', path: '/billing', icon: CreditCard }] : []),
       { label: 'Clients', path: '/clients', icon: Users },
       { label: 'Trash', path: '/trash', icon: Trash },
       { label: 'Help & Support', path: '/help', icon: BookOpen }

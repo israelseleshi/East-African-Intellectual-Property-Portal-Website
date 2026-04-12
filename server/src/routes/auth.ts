@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { pool } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { JWT_SECRET } from '../utils/constants.js';
-import { sendVerificationEmail, sendWelcomeEmail } from '../utils/mailer.js';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOtp } from '../utils/mailer.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 import { logger } from '../utils/logger.js';
 
@@ -18,6 +18,8 @@ interface User {
   role: string;
   is_verified: boolean;
   is_active: boolean;
+  phone?: string;
+  firm_name?: string;
 }
 
 const loginSchema = z.object({
@@ -37,6 +39,17 @@ const registerSchema = z.object({
 const verifyOtpSchema = z.object({
   email: z.string().email(),
   otp: z.string().min(4)
+});
+
+const updateProfileSchema = z.object({
+  fullName: z.string().min(1).optional(),
+  phone: z.string().optional(),
+  firmName: z.string().optional()
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6)
 });
 
 const ACCESS_COOKIE = 'access_token';
@@ -142,7 +155,9 @@ router.post('/login', async (req, res) => {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        phone: user.phone,
+        firm_name: user.firm_name
       }
     });
   } catch (error) {
@@ -154,8 +169,108 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', authenticateToken, (req, res) => {
-  res.json(req.user);
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT id, full_name, email, role, phone, firm_name FROM users WHERE id = ?',
+      [req.user!.id]
+    );
+    const user = (rows as User[])[0];
+    if (!user) {
+      return sendApiError(req, res, 404, {
+        code: 'USER_NOT_FOUND',
+        message: 'User not found'
+      });
+    }
+    res.json(user);
+  } catch (error) {
+    logRouteError(req, 'auth.me', error);
+    return sendApiError(req, res, 500, {
+      code: 'INTERNAL_ERROR',
+      message: 'Failed to fetch user data'
+    });
+  }
+});
+
+router.patch('/profile', authenticateToken, async (req, res) => {
+  try {
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_PROFILE_PAYLOAD',
+        message: 'Invalid profile payload',
+        details: parsed.error.flatten()
+      });
+    }
+
+    const { fullName, phone, firmName } = parsed.data;
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    if (fullName) {
+      updates.push('full_name = ?');
+      params.push(fullName);
+    }
+    if (phone !== undefined) {
+      updates.push('phone = ?');
+      params.push(phone);
+    }
+    if (firmName !== undefined) {
+      updates.push('firm_name = ?');
+      params.push(firmName);
+    }
+
+    if (updates.length === 0) {
+      return res.json({ message: 'No changes provided' });
+    }
+
+    params.push(req.user!.id);
+    await pool.execute(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      params
+    );
+
+    res.json({ success: true, message: 'Profile updated successfully' });
+  } catch (error) {
+    logRouteError(req, 'auth.updateProfile', error);
+    sendApiError(req, res, 500, { code: 'PROFILE_UPDATE_FAILED', message: 'Failed to update profile' });
+  }
+});
+
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_PASSWORD_PAYLOAD',
+        message: 'Invalid password payload',
+        details: parsed.error.flatten()
+      });
+    }
+
+    const { currentPassword, newPassword } = parsed.data;
+    const [rows] = await pool.execute('SELECT password_hash FROM users WHERE id = ?', [req.user!.id]);
+    const user = (rows as Array<{ password_hash: string }>)[0];
+
+    if (!user) {
+      return sendApiError(req, res, 404, { code: 'USER_NOT_FOUND', message: 'User not found' });
+    }
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!validPassword) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, req.user!.id]);
+
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    logRouteError(req, 'auth.changePassword', error);
+    sendApiError(req, res, 500, { code: 'PASSWORD_CHANGE_FAILED', message: 'Failed to change password' });
+  }
 });
 
 router.post('/register', async (req, res) => {
@@ -251,7 +366,9 @@ router.post('/verify-otp', async (req, res) => {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        phone: user.phone,
+        firm_name: user.firm_name
       }
     });
   } catch (error) {
@@ -307,7 +424,16 @@ router.post('/refresh', async (req, res) => {
       [newJti, user.id, hashToken(newRefresh), REFRESH_DAYS]
     );
     setAuthCookies(res, newAccess, newRefresh);
-    res.json({ user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role } });
+    res.json({
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        firm_name: user.firm_name
+      }
+    });
   } catch (error) {
     logRouteError(req, 'auth.refresh', error);
     clearAuthCookies(res);
@@ -337,6 +463,83 @@ router.post('/logout', authenticateToken, async (req, res) => {
   } catch (error) {
     logRouteError(req, 'auth.logout', error);
     sendApiError(req, res, 500, { code: 'LOGOUT_FAILED', message: 'Logout failed' });
+  }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return sendApiError(req, res, 400, { code: 'EMAIL_REQUIRED', message: 'Email is required' });
+    }
+
+    const [rows] = await pool.execute('SELECT id, full_name, email FROM users WHERE email = ? AND is_active = 1', [email]);
+    const user = (rows as User[])[0];
+
+    if (!user) {
+      return res.json({ message: 'If an account exists with this email, a reset code has been sent.' });
+    }
+
+    const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetTokenHash = crypto.createHash('sha256').update(resetOtp).digest('hex');
+    const expiresAt = new Date(Date.now() + 600000); // 10 minutes
+
+    await pool.execute(
+      'UPDATE users SET reset_token_hash = ?, reset_token_expires_at = ? WHERE id = ?',
+      [resetTokenHash, expiresAt, user.id]
+    );
+
+    const emailSent = await sendPasswordResetOtp(user.email, user.full_name, resetOtp);
+    
+    if (!emailSent) {
+      return sendApiError(req, res, 500, { 
+        code: 'EMAIL_SEND_FAILED', 
+        message: 'Failed to send reset code. Please try again later.' 
+      });
+    }
+
+    res.json({ message: 'If an account exists with this email, a reset code has been sent.' });
+  } catch (error) {
+    console.error('FORGOT_PASSWORD_ERROR_DEBUG:', error);
+    logRouteError(req, 'auth.forgot-password', error);
+    sendApiError(req, res, 500, { 
+      code: 'FORGOT_PASSWORD_FAILED', 
+      message: 'Failed to process forgot password request',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    if (!email || !otp || !password) {
+      return sendApiError(req, res, 400, { code: 'MISSING_FIELDS', message: 'Email, OTP, and password are required' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const [rows] = await pool.execute(
+      'SELECT id FROM users WHERE email = ? AND reset_token_hash = ? AND reset_token_expires_at > NOW() AND is_active = 1',
+      [email, tokenHash]
+    );
+    const user = (rows as User[])[0];
+
+    if (!user) {
+      return sendApiError(req, res, 400, { code: 'INVALID_OR_EXPIRED_OTP', message: 'Invalid or expired reset code' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    await pool.execute(
+      'UPDATE users SET password_hash = ?, reset_token_hash = NULL, reset_token_expires_at = NULL WHERE id = ?',
+      [passwordHash, user.id]
+    );
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    logRouteError(req, 'auth.reset-password', error);
+    sendApiError(req, res, 500, { code: 'RESET_PASSWORD_FAILED', message: 'Failed to reset password' });
   }
 });
 

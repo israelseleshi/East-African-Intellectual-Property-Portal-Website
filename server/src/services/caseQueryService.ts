@@ -101,11 +101,11 @@ const buildEipaFormFromNormalizedData = (
     chk_list_other: toBool(caseData.chk_list_other),
     other_documents_text: '',
 
-    applicant_sign_day: '',
-    applicant_sign_month: '',
-    applicant_sign_year_en: '',
-    applicant_sign_day_en: '',
-    applicant_sign_month_en: '',
+    applicant_sign_day: (caseData as any).applicant_sign_day || '',
+    applicant_sign_month: (caseData as any).applicant_sign_month || '',
+    applicant_sign_year_en: (caseData as any).applicant_sign_year_en || '',
+    applicant_sign_day_en: (caseData as any).applicant_sign_day || '',
+    applicant_sign_month_en: (caseData as any).applicant_sign_month || '',
 
     goods_services_list_1: goodsLines[0] || '',
     goods_services_list_2: goodsLines[1] || '',

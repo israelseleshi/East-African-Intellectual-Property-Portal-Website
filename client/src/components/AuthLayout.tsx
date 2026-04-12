@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, type ReactNode } from "react"
 import { Sun, Moon } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const getInitialTheme = (): 'light' | 'dark' => {
   if (typeof window === 'undefined') {

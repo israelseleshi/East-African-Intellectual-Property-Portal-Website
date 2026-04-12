@@ -16,7 +16,7 @@ interface Client {
   name: string;
   local_name?: string;
   type: ApplicantType;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  gender?: 'MALE' | 'FEMALE' | null;
   nationality: string;
   residence_country?: string;
   email: string;
@@ -102,7 +102,7 @@ export default function NewClientPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex items-center gap-4 mb-8">
         <Button
           variant="outline"

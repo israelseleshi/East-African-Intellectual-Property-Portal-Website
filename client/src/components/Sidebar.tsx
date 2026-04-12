@@ -19,7 +19,7 @@ const allNav = [
   { label: 'Renewal Form', to: '/eipa-forms/renewal-form', icon: ShieldCheck },
   { label: 'Clients', to: '/clients', icon: Users },
   { label: 'Deadlines', to: '/deadlines', icon: Clock },
-  { label: 'Invoicing', to: '/invoicing', icon: CreditCard },
+  { label: 'Billing', to: '/billing', icon: CreditCard },
   { label: 'Help & Support', to: '/help', icon: Question }
 ] as const
 
@@ -31,7 +31,7 @@ type Props = {
 
 export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) {
   const user = useAuthStore((state) => state.user)
-  const nav = user ? allNav.filter((item) => item.to !== '/invoicing' || canAccessFinance(user)) : allNav
+  const nav = user ? allNav.filter((item) => item.to !== '/billing' || canAccessFinance(user)) : allNav
 
   return (
     <aside

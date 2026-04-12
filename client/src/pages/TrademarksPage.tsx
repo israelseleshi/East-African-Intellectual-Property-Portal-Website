@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, CaretDown, Globe } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, CaretDown, Globe, Trash, CheckSquare, Square } from '@phosphor-icons/react'
 import ExcelJS from 'exceljs'
+import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,16 @@ import { trademarkService } from '@/utils/api'
 import { useToast } from '@/components/ui/toast'
 import { casesApi } from '@/api/cases'
 import { fillPdfForm } from '@/utils/pdfUtils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const JURISDICTION_NAMES: Record<string, string> = {
   ALL: 'All Jurisdictions',
@@ -92,7 +103,7 @@ export default function TrademarksPage() {
   const { toast: addToast } = useToast()
   const [searchParams] = useSearchParams()
 
-  const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_number?: string; filingDate?: string; filing_date?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string }>>([])
+  const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_number?: string; filingDate?: string; filing_date?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string; registration_number?: string }>>([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [jurisdiction, setJurisdiction] = useState<string | 'ALL'>('ALL')
@@ -100,6 +111,11 @@ export default function TrademarksPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
   const pageSize = 10
+
+  // Selection state for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => { fetchCases() }, [q, status, jurisdiction])
 
@@ -110,6 +126,42 @@ export default function TrademarksPage() {
       setCases(Array.isArray(data) ? data : [])
     } catch { setCases([]) }
     finally { setLoading(false) }
+  }
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredRows.length && filteredRows.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredRows.map(c => c.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    
+    setIsDeleting(true)
+    try {
+      await casesApi.bulkDelete(Array.from(selectedIds))
+      toast.success(`${selectedIds.size} trademark(s) moved to trash.`)
+      setSelectedIds(new Set())
+      setShowDeleteDialog(false)
+      fetchCases()
+    } catch (error) {
+      console.error('Bulk delete failed:', error)
+      toast.error('Failed to delete trademarks. Please try again.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const filteredRows = useMemo(() => {
@@ -142,7 +194,28 @@ export default function TrademarksPage() {
       const isRenewal = (t.status || '').toUpperCase() === 'RENEWAL' || (t.type || '').toUpperCase() === 'RENEWAL'
       const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
       
-      const pdfBytes = await fillPdfForm(pdfUrl, caseData.eipaForm as Record<string, unknown>)
+      // Merge top-level case data into eipaForm to ensure PDF engine gets the latest DB values
+      const mergedData = {
+        ...(caseData.eipaForm as Record<string, unknown> || {}),
+        // Primary Checkboxes (Mark Type)
+        chk_goods: !!caseData.chk_goods,
+        chk_services: !!caseData.chk_services,
+        chk_collective: !!caseData.chk_collective,
+        // Primary Checkboxes (Mark Form)
+        type_word: !!caseData.is_word,
+        type_figur: !!caseData.is_figurative,
+        k_type_mi: !!caseData.is_mixed,
+        type_thre: !!caseData.is_three_dim,
+        // Secondary data
+        priority_country: caseData.priority_country,
+        priority_filing_date: caseData.priority_filing_date,
+        disclaimer_text_english: caseData.disclaimer_english,
+        disclaimer_text_amharic: caseData.disclaimer_amharic,
+        mark_description: caseData.mark_description,
+        mark_name: caseData.markName || caseData.mark_name
+      }
+      
+      const pdfBytes = await fillPdfForm(pdfUrl, mergedData)
       const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
 
       const url = window.URL.createObjectURL(blob)
@@ -162,40 +235,159 @@ export default function TrademarksPage() {
     }
   }
 
-  const handleExportCSV = () => {
+  const handleExportExcel = async () => {
     if (!filteredRows.length) return
-    const headers = ['Mark Name', 'Filing Number', 'Jurisdiction', 'Status', 'Client']
-    const csvData = filteredRows.map(c => [markLabel(c), c.filing_number || c.filingNumber || 'PENDING', c.jurisdiction, c.status, c.client_name || c.client?.name || '—'])
-    const csv = [headers.join(','), ...csvData.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
+    
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Trademarks')
+
+    // Define all detail columns
+    worksheet.columns = [
+      // Mark Info (Blue)
+      { header: 'Mark Name', key: 'markName', width: 30 },
+      { header: 'Mark Type', key: 'markType', width: 15 },
+      { header: 'International Class', key: 'class', width: 15 },
+      { header: 'Filing Number', key: 'filingNumber', width: 20 },
+      { header: 'Registration Number', key: 'regNumber', width: 20 },
+      
+      // Jurisdiction & Status (Orange)
+      { header: 'Jurisdiction', key: 'jurisdiction', width: 20 },
+      { header: 'Current Status', key: 'status', width: 15 },
+      { header: 'Filing Date', key: 'filingDate', width: 15 },
+      { header: 'Registration Date', key: 'regDate', width: 15 },
+      { header: 'Next Action Date', key: 'nextAction', width: 15 },
+      
+      // Client/Owner (Green)
+      { header: 'Client/Owner Name', key: 'client', width: 30 },
+      { header: 'Client Type', key: 'clientType', width: 15 },
+      
+      // Colors & Priority (Gray)
+      { header: 'Color Indication', key: 'colors', width: 25 },
+      { header: 'Priority Info', key: 'priority', width: 25 },
+      { header: 'System Created', key: 'createdAt', width: 20 }
+    ]
+
+    // Style header row
+    const headerRow = worksheet.getRow(1)
+    headerRow.height = 25
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
+    
+    // Borders for cells
+    const borderStyle: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFD1D5DB' } }
+
+    // Color coding groups
+    for (let i = 1; i <= 5; i++) { // Mark Info (Blue)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+    }
+    for (let i = 6; i <= 10; i++) { // System/Status (Orange)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
+    }
+    for (let i = 11; i <= 12; i++) { // Client (Green)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
+    }
+    for (let i = 13; i <= 15; i++) { // Others (Gray)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+    }
+
+    // Add data
+    filteredRows.forEach(c => {
+      const row = worksheet.addRow({
+        markName: markLabel(c),
+        markType: c.markType || 'Word',
+        class: (c as any).international_class || '—',
+        filingNumber: c.filing_number || c.filingNumber || 'PENDING',
+        regNumber: c.registration_number || (c as any).registrationNumber || '—',
+        jurisdiction: JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction || 'Ethiopia',
+        status: STATUS_NAMES[c.status || 'DRAFT'] || c.status || 'Draft',
+        filingDate: (c.filingDate || c.filing_date) ? new Date(c.filingDate || c.filing_date!).toISOString().split('T')[0] : '—',
+        regDate: (c.registrationDt || c.registration_dt) ? new Date(c.registrationDt || c.registration_dt!).toISOString().split('T')[0] : '—',
+        nextAction: (c.nextActionDate || c.next_action_date) ? new Date(c.nextActionDate || c.next_action_date!).toISOString().split('T')[0] : '—',
+        client: c.client_name || c.client?.name || '—',
+        clientType: c.client_type || c.client?.type || '—',
+        colors: c.colorIndication || '—',
+        priority: c.priority || '—',
+        createdAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '—'
+      })
+
+      // Add borders to all cells in the row
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+        cell.alignment = { vertical: 'middle', horizontal: 'left' }
+      })
+    })
+
+    // Header borders
+    headerRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+    })
+
+    // Generate buffer and download
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `trademarks_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `trademarks_export_${new Date().toISOString().split('T')[0]}.xlsx`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    
+    addToast({ title: 'Export Complete', description: 'Detailed Excel file has been downloaded.' })
   }
 
   return (
-    <div className="w-full mx-auto p-4 md:p-8 space-y-6">
+    <div className="w-full max-w-[100vw] mx-auto p-4 md:p-8 space-y-6 min-h-screen bg-[#E8E8ED]">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold">Trademarks</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExportCSV}><DownloadSimple size={18} /><span>Export CSV</span></Button>
-          <Button onClick={() => navigate('/eipa-forms/application-form')}><Plus size={18} /><span>New Application</span></Button>
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Trademarks</h1>
+          <p className="text-muted-foreground text-sm hidden sm:block">Manage and track your trademark portfolio across East Africa.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 mr-2">
+              <Button
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeleting}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Trash size={16} />
+                <span>Delete {selectedIds.size}</span>
+              </Button>
+            </div>
+          )}
+          <Button variant="outline" onClick={handleExportExcel} className="bg-white"><DownloadSimple size={18} /><span className="hidden sm:inline">Export Excel</span></Button>
+          <Button onClick={() => navigate('/eipa-forms/application-form')}><Plus size={18} /><span className="hidden sm:inline">New Application</span></Button>
         </div>
       </header>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move {selectedIds.size} trademark(s) to the trash. You can restore them later from the Trash page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Card className="p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1 w-full lg:max-w-md">
-            <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by mark, filing #, or owner..." />
+            <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search..." />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <span>{JURISDICTION_NAMES[jurisdiction]}</span>
+                <Button variant="outline" className="flex items-center gap-2 flex-1 sm:flex-none">
+                  <span className="truncate">{JURISDICTION_NAMES[jurisdiction]}</span>
                   <CaretDown size={14} />
                 </Button>
               </DropdownMenuTrigger>
@@ -209,8 +401,8 @@ export default function TrademarksPage() {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <span>{STATUS_NAMES[status]}</span>
+                <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
+                  <span className="truncate">{STATUS_NAMES[status]}</span>
                   <CaretDown size={14} />
                 </Button>
               </DropdownMenuTrigger>
@@ -222,8 +414,8 @@ export default function TrademarksPage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <span className="text-sm text-muted-foreground">{filteredRows.length} records</span>
-            <div className="flex items-center gap-1 border rounded-lg h-9 ml-2">
+            <span className="text-sm text-muted-foreground w-full text-center sm:w-auto">{filteredRows.length} records</span>
+            <div className="flex items-center gap-1 border rounded-lg h-9 w-full sm:w-auto justify-center">
               <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')}><List size={18} /></Button>
               <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')}><SquaresFour size={18} /></Button>
             </div>
@@ -261,30 +453,58 @@ export default function TrademarksPage() {
         </div>
       ) : (
         <Card className="overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left text-sm font-semibold">Mark</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold">Client</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold">Region</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold">Status</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold">Filing #</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {paginatedRows.map(t => (
-                <tr key={t.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}>
-                  <td className="px-4 py-3"><div className="flex items-center gap-3"><MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} /><span className="font-medium truncate">{markLabel(t)}</span></div></td>
-                  <td className="px-4 py-3 text-center truncate max-w-[150px]">{t.client_name || t.client?.name || '—'}</td>
-                  <td className="px-4 py-3 text-center"><Badge variant="outline">{t.jurisdiction || 'ET'}</Badge></td>
-                  <td className="px-4 py-3 text-center"><Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge></td>
-                  <td className="px-4 py-3 text-center"><Badge>{t.filing_number || t.filingNumber || 'PENDING'}</Badge></td>
-                  <td className="px-4 py-3 text-right"><Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDownloadForm(e, t) }}><DownloadSimple size={16} /></Button></td>
+          <div className="overflow-x-auto max-w-full">
+            <table className="w-full min-w-[600px] md:min-w-[800px]">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="px-4 py-3 text-left text-sm font-semibold w-10">
+                    <button
+                      onClick={toggleSelectAll}
+                      className="flex items-center justify-center"
+                    >
+                      {selectedIds.size === filteredRows.length && filteredRows.length > 0 ? (
+                        <CheckSquare size={18} className="text-primary" weight="fill" />
+                      ) : (
+                        <Square size={18} className="text-muted-foreground" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Mark</th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold">Client</th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold">Region</th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold">Status</th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold">Filing #</th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {paginatedRows.map(t => (
+                  <tr key={t.id} className="hover:bg-muted/50">
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(t.id) }}
+                        className="flex items-center justify-center"
+                      >
+                        {selectedIds.has(t.id) ? (
+                          <CheckSquare size={18} className="text-primary" weight="fill" />
+                        ) : (
+                          <Square size={18} className="text-muted-foreground" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}>
+                      <div className="flex items-center gap-3"><MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} /><span className="font-medium truncate hover:underline">{markLabel(t)}</span></div>
+                    </td>
+                    <td className="px-4 py-3 text-center cursor-pointer truncate max-w-[150px]" onClick={() => navigate(`/trademarks/${t.id}`)}>{t.client_name || t.client?.name || '—'}</td>
+                    <td className="px-4 py-3 text-center cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}><Badge variant="outline">{t.jurisdiction || 'ET'}</Badge></td>
+                    <td className="px-4 py-3 text-center cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}><Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge></td>
+                    <td className="px-4 py-3 text-center cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}><Badge>{t.filing_number || t.filingNumber || 'PENDING'}</Badge></td>
+                    <td className="px-4 py-3 text-right"><Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDownloadForm(e, t) }}><DownloadSimple size={16} /></Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
               <span className="text-sm text-muted-foreground">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredRows.length)} of {filteredRows.length}</span>

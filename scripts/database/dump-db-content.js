@@ -24,7 +24,7 @@ async function dumpDatabase() {
   try {
     // 1. Get all tables
     const [tables] = await connection.query('SHOW TABLES');
-    const tableList = (tables as any[]).map(row => Object.values(row)[0] as string);
+    const tableList = tables.map(row => Object.values(row)[0]);
     
     let mdContent = `# Database Content Dump\n\n`;
     mdContent += `**Date:** ${new Date().toLocaleString()}\n`;
@@ -44,7 +44,7 @@ async function dumpDatabase() {
       mdContent += `## ${table}\n\n`;
       
       const [rows] = await connection.query(`SELECT * FROM \`${table}\` LIMIT 1000`);
-      const dataRows = rows as any[];
+      const dataRows = rows;
 
       if (dataRows.length === 0) {
         mdContent += `*No data found in this table.*\n\n`;

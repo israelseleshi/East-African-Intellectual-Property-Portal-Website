@@ -27,8 +27,9 @@ export const financialsApi = {
     return getFinancial('/invoices') as Promise<any[]>;
   },
 
-  async getInvoice(invoiceId: string) {
-    return getFinancial(`/invoices/${invoiceId}`) as Promise<any>;
+  async getInvoice(invoiceId: string, includeDeleted = false) {
+    const query = includeDeleted ? '?includeDeleted=true' : '';
+    return getFinancial(`/invoices/${invoiceId}${query}`) as Promise<any>;
   },
 
   async updateInvoice(invoiceId: string, payload: Record<string, unknown>) {
@@ -37,6 +38,14 @@ export const financialsApi = {
 
   async deleteInvoice(invoiceId: string) {
     return deleteFinancial(`/invoices/${invoiceId}`) as Promise<{ success: boolean }>;
+  },
+
+  async restoreInvoice(invoiceId: string) {
+    return postFinancial(`/invoices/${invoiceId}/restore`, {}) as Promise<{ success: boolean }>;
+  },
+
+  async listDeletedInvoices() {
+    return getFinancial('/invoices/trash') as Promise<any[]>;
   },
 
   async listFeesByCase(caseId: string) {

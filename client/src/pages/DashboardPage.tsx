@@ -7,20 +7,26 @@ import {
   CheckCircle2,
   Briefcase,
   AlertTriangle,
-  Loader2
+  Loader2,
+  TrendingUp,
+  History
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useApi } from "@/hooks/useApi"
 import { formatNumber, formatDate } from "@/utils/formatters"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface DashboardStats {
   totalCases: number
   activeTrademarks: number
   pendingDeadlines: number
   renewalWindow: number
-  totalClients?: number // Handled via separate logic or fallback
+  totalInvoiced?: number
+  totalOutstanding?: number
+  totalOverdue?: number
+  collectionRate?: number
 }
 
 interface RecentActivity {
@@ -47,7 +53,6 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
-        // Fetch unified dashboard data from the backend
         const result = await get('/dashboard/dashboard-unified')
         setData(result)
         setError(null)
@@ -64,10 +69,72 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] w-full items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Fetching real-time data...</p>
+      <div className="flex flex-col gap-6 p-4 md:p-8">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-4 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <Card className="col-span-1 border-primary/10">
+            <CardHeader>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-start gap-4 p-2">
+                  <Skeleton className="size-8 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-1 border-primary/10">
+            <CardHeader>
+              <Skeleton className="h-6 w-40 mb-2" />
+              <Skeleton className="h-4 w-56" />
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-8" />
+                </div>
+                <Skeleton className="h-2 w-full" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              </div>
+              <Skeleton className="h-16 w-full rounded-lg" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
@@ -151,21 +218,21 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {DASHBOARD_CARDS.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-              <card.icon className="size-4 text-muted-foreground" />
+          <Card key={card.title} className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium truncate pr-2">{card.title}</CardTitle>
+              <card.icon className="size-4 text-muted-foreground shrink-0" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <div className="flex items-center gap-1 mt-1">
+              <div className="text-2xl font-bold truncate">{card.value}</div>
+              <div className="flex items-center gap-1 mt-1 overflow-hidden">
                 <Badge 
                   variant={card.trendType === 'positive' ? 'secondary' : card.trendType === 'negative' ? 'destructive' : 'outline'}
-                  className="px-1 text-[10px]"
+                  className="px-1 text-[10px] shrink-0"
                 >
                   {card.trend}
                 </Badge>
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{card.description}</span>
+                <span className="text-[10px] text-muted-foreground truncate">{card.description}</span>
               </div>
             </CardContent>
           </Card>
@@ -215,10 +282,12 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span>Collection Rate</span>
-                <span className="font-bold text-emerald-600">84%</span>
+                <span className={`font-bold ${stats?.collectionRate && stats.collectionRate > 70 ? 'text-emerald-600' : 'text-orange-600'}`}>
+                  {stats?.collectionRate || 0}%
+                </span>
               </div>
               <Progress 
-                value={84} 
+                value={stats?.collectionRate || 0} 
                 className="h-2" 
               />
             </div>
@@ -226,11 +295,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t">
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Outstanding</span>
-                <span className="text-2xl font-black text-primary">$12,450</span>
+                <span className="text-2xl font-black text-primary">${formatNumber(stats?.totalOutstanding || 0)}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Overdue</span>
-                <span className="text-2xl font-black text-destructive">$3,200</span>
+                <span className="text-2xl font-black text-destructive">${formatNumber(stats?.totalOverdue || 0)}</span>
               </div>
             </div>
 
@@ -239,10 +308,10 @@ export default function DashboardPage() {
                 <CreditCard className="size-5 text-muted-foreground" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Payment Portal</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Total Invoiced</span>
                 <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Automated Invoicing Online
+                  ${formatNumber(stats?.totalInvoiced || 0)} All Time
                 </span>
               </div>
             </div>

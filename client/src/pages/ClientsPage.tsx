@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import ExcelJS from 'exceljs';
+import { toast } from 'sonner';
 import { 
   Plus, 
   Building, 
@@ -28,6 +30,16 @@ import type { ApplicantType } from '@/shared/database';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Client {
   id: string;
@@ -79,6 +91,7 @@ export default function ClientsPage() {
   // Bulk operations state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [mergeTargetId, setMergeTargetId] = useState<string>('');
@@ -164,15 +177,18 @@ export default function ClientsPage() {
   }, [clients, sortConfig]);
 
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0 || !confirm(`Are you sure you want to delete ${selectedIds.size} clients?`)) return;
+    if (selectedIds.size === 0) return;
     
     setIsDeleting(true);
     try {
       await clientService.bulkDelete(Array.from(selectedIds));
+      toast.success(`${selectedIds.size} clients moved to trash.`);
       setSelectedIds(new Set());
+      setShowDeleteDialog(false);
       fetchClients();
     } catch (error: unknown) {
       console.error('Bulk delete failed:', error);
+      toast.error('Failed to delete clients. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -200,59 +216,122 @@ export default function ClientsPage() {
     return (clients || []).filter(c => selectedIds.has(c.id));
   }, [clients, selectedIds]);
 
-  const handleExportCSV = () => {
+  const handleExportExcel = async () => {
     if ((clients || []).length === 0) return;
     
-    const headers = [
-      'Name', 'Local Name', 'Type', 'Gender', 'Nationality', 'Residence Country', 
-      'Email', 'Address Street', 'Address Zone', 'Wereda', 'City', 'House No', 
-      'State Name', 'City Code', 'State Code', 'Zip Code', 'PO Box', 'Telephone', 'Fax', 
-      'Created At'
-    ];
-    const csvData = clients.map(c => [
-      `"${c.name}"`,
-      `"${(c as any).local_name || ''}"`,
-      c.type,
-      (c as any).gender || '',
-      c.nationality || '',
-      `"${(c as any).residence_country || ''}"`,
-      c.email,
-      `"${c.address_street || ''}"`,
-      `"${(c as any).address_zone || ''}"`,
-      `"${(c as any).wereda || ''}"`,
-      `"${c.city || ''}"`,
-      `"${(c as any).house_no || ''}"`,
-      `"${(c as any).state_name || ''}"`,
-      `"${(c as any).city_code || ''}"`,
-      `"${(c as any).state_code || ''}"`,
-      c.zip_code || '',
-      `"${(c as any).po_box || ''}"`,
-      `"${(c as any).telephone || ''}"`,
-      `"${(c as any).fax || ''}"`,
-      c.created_at
-    ].join(','));
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Clients')
+
+    worksheet.columns = [
+      { header: 'Client Name', key: 'name', width: 25 },
+      { header: 'Local Name', key: 'localName', width: 25 },
+      { header: 'Type', key: 'type', width: 15 },
+      { header: 'Gender', key: 'gender', width: 12 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Telephone', key: 'telephone', width: 20 },
+      { header: 'Nationality', key: 'nationality', width: 15 },
+      { header: 'City', key: 'city', width: 15 },
+      { header: 'Street Address', key: 'street', width: 30 },
+      { header: 'Wereda/Zone', key: 'zone', width: 20 },
+      { header: 'PO Box', key: 'poBox', width: 12 },
+      { header: 'Created Date', key: 'createdAt', width: 15 }
+    ]
+
+    const headerRow = worksheet.getRow(1)
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
     
-    const csvContent = [headers.join(','), ...csvData].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `clients_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Group 1: Identity (Blue)
+    for (let i = 1; i <= 4; i++) {
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+    }
+    // Group 2: Contact (Green)
+    for (let i = 5; i <= 6; i++) {
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
+    }
+    // Group 3: Address (Orange)
+    for (let i = 7; i <= 11; i++) {
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
+    }
+    // Group 4: System (Gray)
+    headerRow.getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+
+    clients.forEach(c => {
+      worksheet.addRow({
+        name: c.name,
+        localName: (c as any).local_name || '',
+        type: c.type,
+        gender: (c as any).gender || 'N/A',
+        email: c.email || '—',
+        telephone: (c as any).telephone || '—',
+        nationality: c.nationality || '—',
+        city: c.city || '—',
+        street: c.address_street || '—',
+        zone: `${(c as any).address_zone || ''} ${(c as any).wereda || ''}`.trim() || '—',
+        poBox: (c as any).po_box || '—',
+        createdAt: new Date(c.created_at).toLocaleDateString()
+      })
+    })
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `clients_export_${new Date().toISOString().split('T')[0]}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast.success('Excel file has been downloaded.');
   };
 
   if (loading) {
     return (
-      <div className="w-full space-y-8">
-        <header className="flex items-center justify-between mb-8 px-4 md:px-8 pt-4 md:pt-8">
-          <Skeleton className="h-10 w-48" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-32 rounded-md" />
-            <Skeleton className="h-10 w-24 rounded-md" />
+      <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+            <p className="text-muted-foreground text-sm">Manage and organize your client database across jurisdictions.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 mr-2">
+                {selectedIds.size === 2 && (
+                  <Button
+                    onClick={() => setShowMergeDialog(true)}
+                    disabled={isMerging}
+                    variant="secondary"
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowsMerge size={16} />
+                    <span>Merge</span>
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isDeleting}
+                  variant="destructive"
+                  className="flex items-center gap-2"
+                >
+                <Trash size={16} />
+                <span>Delete {selectedIds.size}</span>
+              </Button>
+            </div>
+          )}
+          <Button
+            onClick={handleExportExcel}
+            variant="outline"
+            className="flex items-center gap-2 bg-[#E8E8ED]"
+          >
+            <FileArrowDown size={16} />
+            <span>Export Excel</span>
+          </Button>
+            <Button
+              onClick={() => navigate('/clients/new')}
+              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus size={16} weight="bold" />
+              <span>New Client</span>
+            </Button>
           </div>
         </header>
 
@@ -277,7 +356,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="w-full space-y-8 bg-background text-foreground min-h-screen">
+    <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
@@ -298,7 +377,7 @@ export default function ClientsPage() {
                 </Button>
               )}
               <Button
-                onClick={handleBulkDelete}
+                onClick={() => setShowDeleteDialog(true)}
                 disabled={isDeleting}
                 variant="destructive"
                 className="flex items-center gap-2"
@@ -309,12 +388,12 @@ export default function ClientsPage() {
             </div>
           )}
           <Button
-            onClick={handleExportCSV}
+            onClick={handleExportExcel}
             variant="outline"
-            className="flex items-center gap-2 bg-background"
+            className="flex items-center gap-2 bg-[#E8E8ED]"
           >
             <FileArrowDown size={16} />
-            <span>Export CSV</span>
+            <span>Export Excel</span>
           </Button>
           <Button
             onClick={() => navigate('/clients/new')}
@@ -374,6 +453,23 @@ export default function ClientsPage() {
         </div>
       )}
 
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move {selectedIds.size} client(s) to the trash. You can restore them later from the Trash page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm mx-4 md:mx-8">
         <div className="relative flex-1 max-w-md group">
           <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
@@ -381,13 +477,13 @@ export default function ClientsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search clients..."
-            className="pl-10 bg-background border-muted hover:border-border transition-colors"
+            className="pl-10 bg-[#E8E8ED] border-muted hover:border-border transition-colors"
           />
         </div>
 
         <div className="flex items-center gap-3">
           <Select value={selectedType} onValueChange={(val) => setSelectedType(val as any)}>
-            <SelectTrigger className="w-[160px] bg-background">
+            <SelectTrigger className="w-[160px] bg-[#E8E8ED]">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent>
@@ -401,14 +497,14 @@ export default function ClientsPage() {
           <div className="flex items-center bg-muted/50 p-1 rounded-lg border">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
               title="Grid View"
             >
               <SquaresFour size={18} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
               title="Table View"
             >
               <List size={18} weight={viewMode === 'table' ? 'fill' : 'regular'} />
@@ -449,7 +545,7 @@ export default function ClientsPage() {
                       e.stopPropagation();
                       toggleSelect(client.id);
                     }}
-                    className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-background/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
+                    className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-[#E8E8ED]/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
                   >
                     {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
                   </button>
@@ -532,7 +628,7 @@ export default function ClientsPage() {
                     return (
                       <tr
                         key={client.id}
-                        className={`group cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : 'bg-background'}`}
+                        className={`group cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : 'bg-[#E8E8ED]'}`}
                         onClick={() => navigate(`/clients/${client.id}`)}
                       >
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -549,7 +645,7 @@ export default function ClientsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className="font-normal bg-background">
+                          <Badge variant="outline" className="font-normal bg-[#E8E8ED]">
                             {CLIENT_TYPE_LABELS[client.type]}
                           </Badge>
                         </td>

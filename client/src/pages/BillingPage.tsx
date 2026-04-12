@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ExcelJS from 'exceljs'
+import { toast } from 'sonner'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
-import { useToast } from '@/hooks/use-toast'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import {
   CurrencyDollar,
@@ -21,7 +22,11 @@ import {
   X,
   MagnifyingGlass,
   FileArrowDown,
-  CreditCard
+  CreditCard,
+  SquaresFour,
+  List,
+  CheckSquare,
+  Square
 } from '@phosphor-icons/react'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -34,6 +39,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DatePicker } from '@/components/ui/date-picker'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const EIPO_FEES = [
   { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
@@ -68,7 +83,6 @@ const EIPO_FEES = [
 
 export default function BillingPage() {
   const navigate = useNavigate()
-  const { toast: addToast } = useToast()
 
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -109,7 +123,13 @@ export default function BillingPage() {
     client: '__all__'
   })
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 6
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const itemsPerPage = viewMode === 'grid' ? 6 : 10
+
+  // Selection state for bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -219,7 +239,6 @@ export default function BillingPage() {
       if (selectedFee) {
         updated[index].description = selectedFee.description
         updated[index].amount = selectedFee.amount.toString()
-        updated[index].category = 'OFFICIAL_FEE'
       }
     }
     setLineItems(updated)
@@ -227,13 +246,13 @@ export default function BillingPage() {
 
   const handleCreateInvoice = async () => {
     if (!newInvoice.clientId) {
-      addToast({ title: 'Error', description: 'Please select a client', variant: 'destructive' });
+      toast.error('Please select a client');
       return;
     }
 
     const validItems = lineItems.filter(item => item.description && item.amount);
     if (validItems.length === 0) {
-      addToast({ title: 'Error', description: 'Please add at least one line item', variant: 'destructive' });
+      toast.error('Please add at least one line item');
       return;
     }
 
@@ -251,10 +270,7 @@ export default function BillingPage() {
         notes: newInvoice.notes
       });
 
-      addToast({
-        title: 'Invoice Created',
-        description: 'The invoice has been created successfully.',
-      });
+      toast.success('Invoice created successfully');
 
       setIsCreateInvoiceModalOpen(false);
       setNewInvoice({
@@ -266,7 +282,7 @@ export default function BillingPage() {
       setLineItems([{ description: '', category: 'OFFICIAL_FEE', amount: '' }]);
       fetchTransactions();
     } catch (error) {
-      addToast({ title: 'Error', description: 'Failed to create invoice.', variant: 'destructive' });
+      toast.error('Failed to create invoice.');
     } finally {
       setCreatingInvoice(false);
     }
@@ -285,10 +301,7 @@ export default function BillingPage() {
         notes: paymentData.notes
       });
 
-      addToast({
-        title: 'Payment Recorded',
-        description: 'The payment has been recorded successfully.',
-      });
+      toast.success('Payment recorded successfully');
 
       setIsPaymentModalOpen(false);
       setPaymentData({
@@ -300,7 +313,7 @@ export default function BillingPage() {
       });
       fetchTransactions();
     } catch (error) {
-      addToast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
+      toast.error('Failed to record payment.');
     }
   }
 
@@ -332,12 +345,48 @@ export default function BillingPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [filters])
+  }, [filters, viewMode])
 
   const paginatedTransactions = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
     return filteredTransactions.slice(start, start + itemsPerPage)
-  }, [filteredTransactions, currentPage])
+  }, [filteredTransactions, currentPage, itemsPerPage])
+
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) newSelected.delete(id)
+    else newSelected.add(id)
+    setSelectedIds(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredTransactions.map(t => t.id)))
+    }
+  }
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    setIsDeleting(true)
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id => financialsApi.deleteInvoice(id))
+      )
+      toast.success(`${selectedIds.size} invoices moved to trash.`)
+      setSelectedIds(new Set())
+      setShowDeleteDialog(false)
+      fetchTransactions()
+    } catch (error) {
+      console.error('Bulk delete failed:', error)
+      toast.error('Failed to delete invoices.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const resetFilters = () => {
     setFilters({
@@ -559,23 +608,101 @@ export default function BillingPage() {
       const filenameSafe = (tx.invoiceNumber || tx.id || 'invoice').replace(/[^a-z0-9-_]/gi, '_')
       downloadBlob(new Blob([stableBytes], { type: 'application/pdf' }), `${filenameSafe}.pdf`)
 
-      addToast({
-        title: 'Invoice Downloaded',
-        description: `PDF generated for ${tx.markName || 'invoice'}.`,
-      })
+      toast.success(`PDF generated for ${tx.markName || 'invoice'}.`);
     } catch (error) {
       console.error('Failed to generate invoice PDF:', error)
-      addToast({
-        title: 'Download Failed',
-        description: 'Could not generate invoice PDF.',
-        variant: 'destructive'
-      })
+      toast.error('Could not generate invoice PDF.');
     }
+  }
+
+  const handleExportExcel = async () => {
+    if (filteredTransactions.length === 0) return;
+    
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Invoices')
+
+    // Professional borders and fonts
+    const borderStyle: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFD1D5DB' } }
+
+    worksheet.columns = [
+      { header: 'Invoice Number', key: 'number', width: 20 },
+      { header: 'Client Name', key: 'client', width: 25 },
+      { header: 'Trademark', key: 'mark', width: 25 },
+      { header: 'Fee Type', key: 'type', width: 20 },
+      { header: 'Issue Date', key: 'issueDate', width: 15 },
+      { header: 'Due Date', key: 'dueDate', width: 15 },
+      { header: 'Amount', key: 'amount', width: 15 },
+      { header: 'Currency', key: 'currency', width: 10 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Method', key: 'method', width: 15 }
+    ]
+
+    const headerRow = worksheet.getRow(1)
+    headerRow.height = 25
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
+    
+    // Group 1: Invoice/Client (Blue)
+    for (let i = 1; i <= 3; i++) {
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+    }
+    // Group 2: Fee Info (Orange)
+    for (let i = 4; i <= 6; i++) {
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
+    }
+    // Group 3: Financials (Green)
+    for (let i = 7; i <= 9; i++) {
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
+    }
+    // Group 4: Payment (Gray)
+    headerRow.getCell(10).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+
+    filteredTransactions.forEach(tx => {
+      const row = worksheet.addRow({
+        number: tx.invoiceNumber || tx.id,
+        client: tx.clientName,
+        mark: tx.markName || '—',
+        type: tx.type,
+        issueDate: tx.issueDate ? new Date(tx.issueDate).toISOString().split('T')[0] : (tx.date.includes('/') ? tx.date.split('/').reverse().join('-') : tx.date),
+        dueDate: tx.dueDate ? new Date(tx.dueDate).toISOString().split('T')[0] : '—',
+        amount: Number(tx.amount || 0),
+        currency: tx.currency,
+        status: tx.status,
+        method: tx.method || '—'
+      })
+
+      // Styling Amount column as Currency
+      const amountCell = row.getCell(7)
+      amountCell.numFmt = '"$"#,##0.00;[Red]("$"#,##0.00)'
+      if (tx.currency === 'ETB') amountCell.numFmt = '"ETB "#,##0.00'
+
+      // Apply borders to row cells
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+        cell.alignment = { vertical: 'middle', horizontal: 'left' }
+      })
+    })
+
+    // Header borders
+    headerRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+    })
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `billing_export_${new Date().toISOString().split('T')[0]}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    toast.success('Professional Excel file with bordered data and currency formatting downloaded.');
   }
 
   if (loading) {
     return (
-      <div className="w-full p-4 md:p-8 space-y-8 bg-background text-foreground min-h-screen">
+      <div className="w-full p-4 md:p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
         <header className="flex items-center justify-between mb-8">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-10 w-40" />
@@ -606,19 +733,42 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="w-full space-y-8 bg-background text-foreground min-h-screen">
+    <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Billing & Ledger</h1>
           <p className="text-muted-foreground text-sm">Professional invoicing and financial fee management.</p>
         </div>
-        <Button
-          onClick={() => setIsCreateInvoiceModalOpen(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus size={16} weight="bold" />
-          Create Invoice
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 mr-2">
+              <Button
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeleting}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Trash size={16} />
+                <span>Delete {selectedIds.size}</span>
+              </Button>
+            </div>
+          )}
+          <Button
+            onClick={handleExportExcel}
+            variant="outline"
+            className="flex items-center gap-2 bg-white"
+          >
+            <FileArrowDown size={16} />
+            <span>Export Excel</span>
+          </Button>
+          <Button
+            onClick={() => setIsCreateInvoiceModalOpen(true)}
+            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus size={16} weight="bold" />
+            Create Invoice
+          </Button>
+        </div>
       </header>
 
       <div className="mx-4 md:mx-8 pb-8 space-y-8">
@@ -707,13 +857,13 @@ export default function BillingPage() {
                   <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                   <Input
                     placeholder="Search..."
-                    className="pl-9 w-[200px] bg-background"
+                    className="pl-9 w-[200px] bg-[#E8E8ED]"
                     value={filters.client === '__all__' ? '' : filters.client}
                     onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value || '__all__' }))}
                   />
                 </div>
                 <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
-                  <SelectTrigger className="w-[140px] bg-background">
+                  <SelectTrigger className="w-[140px] bg-[#E8E8ED]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -727,6 +877,22 @@ export default function BillingPage() {
                 <Button variant="outline" size="sm" onClick={resetFilters}>
                   <X size={14} /> Clear
                 </Button>
+                <div className="flex items-center bg-muted/50 p-1 rounded-lg border ml-2">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
+                    title="Table View"
+                  >
+                    <List size={18} weight={viewMode === 'table' ? 'fill' : 'regular'} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
+                    title="Grid View"
+                  >
+                    <SquaresFour size={18} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+                  </button>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -741,11 +907,70 @@ export default function BillingPage() {
                   <p className="text-muted-foreground text-sm">Your ledger will appear here once invoices are generated.</p>
                 </div>
               </div>
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                {paginatedTransactions.map((tx) => {
+                  const isSelected = selectedIds.has(tx.id)
+                  return (
+                    <Card 
+                      key={tx.id} 
+                      className={`cursor-pointer transition-all hover:shadow-md ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
+                      onClick={() => navigate(`/billing/${tx.id}`)}
+                    >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}
+                        className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-[#E8E8ED]/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
+                      >
+                        {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
+                      </button>
+                      <CardContent className="p-4 pt-6">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className={`p-2 rounded-lg ${tx.status === 'PAID' ? 'bg-green-100 text-green-700' : tx.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                            <Receipt size={20} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold truncate">{tx.invoiceNumber || tx.id}</h3>
+                            <p className="text-sm text-muted-foreground">{tx.clientName}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Trademark</span>
+                            <span className="font-medium truncate ml-2">{tx.markName || '—'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Amount</span>
+                            <span className="font-bold">{formatAmount(tx.amount, tx.currency)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Status</span>
+                            <Badge 
+                              variant={tx.status === 'PAID' ? 'default' : tx.status === 'OVERDUE' ? 'destructive' : 'outline'}
+                              className={tx.status === 'PAID' ? 'bg-green-500' : ''}
+                            >
+                              {tx.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="bg-muted/50 border-b">
                     <tr>
+                      <th className="px-4 py-3 w-12">
+                        <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground">
+                          {selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0 ? (
+                            <CheckSquare size={18} weight="fill" className="text-primary" />
+                          ) : (
+                            <Square size={18} />
+                          )}
+                        </button>
+                      </th>
                       <th className="px-6 py-3 font-semibold">Client</th>
                       <th className="px-6 py-3 font-semibold">Trademark</th>
                       <th className="px-6 py-3 font-semibold">Type</th>
@@ -756,23 +981,30 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {paginatedTransactions.map((tx) => (
-                      <tr
-                        key={tx.id}
-                        className="group hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/invoicing/${tx.id}`)}
-                      >
-                        <td className="px-6 py-4">
-                          <div className="font-medium">{tx.clientName || 'Client'}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium">{tx.markName || '—'}</div>
-                        </td>
-                        <td className="px-6 py-4 font-medium">{tx.type}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{tx.date}</td>
-                        <td className="px-6 py-4 font-bold">{formatAmount(tx.amount, tx.currency)}</td>
-                        <td className="px-6 py-4">
-                          <Badge 
+                    {paginatedTransactions.map((tx) => {
+                      const isSelected = selectedIds.has(tx.id)
+                      return (
+                        <tr
+                          key={tx.id}
+                          className={`group hover:bg-muted/50 cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
+                          onClick={() => navigate(`/billing/${tx.id}`)}
+                        >
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => toggleSelect(tx.id)} className="text-muted-foreground hover:text-foreground">
+                              {isSelected ? <CheckSquare size={18} weight="fill" className="text-primary" /> : <Square size={18} />}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-medium">{tx.clientName || 'Client'}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-medium">{tx.markName || '—'}</div>
+                          </td>
+                          <td className="px-6 py-4 font-medium">{tx.type}</td>
+                          <td className="px-6 py-4 text-muted-foreground">{tx.date}</td>
+                          <td className="px-6 py-4 font-bold">{formatAmount(tx.amount, tx.currency)}</td>
+                          <td className="px-6 py-4">
+                            <Badge 
                             variant={
                               tx.status === 'PAID' ? 'default' : 
                               tx.status === 'PARTIALLY_PAID' ? 'secondary' :
@@ -820,7 +1052,7 @@ export default function BillingPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
@@ -1073,6 +1305,24 @@ export default function BillingPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedIds.size} invoice(s)?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will move {selectedIds.size} invoice(s) to the trash. You can restore them later from the Trash page.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

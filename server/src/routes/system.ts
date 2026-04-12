@@ -4,8 +4,106 @@ import { authenticateToken } from '../middleware/auth.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { ResultSetHeader } from 'mysql2';
 
 const router = express.Router();
+
+// ... existing routes ...
+
+router.get('/trash', authenticateToken, async (req, res) => {
+  try {
+    const [cases] = await pool.execute(`
+      SELECT 'trademark_cases' as type, id, mark_name as name, deleted_at, status
+      FROM trademark_cases 
+      WHERE deleted_at IS NULL = false
+      ORDER BY deleted_at DESC
+    `);
+    
+    const [clients] = await pool.execute(`
+      SELECT 'clients' as type, id, name, deleted_at, status
+      FROM clients 
+      WHERE deleted_at IS NULL = false
+      ORDER BY deleted_at DESC
+    `);
+
+    const [invoices] = await pool.execute(`
+      SELECT 'invoices' as type, id, invoice_number as name, deleted_at, status
+      FROM invoices 
+      WHERE deleted_at IS NULL = false
+      ORDER BY deleted_at DESC
+    `);
+
+    res.json({
+      items: [
+        ...(cases as any[]),
+        ...(clients as any[]),
+        ...(invoices as any[])
+      ].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime())
+    });
+  } catch (error) {
+    logRouteError(req, 'system.trash', error);
+    sendApiError(req, res, 500, {
+      code: 'TRASH_FETCH_FAILED',
+      message: 'Failed to fetch trash items'
+    });
+  }
+});
+
+router.post('/trash/restore/:type/:id', authenticateToken, async (req, res) => {
+  const { type, id } = req.params;
+  const validTypes = ['trademark_cases', 'clients', 'deadlines', 'invoices', 'users'];
+  
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ error: 'Invalid resource type' });
+  }
+
+  try {
+    const [result] = await pool.execute(
+      `UPDATE ${type} SET deleted_at = NULL WHERE id = ?`,
+      [id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Item not found in trash' });
+    }
+
+    res.json({ success: true, message: 'Item restored successfully' });
+  } catch (error) {
+    logRouteError(req, 'system.restore', error);
+    sendApiError(req, res, 500, {
+      code: 'RESTORE_FAILED',
+      message: 'Failed to restore item'
+    });
+  }
+});
+
+router.delete('/trash/purge/:type/:id', authenticateToken, async (req, res) => {
+  const { type, id } = req.params;
+  const validTypes = ['trademark_cases', 'clients', 'deadlines', 'invoices', 'users'];
+  
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ error: 'Invalid resource type' });
+  }
+
+  try {
+    const [result] = await pool.execute(
+      `DELETE FROM ${type} WHERE id = ? AND deleted_at IS NOT NULL`,
+      [id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Item not found in trash or already purged' });
+    }
+
+    res.json({ success: true, message: 'Item permanently deleted' });
+  } catch (error) {
+    logRouteError(req, 'system.purge', error);
+    sendApiError(req, res, 500, {
+      code: 'PURGE_FAILED',
+      message: 'Failed to permanently delete item'
+    });
+  }
+});
 
 router.get('/health', async (req, res) => {
   try {
@@ -24,19 +122,22 @@ router.get('/health', async (req, res) => {
 
 router.get('/dashboard-unified', authenticateToken, async (req, res) => {
   try {
-    const totalCasesRows = await timedExecute('system.totalCases', 'SELECT COUNT(*) as count FROM trademark_cases');
-    const activeCasesRows = await timedExecute('system.activeCases', "SELECT COUNT(*) as count FROM trademark_cases WHERE status != 'DRAFT'");
-    const pendingDeadlinesRows = await timedExecute('system.pendingDeadlines', 'SELECT COUNT(*) as count FROM deadlines WHERE is_completed = false');
+    const totalCasesRows = await timedExecute('system.totalCases', 'SELECT COUNT(*) as count FROM trademark_cases WHERE deleted_at IS NULL');
+    const activeCasesRows = await timedExecute('system.activeCases', "SELECT COUNT(*) as count FROM trademark_cases WHERE status != 'DRAFT' AND deleted_at IS NULL");
+    const pendingDeadlinesRows = await timedExecute('system.pendingDeadlines', 'SELECT COUNT(*) as count FROM deadlines d JOIN trademark_cases tc ON d.case_id = tc.id WHERE d.is_completed = false AND tc.deleted_at IS NULL');
     const renewalWindowRows = await timedExecute('system.renewalWindow', `
-      SELECT COUNT(*) as count FROM deadlines
-      WHERE type = 'RENEWAL'
-      AND is_completed = false
-      AND due_date <= DATE_ADD(NOW(), INTERVAL 30 DAY)
+      SELECT COUNT(*) as count FROM deadlines d
+      JOIN trademark_cases tc ON d.case_id = tc.id
+      WHERE d.type = 'RENEWAL'
+      AND d.is_completed = false
+      AND tc.deleted_at IS NULL
+      AND d.due_date <= DATE_ADD(NOW(), INTERVAL 30 DAY)
     `);
     const recentActivityRows = await timedExecute('system.recentActivity', `
       SELECT ch.id, ch.case_id as caseId, ch.user_id, ch.action, ch.old_data, ch.new_data, ch.created_at as createdAt, tc.mark_name
       FROM case_history ch
       JOIN trademark_cases tc ON ch.case_id = tc.id
+      WHERE tc.deleted_at IS NULL
       ORDER BY ch.created_at DESC
       LIMIT 5
     `);
@@ -47,17 +148,38 @@ router.get('/dashboard-unified', authenticateToken, async (req, res) => {
       JOIN trademark_cases tc ON d.case_id = tc.id
       LEFT JOIN clients c ON tc.client_id = c.id
       WHERE d.is_completed = FALSE
+      AND tc.deleted_at IS NULL
       AND d.due_date <= DATE_ADD(NOW(), INTERVAL 30 DAY)
       ORDER BY d.due_date ASC
       LIMIT 5
     `);
+
+    // Fetch financial stats (exclude deleted invoices)
+    const [financialStats] = await pool.execute(`
+      SELECT 
+        SUM(total_amount) as totalInvoiced,
+        SUM(CASE WHEN status = 'UNPAID' OR status = 'OVERDUE' THEN total_amount ELSE 0 END) as totalOutstanding,
+        SUM(CASE WHEN status = 'OVERDUE' THEN total_amount ELSE 0 END) as totalOverdue,
+        CASE 
+          WHEN SUM(total_amount) > 0 
+          THEN (SUM(CASE WHEN status = 'PAID' THEN total_amount ELSE 0 END) / SUM(total_amount)) * 100 
+          ELSE 0 
+        END as collectionRate
+      FROM invoices
+      WHERE deleted_at IS NULL
+    `);
+    const fin = (financialStats as any[])[0];
 
     res.json({
       stats: {
         totalCases: (totalCasesRows as Array<{ count: number }>)[0].count,
         activeTrademarks: (activeCasesRows as Array<{ count: number }>)[0].count,
         pendingDeadlines: (pendingDeadlinesRows as Array<{ count: number }>)[0].count,
-        renewalWindow: (renewalWindowRows as Array<{ count: number }>)[0].count
+        renewalWindow: (renewalWindowRows as Array<{ count: number }>)[0].count,
+        totalInvoiced: fin.totalInvoiced || 0,
+        totalOutstanding: fin.totalOutstanding || 0,
+        totalOverdue: fin.totalOverdue || 0,
+        collectionRate: Math.round(fin.collectionRate || 0)
       },
       recentActivity: recentActivityRows,
       upcomingDeadlines: upcomingDeadlinesRows
@@ -76,20 +198,23 @@ router.get('/dashboard-unified', authenticateToken, async (req, res) => {
 
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
-    const totalCasesRows = await timedExecute('system.totalCases', 'SELECT COUNT(*) as count FROM trademark_cases');
-    const activeCasesRows = await timedExecute('system.activeCases', "SELECT COUNT(*) as count FROM trademark_cases WHERE status != 'DRAFT'");
-    const pendingDeadlinesRows = await timedExecute('system.pendingDeadlines', 'SELECT COUNT(*) as count FROM deadlines WHERE is_completed = false');
+    const totalCasesRows = await timedExecute('system.totalCases', 'SELECT COUNT(*) as count FROM trademark_cases WHERE deleted_at IS NULL');
+    const activeCasesRows = await timedExecute('system.activeCases', "SELECT COUNT(*) as count FROM trademark_cases WHERE status != 'DRAFT' AND deleted_at IS NULL");
+    const pendingDeadlinesRows = await timedExecute('system.pendingDeadlines', 'SELECT COUNT(*) as count FROM deadlines d JOIN trademark_cases tc ON d.case_id = tc.id WHERE d.is_completed = false AND tc.deleted_at IS NULL');
     const renewalWindowRows = await timedExecute('system.renewalWindow', `
-      SELECT COUNT(*) as count FROM deadlines
-      WHERE type = 'RENEWAL'
-      AND is_completed = false
-      AND due_date <= DATE_ADD(NOW(), INTERVAL 30 DAY)
+      SELECT COUNT(*) as count FROM deadlines d
+      JOIN trademark_cases tc ON d.case_id = tc.id
+      WHERE d.type = 'RENEWAL'
+      AND d.is_completed = false
+      AND tc.deleted_at IS NULL
+      AND d.due_date <= DATE_ADD(NOW(), INTERVAL 30 DAY)
     `);
 
     const recentActivityRows = await timedExecute('system.recentActivity', `
       SELECT ch.id, ch.case_id, ch.user_id, ch.action, ch.old_data, ch.new_data, ch.created_at, tc.mark_name
       FROM case_history ch
       JOIN trademark_cases tc ON ch.case_id = tc.id
+      WHERE tc.deleted_at IS NULL
       ORDER BY ch.created_at DESC
       LIMIT 5
     `);

@@ -397,13 +397,13 @@ export const caseLifecycleService = {
 
       if (data.disclaimer_english !== undefined) caseUpdates.disclaimer_english = data.disclaimer_english;
       if (data.disclaimer_amharic !== undefined) caseUpdates.disclaimer_amharic = data.disclaimer_amharic;
-      if (data.chk_goods !== undefined) caseUpdates.chk_goods = data.chk_goods;
-      if (data.chk_services !== undefined) caseUpdates.chk_services = data.chk_services;
-      if (data.chk_collective !== undefined) caseUpdates.chk_collective = data.chk_collective;
-      if (data.is_word !== undefined) caseUpdates.is_word = data.is_word;
-      if (data.is_figurative !== undefined) caseUpdates.is_figurative = data.is_figurative;
-      if (data.is_mixed !== undefined) caseUpdates.is_mixed = data.is_mixed;
-      if (data.is_three_dim !== undefined) caseUpdates.is_three_dim = data.is_three_dim;
+      if (data.chk_goods !== undefined) caseUpdates.chk_goods = data.chk_goods === true ? 1 : 0;
+      if (data.chk_services !== undefined) caseUpdates.chk_services = data.chk_services === true ? 1 : 0;
+      if (data.chk_collective !== undefined) caseUpdates.chk_collective = data.chk_collective === true ? 1 : 0;
+      if (data.is_word !== undefined) caseUpdates.is_word = data.is_word === true ? 1 : 0;
+      if (data.is_figurative !== undefined) caseUpdates.is_figurative = data.is_figurative === true ? 1 : 0;
+      if (data.is_mixed !== undefined) caseUpdates.is_mixed = data.is_mixed === true ? 1 : 0;
+      if (data.is_three_dim !== undefined) caseUpdates.is_three_dim = data.is_three_dim === true ? 1 : 0;
 
       const eipaForm = (typeof data.eipaForm === 'object' && data.eipaForm !== null)
         ? data.eipaForm as Record<string, unknown>

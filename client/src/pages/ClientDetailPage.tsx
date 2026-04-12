@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, User, FileText, PencilSimple, Check, X, Envelope, Phone, MapPin, Globe, Buildings, IdentificationCard, GenderIntersex } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -29,7 +29,7 @@ interface Client {
   name: string
   local_name?: string
   type: ApplicantType
-  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null
+  gender?: 'MALE' | 'FEMALE' | null
   nationality: string
   email: string
   address_street: string
@@ -70,6 +70,8 @@ function Field({ label, value, icon: Icon }: { label: string; value?: string | n
 export default function ClientDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const fromTrash = searchParams.get('fromTrash') === 'true'
   const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -176,7 +178,7 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/clients')} className="h-10 w-10 shrink-0">
@@ -201,7 +203,7 @@ export default function ClientDetailPage() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsEditing(true)}>
+            <Button onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined}>
               <PencilSimple size={18} className="mr-2" /> Edit Client
             </Button>
           )}
@@ -252,7 +254,6 @@ export default function ClientDetailPage() {
                         <SelectItem value="NONE">Not Specified</SelectItem>
                         <SelectItem value="MALE">Male</SelectItem>
                         <SelectItem value="FEMALE">Female</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -5,6 +5,7 @@ import { getConnection, pool, query } from '../database/db.js';
 import type { ClientRow } from '../database/types.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
+import { ResultSetHeader } from 'mysql2';
 
 const router = express.Router();
 
@@ -77,7 +78,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const limit = parsed.data.limit ?? 50;
     const offset = (page - 1) * limit;
 
-    let sql = 'FROM clients WHERE 1=1';
+    let sql = 'FROM clients WHERE deleted_at IS NULL';
     const params: string[] = [];
 
     if (type && type !== 'ALL') {
@@ -117,6 +118,55 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/trash', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT id, name, deleted_at, type
+      FROM clients 
+      WHERE deleted_at IS NOT NULL
+      ORDER BY deleted_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    logRouteError(req, 'clients.trash', error);
+    sendApiError(req, res, 500, { code: 'TRASH_FETCH_FAILED', message: 'Failed to fetch trash' });
+  }
+});
+
+router.post('/:id/restore', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      'UPDATE clients SET deleted_at = NULL WHERE id = ?',
+      [req.params.id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Client not found in trash' });
+    }
+    res.json({ success: true, message: 'Client restored' });
+  } catch (error) {
+    logRouteError(req, 'clients.restore', error);
+    sendApiError(req, res, 500, { code: 'RESTORE_FAILED', message: 'Failed to restore client' });
+  }
+});
+
+router.delete('/:id/permanent', authenticateToken, async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      'DELETE FROM clients WHERE id = ? AND deleted_at IS NOT NULL',
+      [req.params.id]
+    ) as [ResultSetHeader, unknown[]];
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Client not found in trash or already purged' });
+    }
+    res.json({ success: true, message: 'Client permanently deleted' });
+  } catch (error) {
+    logRouteError(req, 'clients.permanentDelete', error);
+    sendApiError(req, res, 500, { code: 'DELETE_FAILED', message: 'Failed to purge client' });
+  }
+});
+
 router.post('/bulk-delete', authenticateToken, async (req, res) => {
   try {
     const parsed = bulkDeleteSchema.safeParse(req.body);
@@ -129,9 +179,9 @@ router.post('/bulk-delete', authenticateToken, async (req, res) => {
     }
 
     const placeholders = parsed.data.ids.map(() => '?').join(',');
-    await pool.execute(`DELETE FROM clients WHERE id IN (${placeholders})`, parsed.data.ids);
+    await pool.execute(`UPDATE clients SET deleted_at = NOW() WHERE id IN (${placeholders})`, parsed.data.ids);
 
-    res.json({ success: true, message: `${parsed.data.ids.length} clients deleted` });
+    res.json({ success: true, message: `${parsed.data.ids.length} clients moved to trash` });
   } catch (error) {
     logRouteError(req, 'clients.bulkDelete', error);
     sendApiError(req, res, 500, {

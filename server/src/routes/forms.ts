@@ -325,8 +325,9 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     chk_list_copies, chk_list_status, chk_list_poa, chk_list_priority_docs,
                     chk_list_drawing, chk_list_payment, chk_list_other,
                     client_instructions, remark,
+                    applicant_sign_day, applicant_sign_month, applicant_sign_year_en,
                     flow_stage, user_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                     caseId,
                     clientId,
@@ -358,6 +359,9 @@ router.post('/submit', authenticateToken, async (req, res) => {
                     chkListOther ? 1 : 0,
                     null as string | null, // client_instructions
                     null as string | null, // remark
+                    applicant_sign_day || null,
+                    applicant_sign_month || null,
+                    applicant_sign_year_en || null,
                     normalizedFlowStage,
                     userId
                 ]

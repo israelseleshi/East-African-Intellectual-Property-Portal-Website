@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
   CheckCircle,
@@ -33,7 +34,6 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DatePicker } from '@/components/ui/date-picker'
 // Invoice design is now fixed to 'classic' — no dynamic design selection
-import { cn } from '@/lib/utils'
 
 type InvoiceItem = {
   id?: string
@@ -65,33 +65,42 @@ const formatAmount = (value: number, currency = 'USD') => {
   return `${symbol}${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const FEE_TYPES: Record<string, string[]> = {
-  OFFICIAL_FEE: [
-    'Filing Fee',
-    'Publication Fee',
-    'Registration Fee',
-    'Renewal Fee',
-    'Opposition Fee',
-    'Surcharge Fee'
-  ],
-  PROFESSIONAL_FEE: [
-    'Professional Service Fee',
-    'Search & Opinion Fee',
-    'Reporting Fee',
-    'Drafting Fee',
-    'Translation Fee'
-  ],
-  DISBURSEMENT: [
-    'Postage/Courier',
-    'Travel Expenses',
-    'Bank Charges',
-    'Government Taxes'
-  ]
-}
+const EIPO_FEES = [
+  { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
+  { code: 'AMENDMENT_APPLICATION', description: 'Amendment Of Application For Registration Trademark', amount: 350 },
+  { code: 'OPPOSITION', description: 'Opposition To Registration Of A Trademark', amount: 1500 },
+  { code: 'REGISTRATION', description: 'Registration Of Trade Mark', amount: 3000 },
+  { code: 'RENEWAL_APPLICATION', description: 'Application For Renewal Of Registration Of A Trademark', amount: 1300 },
+  { code: 'RENEWAL', description: 'Renewal Of Registration Of Trade Mark', amount: 2200 },
+  { code: 'AMENDMENT_REGISTRATION', description: 'Amendment Of Registration Of A Trademark', amount: 360 },
+  { code: 'SUBSTITUTE_CERTIFICATE', description: 'Substitute Certificate Of Registration Of A Trademark', amount: 495 },
+  { code: 'CANCELLATION', description: 'Application For The Cancellation Or Invalidation Of The Registration Of A Trademark', amount: 2600 },
+  { code: 'TRANSFER', description: 'Registration Of Transfer Of Ownership Of A Trademark', amount: 1300 },
+  { code: 'LICENSE', description: 'Registration Of License Contract Of A Trademark', amount: 1300 },
+  { code: 'LICENSE_CANCELLATION', description: 'Registration Of Cancellation Of License Contract Of A Trademark', amount: 450 },
+  { code: 'DIVISION', description: 'Division Of Application For Registration Of Trade Mark', amount: 350 },
+  { code: 'MERGER', description: 'Merger Of Registration Or Application For Registration Of Trade Mark', amount: 350 },
+  { code: 'AGENT_APPLICATION', description: 'Application For Registration Of A Trade Mark Agent', amount: 315 },
+  { code: 'AGENT_ASSESSMENT', description: "Trade Mark Agent's Competence Assessment", amount: 270 },
+  { code: 'AGENT_REGISTRATION', description: 'Registration Of A Trade Mark Agent', amount: 1350 },
+  { code: 'AGENT_RENEWAL', description: 'Renewal Of Registration Of A Trade Mark Agent', amount: 1125 },
+  { code: 'EXTENSION', description: 'Application For Extension Of A Time Limit', amount: 500 },
+  { code: 'SEARCH', description: 'Search For Registered Trademarks', amount: 450 },
+  { code: 'INSPECTION', description: 'Inspection Of Records And Documents Of The Office', amount: 150 },
+  { code: 'COPIES', description: 'Copies Of Records And Documents Of The Office (Per Page)', amount: 10 },
+  { code: 'FILING', description: 'Filing Fee', amount: 0 },
+  { code: 'EXAMINATION', description: 'Examination Fee', amount: 0 },
+  { code: 'PUBLICATION', description: 'Publication Fee', amount: 0 },
+  { code: 'REGISTRATION_FEE', description: 'Registration Fee', amount: 0 },
+  { code: 'LEGAL', description: 'Legal Service Fee', amount: 0 },
+  { code: 'OTHER', description: 'Other Fee', amount: 0 }
+]
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromTrash = searchParams.get('fromTrash') === 'true'
   // always use Classic layout
 
   const [loading, setLoading] = useState(true)
@@ -113,7 +122,7 @@ export default function InvoiceDetailPage() {
     if (!id) return
     try {
       setLoading(true)
-      const data = await financialsApi.getInvoice(id)
+      const data = await financialsApi.getInvoice(id, fromTrash)
       setInvoice(data)
       setEditData({
         due_date: data.due_date ? String(data.due_date).split('T')[0] : '',
@@ -196,7 +205,7 @@ export default function InvoiceDetailPage() {
       setDeleting(true)
       await financialsApi.deleteInvoice(invoice.id)
       toast.success('Deleted', { description: 'Invoice deleted successfully.' })
-      navigate('/invoicing')
+      navigate('/billing')
     } catch (error) {
       console.error('Failed to delete invoice:', error)
       toast.error('Error', { description: 'Failed to delete invoice.' })
@@ -208,7 +217,7 @@ export default function InvoiceDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8 bg-background text-foreground min-h-screen">
+      <div className="p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
         <div className="space-y-4">
           <div className="h-8 w-32 bg-muted animate-pulse rounded" />
           <div className="h-12 w-64 bg-muted animate-pulse rounded" />
@@ -228,7 +237,7 @@ export default function InvoiceDetailPage() {
           <CardContent className="p-8 text-center space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Invoice Not Found</h2>
             <p className="text-muted-foreground">The invoice you're looking for doesn't exist.</p>
-            <Button onClick={() => navigate('/invoicing')}>
+            <Button onClick={() => navigate('/billing')}>
               <CaretLeft size={16} /> Back to Billing
             </Button>
           </CardContent>
@@ -271,7 +280,6 @@ export default function InvoiceDetailPage() {
           <tr>
             <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider">Description</th>
             <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider">Category</th>
-            {editing && <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider">Fee Type</th>}
             <th className="px-4 py-3 text-right font-bold text-xs uppercase tracking-wider">Amount</th>
             {editing && <th className="px-4 py-3 w-12"></th>}
           </tr>
@@ -293,40 +301,30 @@ export default function InvoiceDetailPage() {
               <td className="px-4 py-3">
                 {editing ? (
                   <Select 
-                    value={editItems[index]?.category || 'OFFICIAL_FEE'} 
+                    value={editItems[index]?.description || ''} 
                     onValueChange={(value) => {
-                      updateItem(index, 'category', value)
-                      // Reset fee type when category changes
+                      const selectedFee = EIPO_FEES.find(fee => fee.description === value)
+                      updateItem(index, 'description', value)
+                      updateItem(index, 'category', 'OFFICIAL_FEE')
+                      if (selectedFee) {
+                        updateItem(index, 'amount', selectedFee.amount)
+                      }
                     }}
                   >
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OFFICIAL_FEE">Official Fee</SelectItem>
-                      <SelectItem value="PROFESSIONAL_FEE">Professional Fee</SelectItem>
-                      <SelectItem value="DISBURSEMENT">Disbursement</SelectItem>
+                    <SelectTrigger className="h-8 text-xs w-[200px]"><SelectValue placeholder="Select fee type" /></SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {EIPO_FEES.map(fee => (
+                        <SelectItem key={fee.code} value={fee.description}>{fee.description}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 ) : (
                   <Badge variant="secondary" className="text-[10px] font-bold tracking-tight px-2 py-0 h-5">
-                    {item.category.replace('_', ' ')}
+                    {item.category}
                   </Badge>
                 )}
               </td>
-              {editing && (
-                <td className="px-4 py-3">
-                  <Select 
-                    onValueChange={(value) => updateItem(index, 'description', value)}
-                  >
-                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Quick select" /></SelectTrigger>
-                    <SelectContent>
-                      {(FEE_TYPES[editItems[index]?.category || 'OFFICIAL_FEE'] || []).map(fee => (
-                        <SelectItem key={fee} value={fee}>{fee}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </td>
-              )}
-              <td className="px-4 py-3 text-right font-mono font-bold">
+              <td className="px-4 py-3 text-right font-sans font-bold">
                 {editing ? (
                   <Input
                     type="number"
@@ -358,13 +356,13 @@ export default function InvoiceDetailPage() {
     <div className="flex items-center gap-3">
       {!isEditing ? (
         <>
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined}>
             <PencilSimple size={16} className="mr-2" /> Edit
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => setIsDeleteOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setIsDeleteOpen(true)} className="text-destructive hover:text-destructive" disabled={fromTrash}>
             <Trash size={16} className="mr-2" /> Delete
           </Button>
-          <Button variant="default" size="sm">
+          <Button variant="outline" size="sm">
             <DownloadSimple size={16} className="mr-2" /> PDF Export
           </Button>
         </>
@@ -492,9 +490,9 @@ export default function InvoiceDetailPage() {
   const DashboardLayout = (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Billable</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-mono text-2xl font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</CardContent></Card>
-        <Card className="bg-emerald-500/5 border-emerald-500/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-mono text-2xl font-bold text-emerald-600">{formatAmount(paidAmount, currency)}</CardContent></Card>
-        <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-mono text-2xl font-bold text-destructive">{formatAmount(outstandingAmount, currency)}</CardContent></Card>
+        <Card className="bg-primary/5 border-primary/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Billable</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</CardContent></Card>
+        <Card className="bg-emerald-500/5 border-emerald-500/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-emerald-600">{formatAmount(paidAmount, currency)}</CardContent></Card>
+        <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-destructive">{formatAmount(outstandingAmount, currency)}</CardContent></Card>
         <Card className="bg-muted/40"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Invoice Status</CardTitle></CardHeader><CardContent className="p-4 pt-0"><BadgeStatus status={invoice.status}/></CardContent></Card>
       </div>
 
@@ -561,8 +559,8 @@ export default function InvoiceDetailPage() {
           <p className="text-sm leading-relaxed text-muted-foreground font-medium">{invoice.notes || 'Standard terms and conditions apply. Professional fees are based on prevailing rates at the time of filing.'}</p>
         </div>
         <div className="md:w-72 bg-muted/10 p-6 rounded-2xl border border-border/20 space-y-4">
-          <div className="flex justify-between text-sm py-1 border-b border-border/10"><span>Subtotal</span><span className="font-mono text-foreground font-bold">{formatAmount(invoice.total_amount, currency)}</span></div>
-          <div className="flex justify-between text-sm py-1 border-b border-border/10 text-emerald-600"><span>Allocated Payments</span><span className="font-mono">-{formatAmount(paidAmount, currency)}</span></div>
+          <div className="flex justify-between text-sm py-1 border-b border-border/10"><span>Subtotal</span><span className="font-sans text-foreground font-bold">{formatAmount(invoice.total_amount, currency)}</span></div>
+          <div className="flex justify-between text-sm py-1 border-b border-border/10 text-emerald-600"><span>Allocated Payments</span><span className="font-sans">-{formatAmount(paidAmount, currency)}</span></div>
           <div className="flex justify-between pt-2">
             <span className="text-sm font-bold uppercase tracking-widest text-foreground">Balance Due</span>
             <span className="text-2xl font-black text-foreground drop-shadow-sm">{formatAmount(outstandingAmount, currency)}</span>
@@ -623,11 +621,11 @@ export default function InvoiceDetailPage() {
                <div className="space-y-3 px-1">
                   <div className="flex justify-between items-baseline text-sm">
                     <span className="text-muted-foreground font-medium text-foreground">Gross Total</span>
-                    <span className="font-mono text-lg font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</span>
+                    <span className="font-sans text-lg font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm">
                     <span className="text-muted-foreground font-medium text-foreground">Applied Payments</span>
-                    <span className="font-mono text-emerald-500 font-bold">{formatAmount(paidAmount, currency)}</span>
+                    <span className="font-sans text-emerald-500 font-bold">{formatAmount(paidAmount, currency)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center pt-2">
@@ -667,9 +665,9 @@ export default function InvoiceDetailPage() {
                 <p className="text-xs leading-relaxed text-muted-foreground font-medium border-l-2 border-primary/20 pl-4 py-1 italic">{invoice.notes || 'No administrative notes appended to this file.'}</p>
              </div>
              <div className="bg-card p-4 rounded-lg border border-border/50 divide-y divide-border/30">
-                <div className="flex justify-between py-2"><span className="text-xs text-muted-foreground text-foreground">Subtotal</span><span className="text-xs font-mono font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</span></div>
-                <div className="flex justify-between py-2"><span className="text-xs text-muted-foreground text-foreground">Receipted</span><span className="text-xs font-mono font-bold text-emerald-600">{formatAmount(paidAmount, currency)}</span></div>
-                <div className="flex justify-between py-3"><span className="text-xs font-bold uppercase tracking-widest text-foreground">Carry Forward</span><span className="text-lg font-black font-mono text-destructive">{formatAmount(outstandingAmount, currency)}</span></div>
+                <div className="flex justify-between py-2"><span className="text-xs text-muted-foreground text-foreground">Subtotal</span><span className="text-xs font-sans font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</span></div>
+                <div className="flex justify-between py-2"><span className="text-xs text-muted-foreground text-foreground">Receipted</span><span className="text-xs font-sans font-bold text-emerald-600">{formatAmount(paidAmount, currency)}</span></div>
+                <div className="flex justify-between py-3"><span className="text-xs font-bold uppercase tracking-widest text-foreground">Carry Forward</span><span className="text-lg font-black font-sans text-destructive">{formatAmount(outstandingAmount, currency)}</span></div>
              </div>
           </div>
         </CardContent>
@@ -679,10 +677,10 @@ export default function InvoiceDetailPage() {
   const CurrentLayout = () => ClassicLayout
 
   return (
-    <div className="w-full p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+    <div className="w-full p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen" style={{ fontFamily: 'DM Sans, sans-serif' }}>
       <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
         <div className="space-y-4">
-          <Button variant="ghost" onClick={() => navigate('/invoicing')} className="pl-0 h-4 text-muted-foreground hover:bg-transparent group">
+          <Button variant="outline" onClick={() => navigate('/billing')} className="pl-0 h-4 group bg-white">
             <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Ledger
           </Button>
           <div>

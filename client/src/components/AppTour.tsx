@@ -12,7 +12,7 @@ const routeSteps: Record<string, Step[]> = {
     { target: '.grid > div:nth-child(2)', title: 'Filing Activity', content: 'Tracks trademarks currently in the "Filed" status across all jurisdictions.' },
     { target: '.grid > div:nth-child(3)', title: 'Pending Actions', content: 'Alerts you to cases requiring immediate attention or formal examinations.' },
     { target: '.bg-muted\\/30', title: 'Maintenance Alerts', content: 'System status updates and scheduled maintenance windows are displayed here.' },
-    { target: 'nav', title: 'Navigation Sidebar', content: 'Quickly jump between different modules like Trademarks, Clients, and Invoicing.' },
+    { target: 'nav', title: 'Navigation Sidebar', content: 'Quickly jump between different modules like Trademarks, Clients, and Billing.' },
     { target: 'header', title: 'Global Actions', content: 'Access your profile, notifications, and global search from the top bar.' },
     { target: 'body', placement: 'center', title: 'Pro Tip', content: 'You can return to the Help section at any time by clicking the Help icon in the sidebar.' }
   ],
@@ -76,9 +76,9 @@ const routeSteps: Record<string, Step[]> = {
     { target: 'li:first-child', title: 'Upcoming Item', content: 'Click any deadline to jump directly to the associated trademark case.' },
     { target: 'body', placement: 'center', title: 'Peace of Mind', content: 'The system sends automatic email reminders 30, 15, and 7 days before any deadline.' }
   ],
-  '/invoicing': [
-    { target: 'body', placement: 'center', title: 'Billing & Ledger Overview', content: 'This walkthrough focuses only on the invoicing page, teaching you how to create invoices, filter records, and manage payments.' },
-    { target: 'h1', title: 'Page Header', content: 'This is your invoicing workspace header. It confirms you are in Billing & Ledger mode.' },
+  '/billing': [
+    { target: 'body', placement: 'center', title: 'Billing & Ledger Overview', content: 'This walkthrough focuses only on the billing page, teaching you how to create invoices, filter records, and manage payments.' },
+    { target: 'h1', title: 'Page Header', content: 'This is your billing workspace header. It confirms you are in Billing & Ledger mode.' },
     { target: 'button.bg-primary', title: 'Create Invoice', content: 'Use this button to open the invoice creation modal and generate new client invoices.' },
     { target: '.grid', title: 'Revenue Snapshot', content: 'These cards show total revenue, overdue balances, and month-to-date paid amounts.' },
     { target: '.grid > div:nth-child(1)', title: 'Total Revenue', content: 'This card tracks cumulative income from all invoices in the system.' },

@@ -23,10 +23,10 @@ const VerifyOtpPage = lazy(() => import('../pages/VerifyOtpPage'))
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'))
 const FormInspectorPage = lazy(() => import('../pages/FormInspectorPage'))
 const TrashPage = lazy(() => import('../pages/TrashPage'))
+const ProfilePage = lazy(() => import('../pages/ProfilePage'))
 
 const withRouteSuspense = (node: ReactNode) => (
-
-  <Suspense fallback={<div className="p-6 text-sm text-foreground/70">Loading page...</div>}>
+  <Suspense fallback={null}>
     {node}
   </Suspense>
 )
@@ -129,14 +129,15 @@ export const router = createBrowserRouter([
           { path: 'case-flow/:id', element: withRouteSuspense(<CaseFlowPage />) },
           { path: 'case-flow/demo', element: withRouteSuspense(<CaseFlowDemoPage />) },
           { 
-          path: 'invoicing', 
+          path: 'billing', 
           element: <FinanceRoute />,
           children: [
             { index: true, element: withRouteSuspense(<BillingPage />) },
             { path: ':id', element: withRouteSuspense(<InvoiceDetailPage />) }
           ]
         },
-          { path: 'trash', element: withRouteSuspense(<TrashPage />) }
+          { path: 'trash', element: withRouteSuspense(<TrashPage />) },
+          { path: 'profile', element: withRouteSuspense(<ProfilePage />) }
         ]
       }
     ]

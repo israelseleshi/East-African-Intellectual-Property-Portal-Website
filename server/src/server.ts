@@ -90,6 +90,29 @@ app.use('/api/uploads', express.static(uploadDir));
 // Serve Mark Images and PDFs
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Fallback logic for serving static files when direct path fails
+const serveStaticWithFallback = (dir: string) => {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const filename = req.params[0];
+    const filePath = path.join(dir, filename);
+    
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      return res.sendFile(filePath);
+    }
+    next();
+  };
+};
+
+app.use('/uploads', express.static(uploadDir));
+app.use('/api/uploads', express.static(uploadDir));
+app.get('/api/uploads/*', (req: any, res, next) => {
+  const filename = req.params[0];
+  const filePath = path.join(uploadDir, filename);
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  next();
+});
+
 const formsUploadCandidates = [
   process.env.FORMS_UPLOAD_DIR,
   path.resolve(__dirname, '../forms-upload'),

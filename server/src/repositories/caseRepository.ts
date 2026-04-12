@@ -66,7 +66,7 @@ export const caseRepository = {
       SELECT tc.*, c.name as client_name, c.type as client_type
       FROM trademark_cases tc
       JOIN clients c ON tc.client_id = c.id
-      WHERE 1=1
+      WHERE tc.deleted_at IS NULL AND c.deleted_at IS NULL
     `;
     const params: string[] = [];
 

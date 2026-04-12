@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockwise, DownloadSimple, Info, Buildings, MapPin, Phone, Envelope, Calendar, CheckSquare, List, WarningCircle, X, Upload, XCircle, User, IdentificationCard } from '@phosphor-icons/react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -48,6 +48,10 @@ type TrademarkCaseDetail = {
   expiry_date?: string
   nextRenewalDate?: string
   next_renewal_date?: string
+  priority_country?: string
+  priority_filing_date?: string
+  disclaimer_english?: string
+  disclaimer_amharic?: string
   eipaForm?: Record<string, unknown> | null
   is_word?: boolean | number
   is_figurative?: boolean | number
@@ -244,6 +248,8 @@ function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: st
 export default function TrademarkDetailInfoPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const fromTrash = searchParams.get('fromTrash') === 'true'
   const [loading, setLoading] = useState(true)
   const [tm, setTm] = useState<TrademarkCaseDetail | null>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -353,15 +359,15 @@ export default function TrademarkDetailInfoPage() {
       'agent.fax': eipaField('agent_fax') || '',
       
       // Mark Type Checkboxes (Goods, Services, Collective)
-      chk_goods: !!eipaField('chk_goods') || !!tm.chk_goods,
-      chk_services: !!eipaField('chk_services') || !!tm.chk_services,
-      chk_collective: !!eipaField('chk_collective') || !!tm.chk_collective,
+      chk_goods: !!tm.chk_goods || !!eipaField('chk_goods'),
+      chk_services: !!tm.chk_services || !!eipaField('chk_services'),
+      chk_collective: !!tm.chk_collective || !!eipaField('chk_collective'),
       
       // Mark Form Checkboxes (Word, Figurative, 3D, Mixed)
-      type_word: !!eipaField('type_word') || !!tm.is_word,
-      type_figur: !!eipaField('type_figur') || !!tm.is_figurative,
-      type_thre: !!eipaField('type_thre') || !!tm.is_three_dim,
-      k_type_mi: !!eipaField('k_type_mi') || !!tm.is_mixed,
+      type_word: !!tm.is_word || !!eipaField('type_word'),
+      type_figur: !!tm.is_figurative || !!eipaField('type_figur'),
+      type_thre: !!tm.is_three_dim || !!eipaField('type_thre'),
+      k_type_mi: !!tm.is_mixed || !!eipaField('k_type_mi'),
 
       // More details
       mark_translation: eipaField('mark_translation') || tm.translation || '',
@@ -370,10 +376,10 @@ export default function TrademarkDetailInfoPage() {
       mark_has_three_dim_features: eipaField('mark_has_three_dim_features') || '',
 
       // Priority
-      priority_country: eipaField('priority_country') || '',
-      priority_filing_date: eipaField('priority_filing_date') || '',
-      disclaimer_text_english: eipaField('disclaimer_text_english') || '',
-      disclaimer_text_amharic: eipaField('disclaimer_text_amharic') || '',
+      priority_country: tm.priority_country || eipaField('priority_country') || '',
+      priority_filing_date: tm.priority_filing_date || eipaField('priority_filing_date') || '',
+      disclaimer_text_english: tm.disclaimer_english || eipaField('disclaimer_text_english') || '',
+      disclaimer_text_amharic: tm.disclaimer_amharic || eipaField('disclaimer_text_amharic') || '',
     })
     setIsEditing(true)
   }
@@ -411,6 +417,21 @@ export default function TrademarkDetailInfoPage() {
         agentPayload[subKey] = formData[k];
       });
       if (Object.keys(agentPayload).length > 0) payload.agent = agentPayload;
+
+      // Mark Type/Form Checkboxes
+      const checkboxFields = [
+        'chk_goods', 'chk_services', 'chk_collective', 
+        'type_word', 'type_figur', 'type_thre', 'k_type_mi'
+      ];
+      checkboxFields.forEach(field => {
+        if (formData[field] !== undefined) {
+          const dbKey = field === 'type_word' ? 'is_word' : 
+                        field === 'type_figur' ? 'is_figurative' :
+                        field === 'type_thre' ? 'is_three_dim' :
+                        field === 'k_type_mi' ? 'is_mixed' : field;
+          payload[dbKey] = formData[field];
+        }
+      });
 
       // EIPA Form data (for checkboxes and other extra fields)
       const eipaPayload: Record<string, any> = { ...(tm?.eipaForm || {}) };
@@ -503,7 +524,28 @@ export default function TrademarkDetailInfoPage() {
       const isRenewal = (tm.status || '').toUpperCase() === 'RENEWAL' || (tm.markType || tm.mark_type || '').toUpperCase() === 'RENEWAL'
       const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
       
-      const pdfBytes = await fillPdfForm(pdfUrl, tm.eipaForm as Record<string, unknown> || {})
+      // Merge top-level case data into eipaForm to ensure PDF engine gets the latest DB values
+      const mergedData = {
+        ...(tm.eipaForm as Record<string, unknown> || {}),
+        // Primary Checkboxes (Mark Type)
+        chk_goods: !!tm.chk_goods,
+        chk_services: !!tm.chk_services,
+        chk_collective: !!tm.chk_collective,
+        // Primary Checkboxes (Mark Form)
+        type_word: !!tm.is_word,
+        type_figur: !!tm.is_figurative,
+        k_type_mi: !!tm.is_mixed,
+        type_thre: !!tm.is_three_dim,
+        // Secondary data
+        priority_country: tm.priority_country,
+        priority_filing_date: tm.priority_filing_date,
+        disclaimer_text_english: tm.disclaimer_english,
+        disclaimer_text_amharic: tm.disclaimer_amharic,
+        mark_description: tm.mark_description,
+        mark_name: tm.markName || tm.mark_name
+      }
+      
+      const pdfBytes = await fillPdfForm(pdfUrl, mergedData)
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' })
 
       const url = window.URL.createObjectURL(blob)
@@ -556,7 +598,7 @@ export default function TrademarkDetailInfoPage() {
   const isPublished = tm.status === 'PUBLISHED'
 
   return (
-    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-background text-foreground min-h-screen">
+    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/trademarks')} className="h-10 w-10 shrink-0">
@@ -589,7 +631,7 @@ export default function TrademarkDetailInfoPage() {
                 <ClockCounterClockwise size={18} /><span className="hidden sm:inline">Manage lifecycle</span>
               </Button>
               <Button variant="outline" onClick={handleDownloadForm}><DownloadSimple size={18} /><span className="hidden sm:inline">Export Form</span></Button>
-              <Button variant="outline" onClick={startEditing}><PencilSimple size={18} /><span className="hidden sm:inline">Edit Case</span></Button>
+              <Button variant="outline" onClick={startEditing} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined}><PencilSimple size={18} /><span className="hidden sm:inline">Edit Case</span></Button>
             </>
           )}
         </div>
@@ -706,13 +748,13 @@ export default function TrademarkDetailInfoPage() {
               <EditableField label="Color Indication" value={getDisplayValue('colorIndication', tm.colorIndication || tm.color_indication || eipaField('mark_color_indication'))} name={isEditing ? 'colorIndication' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t pt-4">
-              <EditableField label="Goods Mark" type="checkbox" value={getDisplayValue('chk_goods', !!eipaField('chk_goods'))} name={isEditing ? 'chk_goods' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Service Mark" type="checkbox" value={getDisplayValue('chk_services', !!eipaField('chk_services'))} name={isEditing ? 'chk_services' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Collective Mark" type="checkbox" value={getDisplayValue('chk_collective', !!eipaField('chk_collective'))} name={isEditing ? 'chk_collective' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Type - Word" type="checkbox" value={getDisplayValue('type_word', !!eipaField('type_word'))} name={isEditing ? 'type_word' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Type - Figurative" type="checkbox" value={getDisplayValue('type_figur', !!eipaField('type_figur') || !!tm.is_figurative)} name={isEditing ? 'type_figur' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Type - 3D" type="checkbox" value={getDisplayValue('type_thre', !!eipaField('type_thre') || !!tm.is_three_dim)} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Type - Mixed" type="checkbox" value={getDisplayValue('k_type_mi', !!eipaField('k_type_mi') || !!tm.is_mixed)} name={isEditing ? 'k_type_mi' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Goods Mark" type="checkbox" value={getDisplayValue('chk_goods', !!tm.chk_goods || !!eipaField('chk_goods'))} name={isEditing ? 'chk_goods' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Service Mark" type="checkbox" value={getDisplayValue('chk_services', !!tm.chk_services || !!eipaField('chk_services'))} name={isEditing ? 'chk_services' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Collective Mark" type="checkbox" value={getDisplayValue('chk_collective', !!tm.chk_collective || !!eipaField('chk_collective'))} name={isEditing ? 'chk_collective' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Word" type="checkbox" value={getDisplayValue('type_word', !!tm.is_word || !!eipaField('type_word'))} name={isEditing ? 'type_word' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Figurative" type="checkbox" value={getDisplayValue('type_figur', !!tm.is_figurative || !!eipaField('type_figur'))} name={isEditing ? 'type_figur' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - 3D" type="checkbox" value={getDisplayValue('type_thre', !!tm.is_three_dim || !!eipaField('type_thre'))} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Type - Mixed" type="checkbox" value={getDisplayValue('k_type_mi', !!tm.is_mixed || !!eipaField('k_type_mi'))} name={isEditing ? 'k_type_mi' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
             <EditableField label="Mark Description" type="textarea" value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} name={isEditing ? 'markDescription' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -731,12 +773,25 @@ export default function TrademarkDetailInfoPage() {
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <EditableField label="Priority Country" type="country" value={getDisplayValue('priority_country', eipaField('priority_country'))} name={isEditing ? 'priority_country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Priority Date" value={getDisplayValue('priority_filing_date', eipaField('priority_filing_date'))} name={isEditing ? 'priority_filing_date' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField 
+                label="Priority Country" 
+                type="country" 
+                value={getDisplayValue('priority_country', tm.priority_country || eipaField('priority_country'))} 
+                name={isEditing ? 'priority_country' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
+              <EditableField 
+                label="Priority Date" 
+                value={isEditing 
+                  ? getDisplayValue('priority_filing_date', tm.priority_filing_date || eipaField('priority_filing_date')) 
+                  : safeDate(tm.priority_filing_date || eipaField('priority_filing_date'))} 
+                name={isEditing ? 'priority_filing_date' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <EditableField label="Disclaimer (English)" value={getDisplayValue('disclaimer_text_english', eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Disclaimer (Amharic)" value={getDisplayValue('disclaimer_text_amharic', eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Disclaimer (English)" value={getDisplayValue('disclaimer_text_english', tm.disclaimer_english || eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Disclaimer (Amharic)" value={getDisplayValue('disclaimer_text_amharic', tm.disclaimer_amharic || eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
           </CardContent>
         </Card>

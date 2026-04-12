@@ -26,8 +26,18 @@ export const authApi = {
     return response.data;
   },
 
-  async resetPassword(payload: { token: string; password: string }) {
+  async resetPassword(payload: { email: string; otp: string; password: string }) {
     const response = await apiClient.post('/auth/reset-password', payload);
+    return response.data;
+  },
+
+  async updateProfile(payload: { fullName?: string; phone?: string; firmName?: string }) {
+    const response = await apiClient.patch('/auth/profile', payload);
+    return response.data;
+  },
+
+  async changePassword(payload: { currentPassword: string; newPassword: string }) {
+    const response = await apiClient.post('/auth/change-password', payload);
     return response.data;
   }
 };
