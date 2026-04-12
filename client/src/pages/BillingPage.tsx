@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
-import { useToast } from '../components/ui/toast'
+import { useToast } from '@/hooks/use-toast'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import {
   CurrencyDollar,
@@ -276,7 +276,8 @@ export default function BillingPage() {
     if (!selectedInvoice || !paymentData.amount) return;
 
     try {
-      await financialsApi.recordPayment(selectedInvoice.id, {
+      await financialsApi.recordPayment({
+        invoiceId: selectedInvoice.id,
         amount: Number(paymentData.amount),
         paymentDate: paymentData.paymentDate,
         paymentMethod: paymentData.paymentMethod,

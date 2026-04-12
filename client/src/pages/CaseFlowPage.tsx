@@ -287,7 +287,7 @@ export default function CaseFlowPage() {
                                     try {
                                       data = JSON.parse(data);
                                     } catch (e) {
-                                      return <span className="text-xs text-muted-foreground">{data}</span>;
+                                      return <span className="text-xs text-muted-foreground">{String(data)}</span>;
                                     }
                                   }
                                   
