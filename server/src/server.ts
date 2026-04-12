@@ -62,7 +62,7 @@ app.use(helmet({
       'script-src': ["'self'", "'unsafe-inline'"],
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
-      'img-src': ["'self'", 'data:', 'blob:'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https://eastafricanip.com', 'https://www.eastafricanip.com'],
       'connect-src': ["'self'", 'https://eastafricanip.com', 'https://www.eastafricanip.com', 'http://eastafricanip.com', 'http://www.eastafricanip.com', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001']
     }
   },
