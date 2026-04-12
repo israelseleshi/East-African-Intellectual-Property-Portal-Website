@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { authService } from '@/utils/api'
 import { toast } from 'sonner'
+import { RBACMatrix } from '@/components/RBACMatrix'
+import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 
 export default function ProfilePage() {
   const { user, login } = useAuthStore()
@@ -112,9 +114,11 @@ export default function ProfilePage() {
       </header>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -279,6 +283,14 @@ export default function ProfilePage() {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="permissions" className="space-y-6">
+          <RBACMatrix userRole={user?.role} />
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-6">
+          <ActivityHeatmap days={365} />
         </TabsContent>
       </Tabs>
     </div>

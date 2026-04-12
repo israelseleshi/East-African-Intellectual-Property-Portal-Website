@@ -627,7 +627,7 @@ export default function TrademarkDetailInfoPage() {
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => navigate(`/case-flow/${tm.id}`)}>
+              <Button variant="outline" onClick={() => navigate(`/case-flow/${tm.id}`)} disabled={fromTrash} title={fromTrash ? 'Cannot manage lifecycle of deleted items' : undefined}>
                 <ClockCounterClockwise size={18} /><span className="hidden sm:inline">Manage lifecycle</span>
               </Button>
               <Button variant="outline" onClick={handleDownloadForm}><DownloadSimple size={18} /><span className="hidden sm:inline">Export Form</span></Button>
