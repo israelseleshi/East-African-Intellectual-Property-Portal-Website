@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockw
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Typography } from '@/components/ui/typography'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -65,6 +66,17 @@ type TrademarkCaseDetail = {
   mark_language_requiring_traslation?: string
   mark_has_three_dim_features?: string
   translation?: string
+  applicant_sign_day?: string
+  applicant_sign_month?: string
+  applicant_sign_year_en?: string
+  chk_priority_accompanies?: boolean | number
+  chk_priority_submitted_later?: boolean | number
+  renewal_app_no?: string
+  renewal_reg_no?: string
+  renewal_reg_date?: string
+  renewal_sign_day?: string
+  renewal_sign_month?: string
+  renewal_sign_year?: string
   client?: {
     id?: string
     name?: string
@@ -353,7 +365,7 @@ export default function TrademarkDetailInfoPage() {
       'agent.subcity': tm.agent?.subcity || eipaField('agent_subcity') || '',
       'agent.woreda': eipaField('agent_woreda') || '',
       'agent.house_no': eipaField('agent_house_no') || '',
-      'agent.poBox': tm.agent?.poBox || eipaField('agent_pobox') || '',
+      'agent.poBox': tm.agent?.poBox || eipaField('agent_po_box') || '',
       'agent.telephone': tm.agent?.telephone || eipaField('agent_telephone') || '',
       'agent.email': tm.agent?.email || eipaField('agent_email') || '',
       'agent.fax': eipaField('agent_fax') || '',
@@ -372,7 +384,7 @@ export default function TrademarkDetailInfoPage() {
       // More details
       mark_translation: eipaField('mark_translation') || tm.translation || '',
       mark_transliteration: eipaField('mark_transliteration') || tm.mark_transliteration || '',
-      mark_language_requiring_translation: eipaField('mark_language_requiring_translation') || '',
+      mark_language_requiring_traslation: tm.mark_language_requiring_traslation || eipaField('mark_language_requiring_translation') || eipaField('mark_language_requiring_traslation') || '',
       mark_has_three_dim_features: eipaField('mark_has_three_dim_features') || '',
 
       // Priority
@@ -380,6 +392,13 @@ export default function TrademarkDetailInfoPage() {
       priority_filing_date: tm.priority_filing_date || eipaField('priority_filing_date') || '',
       disclaimer_text_english: tm.disclaimer_english || eipaField('disclaimer_text_english') || '',
       disclaimer_text_amharic: tm.disclaimer_amharic || eipaField('disclaimer_text_amharic') || '',
+      // Signature fields
+      applicant_sign_day: tm.applicant_sign_day || eipaField('applicant_sign_day') || '',
+      applicant_sign_month: tm.applicant_sign_month || eipaField('applicant_sign_month') || '',
+      applicant_sign_year_en: tm.applicant_sign_year_en || eipaField('applicant_sign_year_en') || '',
+      // Priority checklist
+      chk_priority_accompanies: !!tm.chk_priority_accompanies || !!eipaField('chk_priority_accompanies'),
+      chk_priority_submitted_later: !!tm.chk_priority_submitted_later || !!eipaField('chk_priority_submitted_later'),
     })
     setIsEditing(true)
   }
@@ -461,7 +480,7 @@ export default function TrademarkDetailInfoPage() {
         'agent.subcity': 'agent_subcity',
         'agent.woreda': 'agent_woreda',
         'agent.house_no': 'agent_house_no',
-        'agent.poBox': 'agent_pobox',
+        'agent.poBox': 'agent_po_box',
         'agent.telephone': 'agent_telephone',
         'agent.email': 'agent_email',
         'agent.fax': 'agent_fax'
@@ -475,8 +494,10 @@ export default function TrademarkDetailInfoPage() {
         'chk_female', 'chk_male', 'chk_company',
         'chk_goods', 'chk_services', 'chk_collective', 
         'type_word', 'type_figur', 'type_thre', 'k_type_mi',
-        'mark_translation', 'mark_transliteration', 'mark_language_requiring_translation', 'mark_has_three_dim_features',
-        'priority_country', 'priority_filing_date', 'disclaimer_text_english', 'disclaimer_text_amharic'
+        'mark_translation', 'mark_transliteration', 'mark_language_requiring_traslation', 'mark_language_requiring_translation', 'mark_has_three_dim_features',
+        'priority_country', 'priority_filing_date', 'disclaimer_text_english', 'disclaimer_text_amharic',
+        'applicant_sign_day', 'applicant_sign_month', 'applicant_sign_year_en',
+        'chk_priority_accompanies', 'chk_priority_submitted_later'
       ];
       
       eipaKeys.forEach(key => {
@@ -542,7 +563,14 @@ export default function TrademarkDetailInfoPage() {
         disclaimer_text_english: tm.disclaimer_english,
         disclaimer_text_amharic: tm.disclaimer_amharic,
         mark_description: tm.mark_description,
-        mark_name: tm.markName || tm.mark_name
+        mark_name: tm.markName || tm.mark_name,
+        // Signature fields
+        applicant_sign_day: tm.applicant_sign_day || '',
+        applicant_sign_month: tm.applicant_sign_month || '',
+        applicant_sign_year_en: tm.applicant_sign_year_en || '',
+        // Priority checklist
+        chk_priority_accompanies: !!tm.chk_priority_accompanies,
+        chk_priority_submitted_later: !!tm.chk_priority_submitted_later
       }
       
       const pdfBytes = await fillPdfForm(pdfUrl, mergedData)
@@ -605,7 +633,7 @@ export default function TrademarkDetailInfoPage() {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">{markName}</h1>
+            <Typography.h2a>{markName}</Typography.h2a>
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="default">{filingNo}</Badge>
               <Badge variant="outline">{JURISDICTION_NAMES[tm.jurisdiction || 'ET'] || tm.jurisdiction}</Badge>
@@ -630,6 +658,11 @@ export default function TrademarkDetailInfoPage() {
               <Button variant="outline" onClick={() => navigate(`/case-flow/${tm.id}`)} disabled={fromTrash} title={fromTrash ? 'Cannot manage lifecycle of deleted items' : undefined}>
                 <ClockCounterClockwise size={18} /><span className="hidden sm:inline">Manage lifecycle</span>
               </Button>
+              {isRegistered && !fromTrash && (
+                <Button variant="default" onClick={() => navigate(`/eipa-forms/renewal-form?caseId=${tm.id}`)}>
+                  <FileText size={18} /><span className="hidden sm:inline">Renew</span>
+                </Button>
+              )}
               <Button variant="outline" onClick={handleDownloadForm}><DownloadSimple size={18} /><span className="hidden sm:inline">Export Form</span></Button>
               <Button variant="outline" onClick={startEditing} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined}><PencilSimple size={18} /><span className="hidden sm:inline">Edit Case</span></Button>
             </>
@@ -644,7 +677,7 @@ export default function TrademarkDetailInfoPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <User size={18} className="text-primary" />
-                <CardTitle className="text-base font-bold">Applicant Information</CardTitle>
+                <CardTitle><Typography.h4a>Applicant Information</Typography.h4a></CardTitle>
               </div>
               <Button 
                 variant="ghost" 
@@ -687,7 +720,7 @@ export default function TrademarkDetailInfoPage() {
         {/* III. Agent Details */}
         <Card className="border-border shadow-sm bg-card">
           <CardHeader className="bg-muted/30 border-b border-border py-3">
-            <div className="flex items-center gap-2"><Buildings size={18} className="text-primary" /><CardTitle className="text-base font-bold">Agent / Representative</CardTitle></div>
+            <div className="flex items-center gap-2"><Buildings size={18} className="text-primary" /><CardTitle><Typography.h4a>Agent / Representative</Typography.h4a></CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -697,7 +730,7 @@ export default function TrademarkDetailInfoPage() {
               <EditableField label="Sub-City" value={getDisplayValue('agent.subcity', tm.agent?.subcity || eipaField('agent_subcity'))} name={isEditing ? 'agent.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Wereda" value={getDisplayValue('agent.woreda', eipaField('agent_woreda'))} name={isEditing ? 'agent.woreda' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="House No." value={getDisplayValue('agent.house_no', eipaField('agent_house_no'))} name={isEditing ? 'agent.house_no' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="P.O. Box" value={getDisplayValue('agent.poBox', tm.agent?.poBox || eipaField('agent_pobox'))} name={isEditing ? 'agent.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="P.O. Box" value={getDisplayValue('agent.poBox', tm.agent?.poBox || eipaField('agent_po_box'))} name={isEditing ? 'agent.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Telephone" value={getDisplayValue('agent.telephone', tm.agent?.telephone || eipaField('agent_telephone'))} name={isEditing ? 'agent.telephone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Email" value={getDisplayValue('agent.email', tm.agent?.email || eipaField('agent_email'))} name={isEditing ? 'agent.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Fax" value={getDisplayValue('agent.fax', eipaField('agent_fax'))} name={isEditing ? 'agent.fax' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
@@ -708,7 +741,7 @@ export default function TrademarkDetailInfoPage() {
         {/* IV. Mark Specification */}
         <Card className="border-border shadow-sm bg-card">
           <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><FileText size={20} className="text-primary" /><CardTitle className="text-base">IV. Mark Specification</CardTitle></div>
+            <div className="flex items-center gap-2"><FileText size={20} className="text-primary" /><CardTitle><Typography.h4>IV. Mark Specification</Typography.h4></CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             {isEditing ? (
@@ -760,7 +793,7 @@ export default function TrademarkDetailInfoPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <EditableField label="Translation" value={getDisplayValue('mark_translation', eipaField('mark_translation'))} name={isEditing ? 'mark_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Transliteration" value={getDisplayValue('mark_transliteration', eipaField('mark_transliteration'))} name={isEditing ? 'mark_transliteration' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Language" value={getDisplayValue('mark_language_requiring_translation', eipaField('mark_language_requiring_translation'))} name={isEditing ? 'mark_language_requiring_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Language" value={getDisplayValue('mark_language_requiring_traslation', tm.mark_language_requiring_traslation || eipaField('mark_language_requiring_translation') || eipaField('mark_language_requiring_traslation'))} name={isEditing ? 'mark_language_requiring_traslation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="3D Features" value={getDisplayValue('mark_has_three_dim_features', eipaField('mark_has_three_dim_features'))} name={isEditing ? 'mark_has_three_dim_features' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
           </CardContent>
@@ -769,7 +802,7 @@ export default function TrademarkDetailInfoPage() {
         {/* V. Priority / Disclaimer */}
         <Card className="border-border shadow-sm bg-card">
           <CardHeader className="bg-muted/30 border-b border-border py-3">
-            <div className="flex items-center gap-2"><WarningCircle size={18} className="text-primary" /><CardTitle className="text-base font-bold">V. Priority / Disclaimer</CardTitle></div>
+            <div className="flex items-center gap-2"><WarningCircle size={18} className="text-primary" /><CardTitle><Typography.h4a>V. Priority / Disclaimer</Typography.h4a></CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -789,6 +822,22 @@ export default function TrademarkDetailInfoPage() {
                 onChange={isEditing ? handleFieldChange : undefined} 
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <EditableField 
+                label="Priority Docs Attached" 
+                type="checkbox" 
+                value={getDisplayValue('chk_priority_accompanies', !!tm.chk_priority_accompanies || !!eipaField('chk_priority_accompanies'))} 
+                name={isEditing ? 'chk_priority_accompanies' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
+              <EditableField 
+                label="Submit Within 3 Months" 
+                type="checkbox" 
+                value={getDisplayValue('chk_priority_submitted_later', !!tm.chk_priority_submitted_later || !!eipaField('chk_priority_submitted_later'))} 
+                name={isEditing ? 'chk_priority_submitted_later' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <EditableField label="Disclaimer (English)" value={getDisplayValue('disclaimer_text_english', tm.disclaimer_english || eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Disclaimer (Amharic)" value={getDisplayValue('disclaimer_text_amharic', tm.disclaimer_amharic || eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
@@ -796,10 +845,39 @@ export default function TrademarkDetailInfoPage() {
           </CardContent>
         </Card>
 
-        {/* VI. Nice Classification */}
+        {/* VI. Signature */}
+        <Card className="border-border shadow-sm bg-card md:col-span-2">
+          <CardHeader className="bg-muted/30 border-b border-border py-3">
+            <div className="flex items-center gap-2"><IdentificationCard size={18} className="text-primary" /><CardTitle><Typography.h4a>VI. Signature</Typography.h4a></CardTitle></div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-3 gap-4">
+              <EditableField 
+                label="Day" 
+                value={getDisplayValue('applicant_sign_day', tm.applicant_sign_day || eipaField('applicant_sign_day'))} 
+                name={isEditing ? 'applicant_sign_day' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
+              <EditableField 
+                label="Month" 
+                value={getDisplayValue('applicant_sign_month', tm.applicant_sign_month || eipaField('applicant_sign_month'))} 
+                name={isEditing ? 'applicant_sign_month' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
+              <EditableField 
+                label="Year" 
+                value={getDisplayValue('applicant_sign_year_en', tm.applicant_sign_year_en || eipaField('applicant_sign_year_en'))} 
+                name={isEditing ? 'applicant_sign_year_en' : undefined} 
+                onChange={isEditing ? handleFieldChange : undefined} 
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* VII. Nice Classification */}
         <Card className="border-border shadow-sm bg-card">
           <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><List size={20} className="text-primary" /><CardTitle className="text-base">VI. Nice Classification</CardTitle></div>
+            <div className="flex items-center gap-2"><List size={20} className="text-primary" /><CardTitle><Typography.h4>VII. Nice classification</Typography.h4></CardTitle></div>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="flex flex-wrap gap-2">
@@ -820,10 +898,10 @@ export default function TrademarkDetailInfoPage() {
           </CardContent>
         </Card>
 
-        {/* VII. Key Dates */}
+        {/* VIII. Key Dates */}
         <Card className="border-border shadow-sm bg-card md:col-span-2">
           <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2"><Calendar size={20} className="text-primary" /><CardTitle className="text-base">VII. Lifecycle & Key Dates</CardTitle></div>
+            <div className="flex items-center gap-2"><Calendar size={20} className="text-primary" /><CardTitle><Typography.h4>VIII. Lifecycle & Key Dates</Typography.h4></CardTitle></div>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
@@ -835,6 +913,32 @@ export default function TrademarkDetailInfoPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* IX. Renewal Information */}
+        {(tm.status === 'RENEWAL' || tm.eipaForm && (tm.eipaForm as any)?.renewal_app_no || tm.renewal_app_no) && (
+          <Card className="border-border shadow-sm bg-card md:col-span-2">
+            <CardHeader className="bg-muted/30 border-b border-border">
+              <div className="flex items-center gap-2"><FileText size={20} className="text-primary" /><CardTitle><Typography.h4>IX. Renewal Information</Typography.h4></CardTitle></div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <Field label="Original Application No." value={tm.renewal_app_no || (tm.eipaForm as any)?.renewal_app_no || '—'} />
+                <Field label="Registration No." value={tm.renewal_reg_no || (tm.eipaForm as any)?.renewal_reg_no || '—'} />
+                <Field label="Registration Date" value={safeDate(tm.renewal_reg_date || (tm.eipaForm as any)?.renewal_reg_date)} />
+              </div>
+              {(tm.renewal_sign_day || (tm.eipaForm as any)?.renewal_sign_day) && (
+                <div className="mt-4 pt-4 border-t">
+                  <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Signature Date</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Field label="Day" value={tm.renewal_sign_day || (tm.eipaForm as any)?.renewal_sign_day || '—'} />
+                    <Field label="Month" value={tm.renewal_sign_month || (tm.eipaForm as any)?.renewal_sign_month || '—'} />
+                    <Field label="Year" value={tm.renewal_sign_year || (tm.eipaForm as any)?.renewal_sign_year || '—'} />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

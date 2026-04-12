@@ -30,6 +30,8 @@ import type { ApplicantType } from '@/shared/database';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import HelpButton from '@/components/HelpButton';
+import { Typography } from '@/components/ui/typography';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -289,8 +291,8 @@ export default function ClientsPage() {
       <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-            <p className="text-muted-foreground text-sm">Manage and organize your client database across jurisdictions.</p>
+            <Typography.h1a data-tour="page-title">Clients</Typography.h1a>
+            <Typography.muted>Manage and organize your client database across jurisdictions.</Typography.muted>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {selectedIds.size > 0 && (
@@ -320,7 +322,7 @@ export default function ClientsPage() {
           <Button
             onClick={handleExportExcel}
             variant="outline"
-            className="flex items-center gap-2 bg-[#E8E8ED]"
+            className="flex items-center gap-2 bg-white"
           >
             <FileArrowDown size={16} />
             <span>Export Excel</span>
@@ -359,10 +361,11 @@ export default function ClientsPage() {
     <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground text-sm">Manage and organize your client database across jurisdictions.</p>
+          <Typography.h1a data-tour="page-title">Clients</Typography.h1a>
+          <Typography.muted>Manage and organize your client database across jurisdictions.</Typography.muted>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <HelpButton pageId="clients" />
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-2 mr-2">
               {selectedIds.size === 2 && (
@@ -390,7 +393,7 @@ export default function ClientsPage() {
           <Button
             onClick={handleExportExcel}
             variant="outline"
-            className="flex items-center gap-2 bg-[#E8E8ED]"
+            className="flex items-center gap-2 bg-white"
           >
             <FileArrowDown size={16} />
             <span>Export Excel</span>
@@ -398,6 +401,7 @@ export default function ClientsPage() {
           <Button
             onClick={() => navigate('/clients/new')}
             className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            data-tour="new-client-btn"
           >
             <Plus size={16} weight="bold" />
             <span>New Client</span>
@@ -477,13 +481,14 @@ export default function ClientsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search clients..."
-            className="pl-10 bg-[#E8E8ED] border-muted hover:border-border transition-colors"
+            className="pl-10 bg-white border-muted hover:border-border transition-colors"
+            data-tour="search-input"
           />
         </div>
 
         <div className="flex items-center gap-3">
           <Select value={selectedType} onValueChange={(val) => setSelectedType(val as any)}>
-            <SelectTrigger className="w-[160px] bg-[#E8E8ED]">
+            <SelectTrigger className="w-[160px] bg-white" data-tour="filter-type">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent>
@@ -494,17 +499,17 @@ export default function ClientsPage() {
             </SelectContent>
           </Select>
           
-          <div className="flex items-center bg-muted/50 p-1 rounded-lg border">
+          <div className="flex items-center bg-muted/50 p-1 rounded-lg border" data-tour="view-toggle">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-white/50'}`}
               title="Grid View"
             >
               <SquaresFour size={18} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-white/50'}`}
               title="Table View"
             >
               <List size={18} weight={viewMode === 'table' ? 'fill' : 'regular'} />
@@ -519,10 +524,10 @@ export default function ClientsPage() {
             <div className="p-4 rounded-full bg-muted/50 mb-4">
               <Building size={48} weight="duotone" className="text-muted-foreground opacity-50" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No clients found</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto">
-              {searchQuery ? 'We couldn’t find any clients matching your search or filters.' : 'Add your first client to start managing their intellectual property portfolio.'}
-            </p>
+            <Typography.h3a className="mb-2">No clients found</Typography.h3a>
+              <Typography.muted className="max-w-sm mx-auto">
+                {searchQuery ? "We couldn't find any clients matching your search or filters." : 'Add your first client to start managing their intellectual property portfolio.'}
+              </Typography.muted>
             {!searchQuery && (
               <Button onClick={() => navigate('/clients/new')} className="mt-6">
                 <Plus className="mr-2" size={16} /> Add Client
@@ -539,13 +544,14 @@ export default function ClientsPage() {
                   key={client.id}
                   className={`group relative flex flex-col cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 overflow-hidden ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
                   onClick={() => navigate(`/clients/${client.id}`)}
+                  data-tour="client-card"
                 >
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleSelect(client.id);
                     }}
-                    className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-[#E8E8ED]/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
+                    className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-white/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
                   >
                     {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
                   </button>
@@ -556,9 +562,9 @@ export default function ClientsPage() {
                         <Icon size={24} weight="duotone" />
                       </div>
                       <div className="flex-1 min-w-0 pt-1">
-                        <h3 className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                        <Typography.h4a className="truncate group-hover:text-primary transition-colors">
                           {client.name}
-                        </h3>
+                        </Typography.h4a>
                         <Badge variant="secondary" className="mt-1 text-xs font-medium">
                           {CLIENT_TYPE_LABELS[client.type]}
                         </Badge>
@@ -628,7 +634,7 @@ export default function ClientsPage() {
                     return (
                       <tr
                         key={client.id}
-                        className={`group cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : 'bg-[#E8E8ED]'}`}
+                        className={`group cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : 'bg-white'}`}
                         onClick={() => navigate(`/clients/${client.id}`)}
                       >
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -645,7 +651,7 @@ export default function ClientsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className="font-normal bg-[#E8E8ED]">
+                          <Badge variant="outline" className="font-normal bg-white">
                             {CLIENT_TYPE_LABELS[client.type]}
                           </Badge>
                         </td>

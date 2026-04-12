@@ -4,13 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2 } from 'lucide-react'
+import { Typography } from '@/components/ui/typography'
+import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { authService } from '@/utils/api'
 import { toast } from 'sonner'
-import { RBACMatrix } from '@/components/RBACMatrix'
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
+import { agentsApi, Agent } from '@/api/agents'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 export default function ProfilePage() {
   const { user, login } = useAuthStore()
@@ -27,7 +37,24 @@ export default function ProfilePage() {
     confirmPassword: ''
   })
 
-  // Initialize with user data if available
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [agentsLoading, setAgentsLoading] = useState(false)
+  const [agentDialogOpen, setAgentDialogOpen] = useState(false)
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
+  const [agentFormData, setAgentFormData] = useState({
+    name: '',
+    country: '',
+    city: '',
+    subcity: '',
+    woreda: '',
+    houseNo: '',
+    telephone: '',
+    email: '',
+    poBox: '',
+    fax: ''
+  })
+  const [agentFormLoading, setAgentFormLoading] = useState(false)
+
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
@@ -38,7 +65,6 @@ export default function ProfilePage() {
         firmName: user.firm_name || '',
       }))
     } else {
-      // If store is empty, fetch fresh data from /me
       authService.me().then(data => {
         if (data) {
           login(data);
@@ -46,6 +72,95 @@ export default function ProfilePage() {
       }).catch(() => {});
     }
   }, [user, login])
+
+  useEffect(() => {
+    fetchAgents()
+  }, [])
+
+  const fetchAgents = async () => {
+    setAgentsLoading(true)
+    try {
+      const response = await agentsApi.list()
+      if (response.success) {
+        setAgents(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch agents:', error)
+    } finally {
+      setAgentsLoading(false)
+    }
+  }
+
+  const handleOpenAgentDialog = (agent?: Agent) => {
+    if (agent) {
+      setEditingAgent(agent)
+      setAgentFormData({
+        name: agent.name,
+        country: agent.country || '',
+        city: agent.city || '',
+        subcity: agent.subcity || '',
+        woreda: agent.woreda || '',
+        houseNo: agent.houseNo || '',
+        telephone: agent.telephone || '',
+        email: agent.email || '',
+        poBox: agent.poBox || '',
+        fax: agent.fax || ''
+      })
+    } else {
+      setEditingAgent(null)
+      setAgentFormData({
+        name: '',
+        country: '',
+        city: '',
+        subcity: '',
+        woreda: '',
+        houseNo: '',
+        telephone: '',
+        email: '',
+        poBox: '',
+        fax: ''
+      })
+    }
+    setAgentDialogOpen(true)
+  }
+
+  const handleAgentFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAgentFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
+  }
+
+  const handleSaveAgent = async () => {
+    setAgentFormLoading(true)
+    try {
+      if (editingAgent) {
+        await agentsApi.update(editingAgent.id, agentFormData)
+        toast.success('Agent Updated', { description: 'Agent information has been saved.' })
+      } else {
+        await agentsApi.create(agentFormData)
+        toast.success('Agent Created', { description: 'New agent has been added.' })
+      }
+      setAgentDialogOpen(false)
+      fetchAgents()
+    } catch (error: any) {
+      toast.error('Error', {
+        description: error.response?.data?.error || 'Failed to save agent'
+      })
+    } finally {
+      setAgentFormLoading(false)
+    }
+  }
+
+  const handleDeleteAgent = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this agent?')) return
+    try {
+      await agentsApi.delete(id)
+      toast.success('Agent Deleted', { description: 'Agent has been removed.' })
+      fetchAgents()
+    } catch (error: any) {
+      toast.error('Error', {
+        description: error.response?.data?.error || 'Failed to delete agent'
+      })
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
@@ -61,7 +176,6 @@ export default function ProfilePage() {
         firmName: formData.firmName
       })
       
-      // Update local store
       if (user) {
         login({
           ...user,
@@ -108,8 +222,8 @@ export default function ProfilePage() {
     <div className="w-full p-4 md:p-8 space-y-6 max-w-4xl mx-auto min-h-screen">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
-          <p className="text-muted-foreground">Manage your profile information and security preferences.</p>
+          <Typography.h1a>Account Settings</Typography.h1a>
+          <Typography.muted>Manage your profile information and security preferences.</Typography.muted>
         </div>
       </header>
 
@@ -117,12 +231,11 @@ export default function ProfilePage() {
         <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="permissions">Permissions</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
-          {/* Profile Information */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1">
@@ -164,7 +277,7 @@ export default function ProfilePage() {
                         id="email" 
                         type="email" 
                         value={formData.email} 
-                        disabled={true} // Email usually fixed
+                        disabled={true}
                         className="pl-9 bg-muted"
                         placeholder="Enter email" 
                       />
@@ -215,7 +328,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Role/Account Details */}
           <Card className="bg-muted/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -230,7 +342,6 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">
-          {/* Password Management */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -285,14 +396,201 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="permissions" className="space-y-6">
-          <RBACMatrix userRole={user?.role} />
+        <TabsContent value="agents" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="size-5" />
+                  Agents
+                </CardTitle>
+                <CardDescription>Manage trademark agents and representatives.</CardDescription>
+              </div>
+              <Button onClick={() => handleOpenAgentDialog()} size="sm">
+                <Plus className="mr-2 size-4" />
+                Add Agent
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {agentsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : agents.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Country</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Telephone</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {agents.map((agent) => (
+                      <TableRow key={agent.id}>
+                        <TableCell className="font-medium">{agent.name}</TableCell>
+                        <TableCell>{agent.country || '-'}</TableCell>
+                        <TableCell>{agent.city || '-'}</TableCell>
+                        <TableCell>{agent.email || '-'}</TableCell>
+                        <TableCell>{agent.telephone || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleOpenAgentDialog(agent)}
+                            >
+                              <Edit2 className="size-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteAgent(agent.id)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No agents found. Add your first agent to get started.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
-          <ActivityHeatmap days={365} />
+          <ActivityHeatmap />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingAgent ? 'Edit Agent' : 'Add New Agent'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="name" className="text-sm font-medium">Name *</label>
+              <Input 
+                id="name" 
+                value={agentFormData.name} 
+                onChange={handleAgentFormChange}
+                placeholder="Agent or firm name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="country" className="text-sm font-medium">Country</label>
+                <Input 
+                  id="country" 
+                  value={agentFormData.country} 
+                  onChange={handleAgentFormChange}
+                  placeholder="Country"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="city" className="text-sm font-medium">City</label>
+                <Input 
+                  id="city" 
+                  value={agentFormData.city} 
+                  onChange={handleAgentFormChange}
+                  placeholder="City"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="subcity" className="text-sm font-medium">Subcity</label>
+                <Input 
+                  id="subcity" 
+                  value={agentFormData.subcity} 
+                  onChange={handleAgentFormChange}
+                  placeholder="Subcity"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="woreda" className="text-sm font-medium">Woreda</label>
+                <Input 
+                  id="woreda" 
+                  value={agentFormData.woreda} 
+                  onChange={handleAgentFormChange}
+                  placeholder="Woreda"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="houseNo" className="text-sm font-medium">House No</label>
+                <Input 
+                  id="houseNo" 
+                  value={agentFormData.houseNo} 
+                  onChange={handleAgentFormChange}
+                  placeholder="House number"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="poBox" className="text-sm font-medium">PO Box</label>
+                <Input 
+                  id="poBox" 
+                  value={agentFormData.poBox} 
+                  onChange={handleAgentFormChange}
+                  placeholder="PO Box"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="telephone" className="text-sm font-medium">Telephone</label>
+                <Input 
+                  id="telephone" 
+                  value={agentFormData.telephone} 
+                  onChange={handleAgentFormChange}
+                  placeholder="Telephone"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="fax" className="text-sm font-medium">Fax</label>
+                <Input 
+                  id="fax" 
+                  value={agentFormData.fax} 
+                  onChange={handleAgentFormChange}
+                  placeholder="Fax"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">Email</label>
+              <Input 
+                id="email" 
+                type="email"
+                value={agentFormData.email} 
+                onChange={handleAgentFormChange}
+                placeholder="Email address"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAgentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAgent} disabled={agentFormLoading || !agentFormData.name}>
+              {agentFormLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {editingAgent ? 'Save Changes' : 'Add Agent'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -33,32 +33,30 @@ export const ApplicantSection: React.FC<ApplicantSectionProps> = ({
   ];
 
   const quickLoadTrigger = (
-    <div id="quick-client-select">
-      <Select
-        value={selectedClientId}
-        onValueChange={(value) => handleClientSelect(value)}
-      >
-        <SelectTrigger className="w-[200px] h-9">
-          <SelectValue placeholder="Quick load client" />
-        </SelectTrigger>
-        <SelectContent>
-          {clients.length > 0 ? (
-            clients.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                <div className="flex flex-col">
-                  <span className="font-semibold">{client.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {client.type} • {client.nationality}
-                  </span>
-                </div>
-              </SelectItem>
-            ))
-          ) : (
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">No clients found</div>
-          )}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select
+      value={selectedClientId}
+      onValueChange={(value) => handleClientSelect(value)}
+    >
+      <SelectTrigger className="w-[200px] h-9">
+        <SelectValue placeholder="Load Client" />
+      </SelectTrigger>
+      <SelectContent>
+        {clients.length > 0 ? (
+          clients.map((client) => (
+            <SelectItem key={client.id} value={client.id}>
+              <div className="flex flex-col">
+                <span className="font-semibold">{client.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {client.type} • {client.nationality}
+                </span>
+              </div>
+            </SelectItem>
+          ))
+        ) : (
+          <div className="px-2 py-1.5 text-sm text-muted-foreground">No clients found</div>
+        )}
+      </SelectContent>
+    </Select>
   );
 
   return (

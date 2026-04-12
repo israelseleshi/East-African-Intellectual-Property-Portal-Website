@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tag, XCircle, Upload } from 'lucide-react';
 import { FormSection, FormField, CheckboxGroup } from '../components/FormShared';
 import { EipaFormData } from '../types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface MarkSpecificationSectionProps {
   formData: EipaFormData;
@@ -11,7 +18,68 @@ interface MarkSpecificationSectionProps {
   markImage: string | null;
   onImageChange: (base64: string | null) => void;
   onImageFileChange: (file: File | null) => void;
+  onNiceClassesChange?: (classes: number[]) => void;
 }
+
+const sampleMarkData: Record<string, { data: Record<string, string | boolean>; niceClasses?: number[]; label: string }> = {
+  sample1: {
+    label: 'ABC Logo',
+    data: {
+      chk_goods: true,
+      chk_services: false,
+      chk_collective: false,
+      mark_type_word: true,
+      mark_type_figurative: false,
+      mark_type_mixed: false,
+      mark_type_three_dim: false,
+      mark_description: 'ABC Logo',
+      mark_translation: 'ABC Brand',
+      mark_transliteration: 'Ay Bee See',
+      mark_language_requiring_traslation: 'Amharic',
+      mark_color_indication: 'Black and White',
+      mark_has_three_dim_features: '',
+    },
+    niceClasses: [35],
+  },
+  sample2: {
+    label: 'Eagle Icon',
+    data: {
+      chk_goods: false,
+      chk_services: true,
+      chk_collective: false,
+      mark_type_word: false,
+      mark_type_figurative: true,
+      mark_type_mixed: false,
+      mark_type_three_dim: false,
+      mark_description: 'Golden Eagle',
+      mark_translation: 'Swift Services',
+      mark_transliteration: 'Swee Pa Sehvee',
+      mark_language_requiring_traslation: 'Oromo',
+      mark_color_indication: 'Gold, Brown, White',
+      mark_has_three_dim_features: '',
+    },
+    niceClasses: [41],
+  },
+  sample3: {
+    label: 'TechShield',
+    data: {
+      chk_goods: false,
+      chk_services: false,
+      chk_collective: true,
+      mark_type_word: false,
+      mark_type_figurative: false,
+      mark_type_mixed: true,
+      mark_type_three_dim: false,
+      mark_description: 'TechShield',
+      mark_translation: 'Technology Protection',
+      mark_transliteration: 'Tek Sheeld',
+      mark_language_requiring_traslation: 'Tigrinya',
+      mark_color_indication: 'Blue, Green, Silver',
+      mark_has_three_dim_features: 'Circular badge shape',
+    },
+    niceClasses: [9, 42],
+  },
+};
 
 export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> = ({
   formData,
@@ -19,8 +87,10 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
   markImage,
   onImageChange,
   onImageFileChange,
+  onNiceClassesChange,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [selectedSample, setSelectedSample] = useState<string>('');
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,7 +100,6 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
       reader.onloadend = () => {
         const base64 = reader.result as string;
         onImageChange(base64);
-        // CRITICAL: Update image_field so pdfUtils.ts picks it up for application_form.pdf
         handleInputChange('image_field', base64);
       };
       reader.readAsDataURL(file);
@@ -43,6 +112,20 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
     handleInputChange('image_field', '');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const handleLoadSample = (sampleId: string) => {
+    const sample = sampleMarkData[sampleId];
+    if (sample) {
+      setSelectedSample(sample.label);
+      Object.entries(sample.data).forEach(([key, value]) => {
+        handleInputChange(key as keyof EipaFormData, value);
+      });
+      if (sample.niceClasses && onNiceClassesChange) {
+        onNiceClassesChange(sample.niceClasses);
+      }
+    }
+  };
+
   const markTypeOptions = [
     { id: 'chk_goods', label: 'Goods mark' },
     { id: 'chk_services', label: 'Service mark' },
@@ -56,11 +139,32 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
     { id: 'mark_type_three_dim', label: '3D mark' }
   ];
 
+  const quickLoadTrigger = (
+    <Select
+      value={selectedSample || 'placeholder'}
+      onValueChange={(value) => {
+        if (value !== 'placeholder') {
+          handleLoadSample(value);
+        }
+      }}
+    >
+      <SelectTrigger className="w-[180px] h-9">
+        <SelectValue placeholder="Load sample data" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="sample1">ABC Logo</SelectItem>
+        <SelectItem value="sample2">Eagle Icon</SelectItem>
+        <SelectItem value="sample3">TechShield</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
   return (
     <FormSection
       id="mark-specification-section"
       title="IV. Mark specification"
       icon={Tag}
+      rightElement={quickLoadTrigger}
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">

@@ -12,6 +12,7 @@ import { Label, RequiredLabel } from "@/components/ui/label"
 import { Field, FieldGroup, FieldError } from "@/components/ui/field"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Typography } from "@/components/ui/typography"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { Eye, EyeOff, ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react"
@@ -257,12 +258,12 @@ export default function SignUpPage() {
             </motion.div>
             <CardHeader className="space-y-1 text-center pb-2">
               <motion.div variants={itemVariants}>
-                <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+                <Typography.h1a>Create an account</Typography.h1a>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <CardDescription>
+                <Typography.muted>
                   Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].description}
-                </CardDescription>
+                </Typography.muted>
               </motion.div>
             </CardHeader>
 
@@ -613,19 +614,21 @@ export default function SignUpPage() {
               </motion.div>
 
               <motion.div 
-                className="text-center text-sm text-muted-foreground"
+                className="text-center"
                 variants={itemVariants}
               >
-                Already have an account?{" "}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block"
-                >
-                  <Button variant="link" className="px-0 h-auto" asChild>
-                    <Link to="/login">Sign in</Link>
-                  </Button>
-                </motion.div>
+                <Typography.muted>
+                  Already have an account?{" "}
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-block"
+                  >
+                    <Button variant="link" className="px-0 h-auto" asChild>
+                      <Link to="/login">Sign in</Link>
+                    </Button>
+                  </motion.div>
+                </Typography.muted>
               </motion.div>
             </CardContent>
           </Card>

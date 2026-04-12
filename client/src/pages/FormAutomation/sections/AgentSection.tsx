@@ -1,5 +1,5 @@
-import React from 'react';
-import { Briefcase, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Briefcase } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
 import { EipaFormData } from '../types';
@@ -11,54 +11,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { agentService } from '@/utils/api';
+import { Agent } from '@/api/agents';
 
 interface AgentSectionProps {
     formData: EipaFormData;
     handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
 }
 
-const PREDEFINED_AGENTS = [
-  {
-    id: 'fikadu-asfaw',
-    name: 'Fikadu Asfaw',
-    country: 'Ethiopia',
-    city: 'Addis Ababa',
-    subcity: 'Bole',
-    woreda: '02',
-    house_no: '365',
-    telephone: '+251 911 213 141',
-    email: 'fikadu@eastafricanip.com',
-    po_box: '1000',
-    fax: '+251115839201'
-  },
-  {
-    id: 'eaip',
-    name: 'East African Intellectual Property',
-    country: 'Ethiopia',
-    city: 'Addis Ababa',
-    subcity: 'Bole',
-    woreda: '03',
-    house_no: 'New',
-    telephone: '+251 11 661 2911',
-    email: 'info@eastafricanip.com',
-    po_box: '1234',
-    fax: ''
-  }
-];
-
 export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInputChange }) => {
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const loadAgents = async () => {
+            try {
+                const response = await agentService.getAgents();
+                if (response.success && response.data) {
+                    setAgents(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to load agents:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadAgents();
+    }, []);
+
     const onAgentSelect = (agentId: string) => {
-      const agent = PREDEFINED_AGENTS.find(a => a.id === agentId);
+      const agent = agents.find(a => a.id === agentId);
       if (agent) {
         handleInputChange('agent_name', agent.name);
         handleInputChange('agent_country', agent.country);
         handleInputChange('agent_city', agent.city);
         handleInputChange('agent_subcity', agent.subcity);
         handleInputChange('agent_woreda', agent.woreda);
-        handleInputChange('agent_house_no', agent.house_no);
+        handleInputChange('agent_house_no', agent.houseNo);
         handleInputChange('agent_telephone', agent.telephone);
         handleInputChange('agent_email', agent.email);
-        handleInputChange('agent_po_box', agent.po_box);
+        handleInputChange('agent_po_box', agent.poBox);
         handleInputChange('agent_fax', agent.fax);
       }
     };
@@ -70,19 +62,21 @@ export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInpu
             icon={Briefcase}
             rightElement={
               <div className="flex items-center gap-2">
-                <Select onValueChange={onAgentSelect}>
+                <Select onValueChange={onAgentSelect} disabled={loading}>
                   <SelectTrigger className="w-[180px] h-9">
-                    <SelectValue placeholder="Quick load Agent" />
+                    <SelectValue placeholder={loading ? "Loading..." : "Load Agent"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {PREDEFINED_AGENTS.map(agent => (
+                    {agents.length > 0 ? agents.map(agent => (
                       <SelectItem key={agent.id} value={agent.id}>
                         <div className="flex flex-col">
                           <span className="font-semibold">{agent.name}</span>
                           <span className="text-xs text-muted-foreground">{agent.city}, {agent.country}</span>
                         </div>
                       </SelectItem>
-                    ))}
+                    )) : (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">No agents found</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

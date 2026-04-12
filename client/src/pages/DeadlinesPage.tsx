@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Typography } from '@/components/ui/typography'
 
 const JURISDICTION_FLAGS: Record<string, string> = {
   ALL: '🌍',
@@ -157,8 +158,8 @@ export default function DeadlinesPage() {
     <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Statutory Deadlines</h1>
-          <p className="text-muted-foreground text-sm">Critical tracking for oppositions, renewals, and responses.</p>
+          <Typography.h1a>Statutory Deadlines</Typography.h1a>
+          <Typography.muted>Critical tracking for oppositions, renewals, and responses.</Typography.muted>
         </div>
       </header>
 
@@ -223,9 +224,9 @@ export default function DeadlinesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="border-r border-border">
                 <div className="p-4 border-b bg-muted/30">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                    <List size={16} /> Detailed List
-                  </h3>
+                    <Typography.h4a className="text-muted-foreground flex items-center gap-2">
+                      <List size={16} /> Detailed List
+                    </Typography.h4a>
                 </div>
                 {filteredDeadlines.length > 0 ? (
                   <ScrollArea className="h-[600px]">
@@ -242,7 +243,7 @@ export default function DeadlinesPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-semibold truncate">{d.mark || 'Unnamed Mark'}</h3>
+                                <Typography.h4a className="truncate">{d.mark || 'Unnamed Mark'}</Typography.h4a>
                                 <Badge variant="outline" className="text-xs"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-1" />{d.jurisdiction}</Badge>
                                 <Badge className="text-xs">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
                               </div>
@@ -265,10 +266,10 @@ export default function DeadlinesPage() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Typography.h3a className="flex items-center gap-2">
                       <CalendarIcon size={20} className="text-primary" />
                       {currentMonth.toLocaleString('en-US', { month: 'long' })}
-                    </h3>
+                    </Typography.h3a>
                     <Select
                       value={currentMonth.getFullYear().toString()}
                       onValueChange={(val) => setYear(parseInt(val))}

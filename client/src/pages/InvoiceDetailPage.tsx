@@ -25,6 +25,7 @@ import { financialsApi } from '@/api/financials'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Typography } from '@/components/ui/typography'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -396,8 +397,8 @@ export default function InvoiceDetailPage() {
           <CardHeader className="bg-muted/10 border-b">
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-lg">Line Items</CardTitle>
-                <CardDescription>Breakdown of charges and fees</CardDescription>
+                <CardTitle><Typography.h3>Line Items</Typography.h3></CardTitle>
+                <Typography.muted>Breakdown of charges and fees</Typography.muted>
               </div>
               {isEditing && (
                 <Button variant="outline" size="sm" onClick={addItem}>
@@ -535,8 +536,8 @@ export default function InvoiceDetailPage() {
       <div className="flex justify-between items-start border-b border-border/50 pb-8">
         <div>
           <Badge variant="outline" className="mb-4">{invoice.status}</Badge>
-          <h2 className="text-4xl font-extrabold tracking-tighter text-foreground mb-2">{invoice.invoice_number}</h2>
-          <p className="text-xl text-muted-foreground">{invoice.client_name}</p>
+          <Typography.h1a>{invoice.invoice_number}</Typography.h1a>
+          <Typography.lead>{invoice.client_name}</Typography.lead>
         </div>
         <div className="text-right space-y-1">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Issued On</p>
@@ -687,14 +688,12 @@ export default function InvoiceDetailPage() {
             <div className="mb-1">
                <Badge className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-2 py-0 h-5 mb-3 inline-flex items-center border-none">Invoice Doc</Badge>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-               {invoice.invoice_number}
-            </h1>
-            <div className="text-lg text-muted-foreground font-medium mt-2 flex items-center gap-2">
+<Typography.h1>{invoice.invoice_number}</Typography.h1>
+            <Typography.lead className="flex items-center gap-2">
               <Buildings size={20} className="text-primary/70" /> {invoice.client_name} 
               {invoice.mark_name && <span className="opacity-40">•</span>}
               {invoice.mark_name && <span className="text-foreground/80">{invoice.mark_name}</span>}
-            </div>
+            </Typography.lead>
           </div>
         </div>
 

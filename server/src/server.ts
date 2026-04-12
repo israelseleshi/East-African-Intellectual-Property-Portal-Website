@@ -21,6 +21,7 @@ import notesRoutes from './routes/notes.js';
 import oppositionsRoutes from './routes/oppositions.js';
 import feesRoutes from './routes/fees.js';
 import formsRoutes from './routes/forms.js';
+import agentsRoutes from './routes/agents.js';
 import { ensureAuthTables, pool } from './database/db.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -183,6 +184,7 @@ const registerRoutes = (prefix: string = '') => {
   app.use(`${prefix}/oppositions`, oppositionsRoutes);
   app.use(`${prefix}/fees`, feesRoutes);
   app.use(`${prefix}/forms`, formsRoutes);
+  app.use(`${prefix}/agents`, agentsRoutes);
 };
 
 // Register routes at both root and /api

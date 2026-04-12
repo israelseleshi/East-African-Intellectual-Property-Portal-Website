@@ -77,7 +77,6 @@ const updateCaseSchema = z.object({
     nationality: z.string().optional(),
     email: z.string().optional(),
     phone: z.string().optional(),
-    fax: z.string().optional(),
     addressStreet: z.string().optional(),
     city: z.string().optional()
   }).optional(),
@@ -102,7 +101,25 @@ const updateCaseSchema = z.object({
   is_word: z.union([z.boolean(), z.number()]).optional(),
   is_figurative: z.union([z.boolean(), z.number()]).optional(),
   is_mixed: z.union([z.boolean(), z.number()]).optional(),
-  is_three_dim: z.union([z.boolean(), z.number()]).optional()
+  is_three_dim: z.union([z.boolean(), z.number()]).optional(),
+  priority_country: z.string().nullable().optional(),
+  priority_filing_date: z.string().nullable().optional(),
+  mark_translation: z.string().nullable().optional(),
+  mark_transliteration: z.string().nullable().optional(),
+  mark_language_requiring_traslation: z.string().nullable().optional(),
+  mark_has_three_dim_features: z.string().nullable().optional(),
+  translation: z.string().nullable().optional(),
+  applicant_sign_day: z.string().nullable().optional(),
+  applicant_sign_month: z.string().nullable().optional(),
+  applicant_sign_year_en: z.string().nullable().optional(),
+  chk_priority_accompanies: z.union([z.boolean(), z.number()]).optional(),
+  chk_priority_submitted_later: z.union([z.boolean(), z.number()]).optional(),
+  renewal_app_no: z.string().nullable().optional(),
+  renewal_reg_no: z.string().nullable().optional(),
+  renewal_reg_date: z.string().nullable().optional(),
+  renewal_sign_day: z.string().nullable().optional(),
+  renewal_sign_month: z.string().nullable().optional(),
+  renewal_sign_year: z.string().nullable().optional()
 }).passthrough();
 
 const CASE_STATUSES = new Set([
@@ -574,6 +591,23 @@ router.post('/', authenticateToken, async (req, res) => {
     const chkServices = Boolean(getBoolean(payload, ['chk_services']));
     const chkCollective = Boolean(getBoolean(payload, ['chk_collective']));
 
+    // Signature date fields
+    const applicantSignDay = getOptionalString(payload, ['applicant_sign_day']) ?? null;
+    const applicantSignMonth = getOptionalString(payload, ['applicant_sign_month']) ?? null;
+    const applicantSignYearEn = getOptionalString(payload, ['applicant_sign_year_en']) ?? null;
+
+    // Priority checklist fields
+    const chkPriorityAccompanies = Boolean(getBoolean(payload, ['chk_priority_accompanies']));
+    const chkPrioritySubmittedLater = Boolean(getBoolean(payload, ['chk_priority_submitted_later']));
+
+    // Renewal fields
+    const renewalAppNo = getOptionalString(payload, ['renewal_app_no']) ?? null;
+    const renewalRegNo = getOptionalString(payload, ['renewal_reg_no']) ?? null;
+    const renewalRegDate = getDateString(payload, ['renewal_reg_date']) ?? null;
+    const renewalSignDay = getOptionalString(payload, ['renewal_sign_day']) ?? null;
+    const renewalSignMonth = getOptionalString(payload, ['renewal_sign_month']) ?? null;
+    const renewalSignYear = getOptionalString(payload, ['renewal_sign_year']) ?? null;
+
     const agentData = {
       name: getOptionalString(payload, ['agent_name']),
       country: getOptionalString(payload, ['agent_country']),
@@ -652,15 +686,19 @@ router.post('/', authenticateToken, async (req, res) => {
         chk_list_drawing, chk_list_payment, chk_list_other,
         is_word, is_figurative, is_mixed, is_three_dim,
         chk_goods, chk_services, chk_collective,
-        representative_name
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        representative_name,
+        applicant_sign_day, applicant_sign_month, applicant_sign_year_en,
+        chk_priority_accompanies, chk_priority_submitted_later,
+        renewal_app_no, renewal_reg_no, renewal_reg_date,
+        renewal_sign_day, renewal_sign_month, renewal_sign_year
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newCaseId,
         getString(payload, ['jurisdiction']) || 'ET',
         markName,
         markType,
         normalizedStatus,
-        'DATA_COLLECTION',
+        normalizedStatus === 'RENEWAL' ? 'RENEWAL_DUE' : 'DATA_COLLECTION',
         clientId,
         agentId,
         userId,
@@ -695,7 +733,18 @@ router.post('/', authenticateToken, async (req, res) => {
         chkGoods,
         chkServices,
         chkCollective,
-        agentData.name || null
+        agentData.name || null,
+        applicantSignDay,
+        applicantSignMonth,
+        applicantSignYearEn,
+        chkPriorityAccompanies,
+        chkPrioritySubmittedLater,
+        renewalAppNo,
+        renewalRegNo,
+        renewalRegDate,
+        renewalSignDay,
+        renewalSignMonth,
+        renewalSignYear
       ]
     );
 
@@ -882,6 +931,130 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     sendApiError(req, res, 500, {
       code: 'CASE_UPDATE_FAILED',
       message: 'Failed to update trademark'
+    });
+  }
+});
+
+router.post('/:id/renewal', authenticateToken, async (req, res) => {
+  try {
+    const parsedParams = caseIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_CASE_ID',
+        message: 'Invalid case id',
+        details: parsedParams.error.flatten()
+      });
+    }
+
+    const renewalSchema = z.object({
+      renewal_app_no: z.string().optional(),
+      renewal_reg_no: z.string().optional(),
+      renewal_reg_date: z.string().optional(),
+      renewal_sign_day: z.string().optional(),
+      renewal_sign_month: z.string().optional(),
+      renewal_sign_year: z.string().optional(),
+      remark: z.string().optional(),
+      clientInstructions: z.string().optional()
+    });
+
+    const parsedBody = renewalSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_RENEWAL_PAYLOAD',
+        message: 'Invalid renewal payload',
+        details: parsedBody.error.flatten()
+      });
+    }
+
+    const connection = await getConnection();
+    try {
+      const [rows] = await connection.execute(
+        'SELECT id, status FROM trademark_cases WHERE id = ? AND deleted_at IS NULL',
+        [parsedParams.data.id]
+      );
+      const existing = rows as Array<{ id: string; status: string }>;
+      
+      if (existing.length === 0) {
+        return sendApiError(req, res, 404, {
+          code: 'CASE_NOT_FOUND',
+          message: 'Case not found'
+        });
+      }
+
+      const payload = parsedBody.data;
+      const updates: string[] = [];
+      const values: (string | null)[] = [];
+
+      if (payload.renewal_app_no !== undefined) {
+        updates.push('renewal_app_no = ?');
+        values.push(payload.renewal_app_no || null);
+      }
+      if (payload.renewal_reg_no !== undefined) {
+        updates.push('renewal_reg_no = ?');
+        values.push(payload.renewal_reg_no || null);
+      }
+      if (payload.renewal_reg_date !== undefined) {
+        updates.push('renewal_reg_date = ?');
+        values.push(payload.renewal_reg_date || null);
+      }
+      if (payload.renewal_sign_day !== undefined) {
+        updates.push('renewal_sign_day = ?');
+        values.push(payload.renewal_sign_day || null);
+      }
+      if (payload.renewal_sign_month !== undefined) {
+        updates.push('renewal_sign_month = ?');
+        values.push(payload.renewal_sign_month || null);
+      }
+      if (payload.renewal_sign_year !== undefined) {
+        updates.push('renewal_sign_year = ?');
+        values.push(payload.renewal_sign_year || null);
+      }
+      if (payload.remark !== undefined) {
+        updates.push('remark = ?');
+        values.push(payload.remark || null);
+      }
+      if (payload.clientInstructions !== undefined) {
+        updates.push('client_instructions = ?');
+        values.push(payload.clientInstructions || null);
+      }
+
+      updates.push('status = ?');
+      values.push('RENEWAL');
+      updates.push('flow_stage = ?');
+      values.push('RENEWAL_DUE');
+
+      values.push(parsedParams.data.id);
+
+      await connection.execute(
+        `UPDATE trademark_cases SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`,
+        values
+      );
+
+      const userId = req.user?.id;
+      if (userId) {
+        await connection.execute(
+          `INSERT INTO case_history (id, case_id, user_id, action, old_data, new_data, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+          [
+            crypto.randomUUID(),
+            parsedParams.data.id,
+            userId,
+            'RENEWAL_INITIATED',
+            JSON.stringify({ status: existing[0].status }),
+            JSON.stringify({ status: 'RENEWAL', renewal_app_no: payload.renewal_app_no, renewal_reg_no: payload.renewal_reg_no })
+          ]
+        );
+      }
+
+      res.json({ success: true, message: 'Renewal initiated successfully', caseId: parsedParams.data.id });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    logRouteError(req, 'cases.renewal', error);
+    sendApiError(req, res, 500, {
+      code: 'RENEWAL_FAILED',
+      message: 'Failed to initiate renewal'
     });
   }
 });

@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState, useMemo } from 'react'
 import { ArrowLeft, Calendar, FileText, Clock, Info, CheckCircle, WarningCircle, Buildings } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Typography } from '@/components/ui/typography'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -113,8 +114,8 @@ export default function DeadlineDetailPage() {
           <ArrowLeft size={20} />
         </Button>
         <div>
-          <h1 className="text-3xl font-black tracking-tighter">Deadline Intelligence</h1>
-          <p className="text-muted-foreground text-sm">Detailed analysis for {deadline.mark_name}</p>
+          <Typography.h1a>Deadline Intelligence</Typography.h1a>
+          <Typography.muted>Detailed analysis for {deadline.mark_name}</Typography.muted>
         </div>
       </header>
 
@@ -123,8 +124,8 @@ export default function DeadlineDetailPage() {
           <CardHeader className="bg-primary/5 border-b">
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-xl font-bold">{DEADLINE_TYPE_LABELS[deadline.type.toUpperCase()] || deadline.type}</CardTitle>
-                <CardDescription>Critical Action Required</CardDescription>
+                <CardTitle><Typography.h3a>{DEADLINE_TYPE_LABELS[deadline.type.toUpperCase()] || deadline.type}</Typography.h3a></CardTitle>
+                <Typography.muted>Critical Action Required</Typography.muted>
               </div>
               <Badge variant={isOverdue ? 'destructive' : 'default'} className="px-4 py-1 rounded-full">
                 {isOverdue ? 'Overdue' : 'Active'}
@@ -181,8 +182,8 @@ export default function DeadlineDetailPage() {
             <CardContent className="p-8 space-y-6">
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Trademark Entity</p>
-                <h3 className="font-black text-2xl tracking-tight leading-tight">{deadline.mark_name}</h3>
-                <p className="text-base text-muted-foreground font-semibold">{deadline.client_name}</p>
+                <Typography.h2a>{deadline.mark_name}</Typography.h2a>
+                <Typography.muted>{deadline.client_name}</Typography.muted>
               </div>
               <Button className="w-full font-bold h-12 rounded-xl text-base shadow-sm hover:shadow-md transition-all" onClick={() => navigate(`/trademarks/${deadline.case_id}`)}>
                 View Full Case Profile

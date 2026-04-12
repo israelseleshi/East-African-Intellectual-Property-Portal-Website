@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, User, FileText, PencilSimple, Check, X, Envelope, Phone, MapPin, Globe, Buildings, IdentificationCard, GenderIntersex } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Typography } from '@/components/ui/typography'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +13,7 @@ import { usePageTitleStore } from '@/store/pageTitleStore'
 import { toast } from 'sonner'
 import { CountrySelector } from '@/components/CountrySelector'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import HelpButton from '@/components/HelpButton'
 
 import type { ApplicantType } from '@/shared/database'
 
@@ -185,7 +187,7 @@ export default function ClientDetailPage() {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">{isEditing ? 'Edit Client' : client.name}</h1>
+            <Typography.h2a>{isEditing ? 'Edit Client' : client.name}</Typography.h2a>
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="default">{CLIENT_TYPE_LABELS[client.type]}</Badge>
               {client.nationality && <Badge variant="outline">{client.nationality}</Badge>}
@@ -193,6 +195,7 @@ export default function ClientDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <HelpButton pageId="client-detail" />
           {isEditing ? (
             <>
               <Button variant="outline" onClick={() => { setIsEditing(false); setFormData(client) }}>
@@ -203,7 +206,7 @@ export default function ClientDetailPage() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined}>
+            <Button onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} data-tour="edit-client-btn">
               <PencilSimple size={18} className="mr-2" /> Edit Client
             </Button>
           )}
@@ -212,11 +215,11 @@ export default function ClientDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Identity Card */}
-        <Card className="border-border shadow-sm bg-card">
+        <Card className="border-border shadow-sm bg-card" data-tour="identity-card">
           <CardHeader className="bg-muted/30 border-b border-border">
             <div className="flex items-center gap-2">
               <User size={20} className="text-primary" />
-              <CardTitle className="text-base text-foreground">Identity & Type</CardTitle>
+              <CardTitle><Typography.h4>Identity & Type</Typography.h4></CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
@@ -271,11 +274,11 @@ export default function ClientDetailPage() {
         </Card>
 
         {/* Contact Info */}
-        <Card className="border-border shadow-sm bg-card">
+        <Card className="border-border shadow-sm bg-card" data-tour="contact-card">
           <CardHeader className="bg-muted/30 border-b border-border">
             <div className="flex items-center gap-2">
               <Envelope size={20} className="text-primary" />
-              <CardTitle className="text-base text-foreground">Contact Information</CardTitle>
+              <CardTitle><Typography.h4>Contact Information</Typography.h4></CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
@@ -308,11 +311,11 @@ export default function ClientDetailPage() {
         </Card>
 
         {/* Address Card */}
-        <Card className="border-border shadow-sm bg-card md:col-span-2">
+        <Card className="border-border shadow-sm bg-card md:col-span-2" data-tour="address-card">
           <CardHeader className="bg-muted/30 border-b border-border">
             <div className="flex items-center gap-2">
               <MapPin size={20} className="text-primary" />
-              <CardTitle className="text-base text-foreground">Address & Location</CardTitle>
+              <CardTitle><Typography.h4>Address & Location</Typography.h4></CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -388,12 +391,12 @@ export default function ClientDetailPage() {
 
         {/* Associated Trademarks */}
         {!isEditing && client.trademarks && client.trademarks.length > 0 && (
-          <Card className="border-border shadow-sm bg-card md:col-span-2">
+          <Card className="border-border shadow-sm bg-card md:col-span-2" data-tour="trademarks-card">
             <CardHeader className="bg-muted/30 border-b border-border">
               <div className="flex items-center gap-2">
                 <FileText size={20} className="text-primary" />
-                <CardTitle className="text-base text-foreground">Associated Trademarks</CardTitle>
-                <CardDescription>Trademarks filed by this client</CardDescription>
+                <CardTitle><Typography.h4>Associated Trademarks</Typography.h4></CardTitle>
+                <Typography.muted>Trademarks filed by this client</Typography.muted>
               </div>
             </CardHeader>
             <CardContent className="p-0">

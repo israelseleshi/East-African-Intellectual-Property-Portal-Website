@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Field, FieldGroup, FieldError } from "@/components/ui/field"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Typography } from "@/components/ui/typography"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import AuthLayout from "@/components/AuthLayout"
@@ -227,13 +228,13 @@ export default function VerifyOtpPage() {
             </motion.div>
             <CardHeader className="space-y-1 text-center">
               <motion.div variants={itemVariants}>
-                <CardTitle className="text-2xl font-bold">Verify your email</CardTitle>
+                <Typography.h1a>Verify your email</Typography.h1a>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <CardDescription>
+                <Typography.muted>
                   We've sent a 6-digit verification code to<br />
                   <span className="font-medium text-foreground">{email}</span>
-                </CardDescription>
+                </Typography.muted>
               </motion.div>
             </CardHeader>
             <CardContent>
@@ -318,24 +319,26 @@ export default function VerifyOtpPage() {
               </motion.div>
               
               <motion.div 
-                className="text-center text-sm text-muted-foreground"
+                className="text-center"
                 variants={itemVariants}
               >
-                Didn't receive the code?{" "}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block"
-                >
-                  <Button
-                    variant="link"
-                    className="px-0 h-auto"
-                    onClick={handleResend}
-                    disabled={resendTimer > 0 || isLoading}
+                <Typography.muted>
+                  Didn't receive the code?{" "}
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-block"
                   >
-                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
-                  </Button>
-                </motion.div>
+                    <Button
+                      variant="link"
+                      className="px-0 h-auto"
+                      onClick={handleResend}
+                      disabled={resendTimer > 0 || isLoading}
+                    >
+                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
+                    </Button>
+                  </motion.div>
+                </Typography.muted>
               </motion.div>
             </CardContent>
             <CardFooter className="justify-center">

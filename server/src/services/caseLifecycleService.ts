@@ -520,6 +520,39 @@ export const caseLifecycleService = {
             caseUpdates.remark = `Other documents: ${otherDocumentsText}`;
           }
         }
+
+        const applicantSignDay = pickOptionalString(eipaForm, ['applicant_sign_day']);
+        if (applicantSignDay !== undefined) caseUpdates.applicant_sign_day = applicantSignDay;
+
+        const applicantSignMonth = pickOptionalString(eipaForm, ['applicant_sign_month']);
+        if (applicantSignMonth !== undefined) caseUpdates.applicant_sign_month = applicantSignMonth;
+
+        const applicantSignYearEn = pickOptionalString(eipaForm, ['applicant_sign_year_en']);
+        if (applicantSignYearEn !== undefined) caseUpdates.applicant_sign_year_en = applicantSignYearEn;
+
+        const chkPriorityAccompanies = pickBoolean(eipaForm, ['chk_priority_accompanies']);
+        if (chkPriorityAccompanies !== undefined) caseUpdates.chk_priority_accompanies = chkPriorityAccompanies;
+
+        const chkPrioritySubmittedLater = pickBoolean(eipaForm, ['chk_priority_submitted_later']);
+        if (chkPrioritySubmittedLater !== undefined) caseUpdates.chk_priority_submitted_later = chkPrioritySubmittedLater;
+
+        const renewalAppNo = pickOptionalString(eipaForm, ['renewal_app_no']);
+        if (renewalAppNo !== undefined) caseUpdates.renewal_app_no = renewalAppNo;
+
+        const renewalRegNo = pickOptionalString(eipaForm, ['renewal_reg_no']);
+        if (renewalRegNo !== undefined) caseUpdates.renewal_reg_no = renewalRegNo;
+
+        const renewalRegDate = pickDate(eipaForm, ['renewal_reg_date']);
+        if (renewalRegDate !== undefined) caseUpdates.renewal_reg_date = renewalRegDate;
+
+        const renewalSignDay = pickOptionalString(eipaForm, ['renewal_sign_day']);
+        if (renewalSignDay !== undefined) caseUpdates.renewal_sign_day = renewalSignDay;
+
+        const renewalSignMonth = pickOptionalString(eipaForm, ['renewal_sign_month']);
+        if (renewalSignMonth !== undefined) caseUpdates.renewal_sign_month = renewalSignMonth;
+
+        const renewalSignYear = pickOptionalString(eipaForm, ['renewal_sign_year']);
+        if (renewalSignYear !== undefined) caseUpdates.renewal_sign_year = renewalSignYear;
       }
 
       const markImage = data.mark_image;

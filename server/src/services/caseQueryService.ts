@@ -101,6 +101,17 @@ const buildEipaFormFromNormalizedData = (
     chk_list_other: toBool(caseData.chk_list_other),
     other_documents_text: '',
 
+    chk_goods: toBool(caseData.chk_goods),
+    chk_services: toBool(caseData.chk_services),
+    chk_collective: toBool(caseData.chk_collective),
+    is_word: toBool(caseData.is_word),
+    is_figurative: toBool(caseData.is_figurative),
+    is_mixed: toBool(caseData.is_mixed),
+    is_three_dim: toBool(caseData.is_three_dim),
+
+    chk_priority_accompanies: toBool((caseData as any).chk_priority_accompanies),
+    chk_priority_submitted_later: toBool((caseData as any).chk_priority_submitted_later),
+
     applicant_sign_day: (caseData as any).applicant_sign_day || '',
     applicant_sign_month: (caseData as any).applicant_sign_month || '',
     applicant_sign_year_en: (caseData as any).applicant_sign_year_en || '',
@@ -112,7 +123,14 @@ const buildEipaFormFromNormalizedData = (
     goods_services_list_3: goodsLines[2] || '',
     goods_services_list_4: goodsLines[3] || '',
     goods_services_list_5: goodsLines[4] || '',
-    goods_services_list_6: goodsLines[5] || ''
+    goods_services_list_6: goodsLines[5] || '',
+
+    renewal_app_no: (caseData as any).renewal_app_no || '',
+    renewal_reg_no: (caseData as any).renewal_reg_no || '',
+    renewal_reg_date: normalizeDate((caseData as any).renewal_reg_date),
+    renewal_sign_day: (caseData as any).renewal_sign_day || '',
+    renewal_sign_month: (caseData as any).renewal_sign_month || '',
+    renewal_sign_year: (caseData as any).renewal_sign_year || ''
   };
 };
 

@@ -5,6 +5,7 @@ import { dashboardApi } from '../api/dashboard';
 import { deadlinesApi } from '../api/deadlines';
 import { documentsApi } from '../api/documents';
 import { financialsApi } from '../api/financials';
+import { agentsApi } from '../api/agents';
 import { apiClient } from '../api/httpClient';
 
 export const api = apiClient;
@@ -16,7 +17,8 @@ export const trademarkService = {
   updateStatus: casesApi.updateStatus,
   updateFlowStage: casesApi.updateFlowStage,
   updateCase: casesApi.updateCase,
-  deleteCase: casesApi.remove
+  deleteCase: casesApi.remove,
+  initiateRenewal: casesApi.initiateRenewal
 };
 
 export const clientService = {
@@ -94,3 +96,8 @@ export const systemService = {
 };
 
 export const authService = authApi;
+
+export const agentService = {
+  getAgents: agentsApi.list,
+  getAgent: agentsApi.getById
+};

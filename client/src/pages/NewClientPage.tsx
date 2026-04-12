@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { CountrySelector } from '@/components/CountrySelector';
 import type { ApplicantType } from '@/shared/database';
 import { Separator } from '@/components/ui/separator';
+import HelpButton from '@/components/HelpButton';
 
 interface Client {
   id: string;
@@ -103,19 +104,22 @@ export default function NewClientPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
-      <header className="flex items-center gap-4 mb-8">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate('/clients')}
-          className="h-10 w-10 shrink-0 border-border hover:bg-muted"
-        >
-          <ArrowLeft size={20} />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">New Client</h1>
-          <p className="text-muted-foreground text-sm mt-1">Add a new individual or company to your client database.</p>
+      <header className="flex items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate('/clients')}
+            className="h-10 w-10 shrink-0 border-border hover:bg-muted"
+          >
+            <ArrowLeft size={20} />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">New Client</h1>
+            <p className="text-muted-foreground text-sm mt-1">Add a new individual or company to your client database.</p>
+          </div>
         </div>
+        <HelpButton pageId="new-client" />
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -132,7 +136,7 @@ export default function NewClientPage() {
               <div className="space-y-4">
                 <div className="space-y-2.5">
                   <Label className="text-sm font-semibold">Client Type <span className="text-destructive">*</span></Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2" data-tour="client-type-field">
                     {(['INDIVIDUAL', 'COMPANY', 'PARTNERSHIP'] as ApplicantType[]).map((type) => {
                       const Icon = type === 'INDIVIDUAL' ? User : type === 'COMPANY' ? Buildings : UsersThree;
                       return (
@@ -167,6 +171,7 @@ export default function NewClientPage() {
                     className="h-11 bg-background"
                     disabled={saving}
                     required
+                    data-tour="client-name-field"
                   />
                 </div>
 
@@ -423,6 +428,7 @@ export default function NewClientPage() {
             type="submit"
             disabled={saving}
             className="px-8 flex items-center gap-2 shadow-sm"
+            data-tour="submit-btn"
           >
             <Check size={18} weight="bold" />
             {saving ? 'Creating Client...' : 'Create Client'}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { api, trademarkService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
+import { Typography } from '@/components/ui/typography';
 import {
   RefreshCcw,
   Briefcase,
@@ -58,6 +59,75 @@ export default function FormInspectorPage() {
   } = useFormAutomation();
 
   const uniqueDetectedFields = useMemo(() => Array.from(new Set(availableFields)).sort(), [availableFields]);
+  
+  const caseId = searchParams.get('caseId');
+  
+  useEffect(() => {
+    if (caseId && formType === 'RENEWAL') {
+      const loadCaseData = async () => {
+        try {
+          const caseData = await trademarkService.getCase(caseId) as any;
+          if (caseData) {
+            setSelectedClientId(caseData.client_id || caseData.client?.id || '');
+            
+            const eipaForm = caseData.eipaForm || {};
+            const newFormData: Record<string, any> = {};
+            
+            Object.entries(eipaForm).forEach(([key, value]) => {
+              if (
+                key.startsWith('renewal_') ||
+                key.startsWith('applicant_') ||
+                key.startsWith('agent_') ||
+                key.startsWith('address_') ||
+                key.startsWith('nationality') ||
+                key.startsWith('residence_') ||
+                key.startsWith('city_') ||
+                key.startsWith('state_') ||
+                key.startsWith('zip_') ||
+                key === 'wereda' ||
+                key.startsWith('house_') ||
+                key.startsWith('telephone') ||
+                key === 'email' ||
+                key === 'fax' ||
+                key.startsWith('po_box') ||
+                key.startsWith('chk_')
+              ) {
+                newFormData[key] = value;
+              }
+            });
+            
+            newFormData.renewal_app_no = caseData.filing_number || eipaForm.renewal_app_no || '';
+            newFormData.renewal_reg_no = caseData.certificate_number || eipaForm.renewal_reg_no || '';
+            newFormData.renewal_reg_date = caseData.registration_dt || eipaForm.renewal_reg_date || '';
+            newFormData.mark_description = caseData.mark_name || eipaForm.mark_description || '';
+            newFormData.mark_name = caseData.mark_name || '';
+            newFormData.mark_image = caseData.mark_image || '';
+            newFormData.markImage = caseData.mark_image || '';
+            newFormData.mark_type = caseData.mark_type || eipaForm.mark_type || '';
+            
+            setFormData(prev => ({ ...prev, ...newFormData }));
+            
+            if (caseData.niceClasses) {
+              setNiceClasses(caseData.niceClasses.map((c: number) => ({ classNo: c, description: '' })));
+            }
+            
+            if (caseData.mark_image) {
+              setMarkImageBase64(caseData.mark_image);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load case data:', error);
+          addToast({
+            title: 'Error',
+            description: 'Failed to load case data for renewal',
+            variant: 'destructive'
+          });
+        }
+      };
+      loadCaseData();
+    }
+  }, [caseId, formType]);
+
   const expectedTags = useMemo(() => {
     const keys = Object.keys(formData || {});
 
@@ -101,29 +171,51 @@ export default function FormInspectorPage() {
         normalizedFormData.renewal_mark_logo = uploadedMarkImagePath || '';
       }
 
-      const payload = {
-        ...normalizedFormData,
-        niceClasses,
-        markImage: uploadedMarkImagePath,
-        clientId: selectedClientId,
-        status: formType === 'RENEWAL' ? 'RENEWAL' : 'DRAFT',
-        flowStage: formType === 'RENEWAL' ? 'RENEWAL_DUE' : 'DATA_COLLECTION',
-      };
+      const caseIdParam = searchParams.get('caseId');
 
-      const response = await trademarkService.createCase(payload) as { id?: string; data?: { id?: string } };
-      const caseId = response?.id || response?.data?.id;
-      if (!caseId) {
-        throw new Error('Case was created but no case id was returned by the API.');
-      }
+      if (caseIdParam && formType === 'RENEWAL') {
+        const renewalPayload = {
+          renewal_app_no: normalizedFormData.renewal_app_no as string || undefined,
+          renewal_reg_no: normalizedFormData.renewal_reg_no as string || undefined,
+          renewal_reg_date: normalizedFormData.renewal_reg_date as string || undefined,
+          renewal_sign_day: normalizedFormData.renewal_sign_day as string || undefined,
+          renewal_sign_month: normalizedFormData.renewal_sign_month as string || undefined,
+          renewal_sign_year: normalizedFormData.renewal_sign_year as string || undefined,
+          remark: normalizedFormData.remark as string || undefined,
+          clientInstructions: normalizedFormData.clientInstructions as string || undefined,
+        };
 
-      addToast({
-        title: 'Success',
-        description: 'Trademark case created successfully.',
+        const response = await trademarkService.initiateRenewal(caseIdParam, renewalPayload) as { success?: boolean; message?: string };
         
-      });
-      navigate(`/trademarks/${caseId}`);
+        addToast({
+          title: 'Success',
+          description: response?.message || 'Renewal initiated successfully.',
+        });
+        navigate(`/trademarks/${caseIdParam}`);
+      } else {
+        const payload = {
+          ...normalizedFormData,
+          niceClasses,
+          markImage: uploadedMarkImagePath,
+          clientId: selectedClientId,
+          status: formType === 'RENEWAL' ? 'RENEWAL' : 'DRAFT',
+          flowStage: formType === 'RENEWAL' ? 'RENEWAL_DUE' : 'DATA_COLLECTION',
+        };
+
+        const response = await trademarkService.createCase(payload) as { id?: string; data?: { id?: string } };
+        
+        const newCaseId = response?.id || response?.data?.id;
+        if (!newCaseId) {
+          throw new Error('Case was created but no case id was returned by the API.');
+        }
+
+        addToast({
+          title: 'Success',
+          description: 'Trademark case created successfully.',
+        });
+        navigate(`/trademarks/${newCaseId}`);
+      }
     } catch (error) {
-      console.error('Submission error:', error);
       addToast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to create case',
@@ -275,10 +367,10 @@ export default function FormInspectorPage() {
             className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl bg-[var(--eai-surface)]/95 backdrop-blur-xl border border-[var(--eai-border)] rounded-3xl shadow-2xl z-50 p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold flex items-center gap-2 text-[var(--eai-text)]">
+              <Typography.h3a className="flex items-center gap-2 text-[var(--eai-text)]">
                 <Settings className="text-[var(--eai-primary)]" size={20} />
                 PDF Field Tags Inspection
-              </h3>
+              </Typography.h3a>
               <button onClick={() => setShowFields(false)} className="text-[var(--eai-text-secondary)] hover:text-[var(--eai-text)]">
                 <XCircle size={24} />
               </button>

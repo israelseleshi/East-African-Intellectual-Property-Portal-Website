@@ -171,7 +171,6 @@ export function useFormAutomation() {
         throw new Error('Generated PDF is empty');
       }
     } catch (error) {
-      console.error('Preview generation error:', error);
       setPreviewError(error instanceof Error ? error.message : 'Failed to generate preview');
     } finally {
       setPreviewLoading(false);
@@ -227,11 +226,18 @@ export function useFormAutomation() {
     loadClients();
   }, [loadClients]);
 
+  const handleSetFormData = useCallback((update: EipaFormData | ((prev: EipaFormData) => EipaFormData)) => {
+    setFormData(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      return next;
+    });
+  }, []);
+
   return {
     formType,
     setFormType,
     formData,
-    setFormData,
+    setFormData: handleSetFormData,
     clients,
     setClients,
     selectedClientId,

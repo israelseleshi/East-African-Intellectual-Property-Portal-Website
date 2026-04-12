@@ -49,6 +49,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Typography } from '@/components/ui/typography'
 
 const EIPO_FEES = [
   { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
@@ -736,8 +737,8 @@ export default function BillingPage() {
     <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Billing & Ledger</h1>
-          <p className="text-muted-foreground text-sm">Professional invoicing and financial fee management.</p>
+          <Typography.h1a>Billing & Ledger</Typography.h1a>
+          <Typography.muted>Professional invoicing and financial fee management.</Typography.muted>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {selectedIds.size > 0 && (
@@ -903,8 +904,8 @@ export default function BillingPage() {
                   <Receipt size={32} className="text-muted-foreground opacity-50" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">No transactions found</h3>
-                  <p className="text-muted-foreground text-sm">Your ledger will appear here once invoices are generated.</p>
+                  <Typography.h3a>No transactions found</Typography.h3a>
+                <Typography.muted>Your ledger will appear here once invoices are generated.</Typography.muted>
                 </div>
               </div>
             ) : viewMode === 'grid' ? (
@@ -1216,6 +1217,7 @@ export default function BillingPage() {
                     date={newInvoice.dueDate ? new Date(newInvoice.dueDate) : undefined}
                     onDateChange={(date) => setNewInvoice({...newInvoice, dueDate: date ? date.toISOString().split('T')[0] : ''})}
                     placeholder="Select due date"
+                    allowFuture={true}
                   />
                 </div>
                 <div className="space-y-2">

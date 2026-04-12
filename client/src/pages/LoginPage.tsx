@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldGroup, FieldLegend, FieldError } from "@/components/ui/field"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Typography } from "@/components/ui/typography"
 import { toast } from "sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import AuthLayout from "@/components/AuthLayout"
@@ -177,14 +178,14 @@ export default function LoginPage() {
               <motion.div
                 variants={itemVariants}
               >
-                <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                <Typography.h1a>Welcome back</Typography.h1a>
               </motion.div>
               <motion.div
                 variants={itemVariants}
               >
-                <CardDescription>
+                <Typography.muted>
                   Enter your credentials to access your account
-                </CardDescription>
+                </Typography.muted>
               </motion.div>
             </CardHeader>
             <CardContent>
@@ -330,19 +331,21 @@ export default function LoginPage() {
               </motion.div>
               
               <motion.div 
-                className="text-center text-sm text-muted-foreground"
+                className="text-center"
                 variants={itemVariants}
               >
-                Don't have an account?{" "}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block"
-                >
-                  <Button variant="link" className="px-0 h-auto" asChild>
-                    <Link to="/signup">Sign up</Link>
-                  </Button>
-                </motion.div>
+                <Typography.muted>
+                  Don't have an account?{" "}
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-block"
+                  >
+                    <Button variant="link" className="px-0 h-auto" asChild>
+                      <Link to="/signup">Sign up</Link>
+                    </Button>
+                  </motion.div>
+                </Typography.muted>
               </motion.div>
             </CardContent>
           </Card>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { systemService, clientService, invoiceService } from '@/utils/api';
 import { toast } from 'sonner';
-import { Trash2, RotateCcw, XCircle, Info, Users, FileText, Receipt, Clock, ExternalLink } from 'lucide-react';
+import { Trash2, RotateCcw, XCircle, Info, Users, FileText, Receipt, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
+import { Typography } from '@/components/ui/typography';
 
 interface TrashedItem {
   id: string;
@@ -208,41 +209,41 @@ export default function TrashPage() {
   const renderEmptyState = (message: string) => (
     <Card className="flex flex-col items-center justify-center py-16 text-center">
       <Trash2 size={48} className="text-muted-foreground opacity-20 mb-4" />
-      <h3 className="text-lg font-bold text-muted-foreground">No items</h3>
-      <p className="text-muted-foreground text-sm">{message}</p>
+      <Typography.h3a className="text-muted-foreground">No items</Typography.h3a>
+      <Typography.pb className="text-muted-foreground">{message}</Typography.pb>
     </Card>
   );
 
   const renderItemRow = (item: TrashedItem) => (
     <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/50 transition-colors">
-      <td className="px-4 py-3 cursor-pointer" onClick={() => handleViewDetails(item)}>
-        <div className="font-medium hover:underline flex items-center gap-1">
+      <td className="px-4 py-4 cursor-pointer" onClick={() => handleViewDetails(item)}>
+        <div className="font-medium text-base hover:underline flex items-center gap-1">
           {getItemName(item)}
-          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+          <ExternalLink className="h-4 w-4 text-muted-foreground" />
         </div>
         {item.client_name && (
-          <div className="text-xs text-muted-foreground">Client: {item.client_name}</div>
+          <div className="text-sm text-muted-foreground mt-1">Client: {item.client_name}</div>
         )}
         {item.mark_name && item.type !== 'trademark_cases' && (
-          <div className="text-xs text-muted-foreground">Trademark: {item.mark_name}</div>
+          <div className="text-sm text-muted-foreground mt-1">Trademark: {item.mark_name}</div>
         )}
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
+      <td className="px-4 py-4 text-base text-muted-foreground">
         {formatDate(item.deleted_at)}
       </td>
       {item.status && (
-        <td className="px-4 py-3">
-          <Badge variant="outline" className="uppercase text-[10px]">
+        <td className="px-4 py-4">
+          <Badge variant="outline" className="uppercase text-xs">
             {item.status}
           </Badge>
         </td>
       )}
-      <td className="px-4 py-3 text-right">
+      <td className="px-4 py-4 text-right">
         <div className="flex items-center justify-end gap-2">
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
             onClick={() => handleRestoreClick(item)}
           >
             <RotateCcw className="h-4 w-4 mr-1" />
@@ -251,7 +252,7 @@ export default function TrashPage() {
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-2 text-destructive hover:bg-destructive/10"
+            className="h-9 px-3 text-destructive hover:bg-destructive/10"
             onClick={() => handlePurgeClick(item)}
           >
             <XCircle className="h-4 w-4 mr-1" />
@@ -266,53 +267,48 @@ export default function TrashPage() {
     <div className="w-full p-4 md:p-8 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+          <Typography.h1a className="flex items-center gap-2">
             <Trash2 className="h-8 w-8 text-muted-foreground" />
             Trash
-          </h1>
-          <p className="text-muted-foreground">Deleted items can be restored or permanently removed.</p>
+          </Typography.h1a>
+          <Typography.muted>Deleted items can be restored or permanently removed.</Typography.muted>
         </div>
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
-          <TabsTrigger value="trademarks" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
+        <TabsList className="grid w-full grid-cols-3 h-12 mb-4">
+          <TabsTrigger value="trademarks" className="flex items-center gap-2 text-base">
+            <FileText className="h-5 w-5" />
             <span className="hidden sm:inline">Trademarks</span>
             {loading.trademarks ? (
-              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-6 w-6 rounded-full" />
             ) : (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-6 px-2 text-sm">
                 {trademarks.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="clients" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
+          <TabsTrigger value="clients" className="flex items-center gap-2 text-base">
+            <Users className="h-5 w-5" />
             <span className="hidden sm:inline">Clients</span>
             {loading.clients ? (
-              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-6 w-6 rounded-full" />
             ) : (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-6 px-2 text-sm">
                 {clients.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2">
-            <Receipt className="h-4 w-4" />
+          <TabsTrigger value="invoices" className="flex items-center gap-2 text-base">
+            <Receipt className="h-5 w-5" />
             <span className="hidden sm:inline">Invoices</span>
             {loading.invoices ? (
-              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-6 w-6 rounded-full" />
             ) : (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-6 px-2 text-sm">
                 {invoices.length}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="deadlines" disabled className="flex items-center gap-2 opacity-50">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Deadlines</span>
-            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-xs">N/A</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -328,12 +324,12 @@ export default function TrashPage() {
             renderEmptyState('No deleted trademark cases.')
           ) : (
             <Card className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-semibold">Trademark Name</th>
-                    <th className="px-4 py-3 text-left font-semibold">Deleted At</th>
-                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Trademark Name</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Deleted At</th>
+                    <th className="px-4 py-4 text-right font-semibold text-base">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -356,12 +352,12 @@ export default function TrashPage() {
             renderEmptyState('No deleted clients.')
           ) : (
             <Card className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-semibold">Client Name</th>
-                    <th className="px-4 py-3 text-left font-semibold">Deleted At</th>
-                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Client Name</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Deleted At</th>
+                    <th className="px-4 py-4 text-right font-semibold text-base">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -384,46 +380,46 @@ export default function TrashPage() {
             renderEmptyState('No deleted invoices.')
           ) : (
             <Card className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-semibold">Invoice Number</th>
-                    <th className="px-4 py-3 text-left font-semibold">Client</th>
-                    <th className="px-4 py-3 text-left font-semibold">Trademark</th>
-                    <th className="px-4 py-3 text-left font-semibold">Status</th>
-                    <th className="px-4 py-3 text-left font-semibold">Deleted At</th>
-                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Invoice Number</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Client</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Trademark</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Status</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base">Deleted At</th>
+                    <th className="px-4 py-4 text-right font-semibold text-base">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {invoices.map((item) => (
                     <tr key={`invoices-${item.id}`} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 cursor-pointer" onClick={() => handleViewDetails(item)}>
-                        <div className="font-medium font-mono hover:underline flex items-center gap-1">
+                      <td className="px-4 py-4 cursor-pointer" onClick={() => handleViewDetails(item)}>
+                        <div className="font-medium font-mono text-base hover:underline flex items-center gap-1">
                           {item.invoice_number || item.name}
-                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-4 text-base text-muted-foreground">
                         {item.client_name || '—'}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-4 text-base text-muted-foreground">
                         {item.mark_name || '—'}
                       </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className="uppercase text-[10px]">
+                      <td className="px-4 py-4">
+                        <Badge variant="outline" className="uppercase text-xs">
                           {item.status || 'UNKNOWN'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <td className="px-4 py-4 text-base text-muted-foreground">
                         {formatDate(item.deleted_at)}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                             onClick={() => handleRestoreClick(item)}
                           >
                             <RotateCcw className="h-4 w-4 mr-1" />
@@ -432,7 +428,7 @@ export default function TrashPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 px-2 text-destructive hover:bg-destructive/10"
+                            className="h-9 px-3 text-destructive hover:bg-destructive/10"
                             onClick={() => handlePurgeClick(item)}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
@@ -446,15 +442,6 @@ export default function TrashPage() {
               </table>
             </Card>
           )}
-        </TabsContent>
-
-        {/* Deadlines Tab (Placeholder) */}
-        <TabsContent value="deadlines" className="space-y-4">
-          <Card className="flex flex-col items-center justify-center py-16 text-center">
-            <Clock size={48} className="text-muted-foreground opacity-20 mb-4" />
-            <h3 className="text-lg font-bold text-muted-foreground">Not Available</h3>
-            <p className="text-muted-foreground text-sm">Deadlines trash management is not implemented yet.</p>
-          </Card>
         </TabsContent>
       </Tabs>
 
@@ -494,9 +481,9 @@ export default function TrashPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="bg-muted/30 border rounded-lg p-4 text-xs text-muted-foreground flex gap-3 items-start">
-        <Info className="h-4 w-4 shrink-0 mt-0.5" />
-        <ul className="space-y-1 list-disc list-inside">
+      <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground flex gap-3 items-start">
+        <Info className="h-5 w-5 shrink-0 mt-0.5" />
+        <ul className="space-y-2 list-disc list-inside">
           <li>Items in trash are not visible in main lists but their data is preserved.</li>
           <li>Click on any item name to view its full details page.</li>
           <li>Restoring an item makes it visible again in its original location.</li>

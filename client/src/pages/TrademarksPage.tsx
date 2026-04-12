@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Typography } from '@/components/ui/typography'
 import { trademarkService } from '@/utils/api'
 import { useToast } from '@/components/ui/toast'
 import { casesApi } from '@/api/cases'
@@ -212,7 +213,14 @@ export default function TrademarksPage() {
         disclaimer_text_english: caseData.disclaimer_english,
         disclaimer_text_amharic: caseData.disclaimer_amharic,
         mark_description: caseData.mark_description,
-        mark_name: caseData.markName || caseData.mark_name
+        mark_name: caseData.markName || caseData.mark_name,
+        // Signature fields
+        applicant_sign_day: caseData.applicant_sign_day || '',
+        applicant_sign_month: caseData.applicant_sign_month || '',
+        applicant_sign_year_en: caseData.applicant_sign_year_en || '',
+        // Priority checklist
+        chk_priority_accompanies: !!caseData.chk_priority_accompanies,
+        chk_priority_submitted_later: !!caseData.chk_priority_submitted_later
       }
       
       const pdfBytes = await fillPdfForm(pdfUrl, mergedData)
@@ -339,8 +347,8 @@ export default function TrademarksPage() {
     <div className="w-full max-w-[100vw] mx-auto p-4 md:p-8 space-y-6 min-h-screen bg-[#E8E8ED]">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Trademarks</h1>
-          <p className="text-muted-foreground text-sm hidden sm:block">Manage and track your trademark portfolio across East Africa.</p>
+          <Typography.h1a>Trademarks</Typography.h1a>
+          <Typography.muted className="hidden sm:block">Manage and track your trademark portfolio across East Africa.</Typography.muted>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectedIds.size > 0 && (
@@ -430,8 +438,8 @@ export default function TrademarksPage() {
       ) : filteredRows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center border rounded-xl">
           <MagnifyingGlass size={48} className="text-muted-foreground opacity-30 mb-4" />
-          <div className="text-xl font-bold">No records found</div>
-          <p className="text-muted-foreground">Try adjusting your search or filters.</p>
+          <Typography.h3a>No records found</Typography.h3a>
+          <Typography.muted>Try adjusting your search or filters.</Typography.muted>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -440,7 +448,7 @@ export default function TrademarksPage() {
               <div className="flex items-start gap-3">
                 <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{markLabel(t)}</h3>
+                    <Typography.h4a className="truncate">{markLabel(t)}</Typography.h4a>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">{t.jurisdiction || 'ET'}</Badge>
                     <Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge>

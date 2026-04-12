@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { FileText, User, MapPin, Phone, Briefcase, CheckSquare, Image as ImageIcon, Hash, List, PenTool, Upload, XCircle } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { agentService } from '@/utils/api';
+import { Agent } from '@/api/agents';
 
 interface RenewalSectionProps {
   formData: EipaFormData;
@@ -24,6 +26,123 @@ interface RenewalSectionProps {
   onImageFileChange: (file: File | null) => void;
 }
 
+const sampleUseOfMarkData: Record<string, { data: Record<string, boolean>; label: string }> = {
+  sample1: {
+    label: 'Goods Mark',
+    data: {
+      renewal_chk_goods_mark: true,
+      renewal_chk_service_mark: false,
+      renewal_chk_collective_mark: false,
+    },
+  },
+  sample2: {
+    label: 'Service Mark',
+    data: {
+      renewal_chk_goods_mark: false,
+      renewal_chk_service_mark: true,
+      renewal_chk_collective_mark: false,
+    },
+  },
+  sample3: {
+    label: 'Collective Mark',
+    data: {
+      renewal_chk_goods_mark: false,
+      renewal_chk_service_mark: false,
+      renewal_chk_collective_mark: true,
+    },
+  },
+};
+
+const sampleCaseDetailsData: Record<string, { data: Record<string, string>; label: string }> = {
+  sample1: {
+    label: 'Kenya Registration',
+    data: {
+      renewal_app_no: 'KE/TM/2024/12345',
+      renewal_reg_no: 'KE/RN/2024/67890',
+      renewal_reg_date: '2024-01-15',
+    },
+  },
+  sample2: {
+    label: 'Ethiopia Registration',
+    data: {
+      renewal_app_no: 'ET/TM/2024/54321',
+      renewal_reg_no: 'ET/RN/2024/98765',
+      renewal_reg_date: '2024-06-30',
+    },
+  },
+  sample3: {
+    label: 'Uganda Registration',
+    data: {
+      renewal_app_no: 'UG/TM/2024/11111',
+      renewal_reg_no: 'UG/RN/2024/22222',
+      renewal_reg_date: '2024-03-20',
+    },
+  },
+};
+
+const sampleClassificationData: Record<string, { data: Record<string, string>; label: string }> = {
+  sample1: {
+    label: 'Business Services',
+    data: {
+      renewal_goods_services_1: 'Advertising; business management; office functions',
+      renewal_goods_services_2: 'Insurance; financial affairs; real estate affairs',
+      renewal_goods_services_3: '',
+      renewal_goods_services_4: '',
+      renewal_goods_services_5: '',
+      renewal_goods_services_6: '',
+    },
+  },
+  sample2: {
+    label: 'Tech Services',
+    data: {
+      renewal_goods_services_1: 'Scientific instruments; computer software',
+      renewal_goods_services_2: 'Telecommunications services',
+      renewal_goods_services_3: '',
+      renewal_goods_services_4: '',
+      renewal_goods_services_5: '',
+      renewal_goods_services_6: '',
+    },
+  },
+  sample3: {
+    label: 'Legal Services',
+    data: {
+      renewal_goods_services_1: 'Legal services; security services',
+      renewal_goods_services_2: 'Education; training services',
+      renewal_goods_services_3: '',
+      renewal_goods_services_4: '',
+      renewal_goods_services_5: '',
+      renewal_goods_services_6: '',
+    },
+  },
+};
+
+const sampleSignatureData: Record<string, { data: Record<string, string>; label: string }> = {
+  sample1: {
+    label: '03/2026',
+    data: {
+      renewal_sign_day: '15',
+      renewal_sign_month: '03',
+      renewal_sign_year: '26',
+    },
+  },
+  sample2: {
+    label: '06/2026',
+    data: {
+      renewal_sign_day: '20',
+      renewal_sign_month: '06',
+      renewal_sign_year: '26',
+    },
+  },
+  sample3: {
+    label: '01/2026',
+    data: {
+      renewal_sign_day: '01',
+      renewal_sign_month: '01',
+      renewal_sign_year: '26',
+    },
+  },
+};
+
 export const RenewalSection: React.FC<RenewalSectionProps> = ({
   formData,
   handleInputChange,
@@ -35,6 +154,28 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
   onImageFileChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(true);
+  const [selectedUseOfMark, setSelectedUseOfMark] = useState<string>('');
+  const [selectedCaseDetails, setSelectedCaseDetails] = useState<string>('');
+  const [selectedClassification, setSelectedClassification] = useState<string>('');
+  const [selectedSignature, setSelectedSignature] = useState<string>('');
+
+  useEffect(() => {
+      const loadAgents = async () => {
+          try {
+              const response = await agentService.getAgents();
+              if (response.success && response.data) {
+                  setAgents(response.data);
+              }
+          } catch (error) {
+              console.error('Failed to load agents:', error);
+          } finally {
+              setLoadingAgents(false);
+          }
+      };
+      loadAgents();
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,6 +197,63 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
     handleInputChange('renewal_mark_logo', '');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const onAgentSelect = (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    if (agent) {
+      handleInputChange('renewal_agent_name', agent.name);
+      handleInputChange('renewal_agent_country', agent.country);
+      handleInputChange('renewal_agent_city', agent.city);
+      handleInputChange('renewal_agent_subcity', agent.subcity);
+      handleInputChange('renewal_agent_wereda', agent.woreda);
+      handleInputChange('renewal_agent_house_no', agent.houseNo);
+      handleInputChange('renewal_agent_telephone', agent.telephone);
+      handleInputChange('renewal_agent_email', agent.email);
+      handleInputChange('renewal_agent_pobox', agent.poBox);
+      handleInputChange('renewal_agent_fax', agent.fax);
+    }
+  };
+
+  const handleLoadUseOfMarkSample = (sampleId: string) => {
+    const sample = sampleUseOfMarkData[sampleId];
+    if (sample) {
+      setSelectedUseOfMark(sample.label);
+      Object.entries(sample.data).forEach(([key, value]) => {
+        handleInputChange(key as keyof EipaFormData, value);
+      });
+    }
+  };
+
+  const handleLoadCaseDetailsSample = (sampleId: string) => {
+    const sample = sampleCaseDetailsData[sampleId];
+    if (sample) {
+      setSelectedCaseDetails(sample.label);
+      Object.entries(sample.data).forEach(([key, value]) => {
+        handleInputChange(key as keyof EipaFormData, value);
+      });
+    }
+  };
+
+  const handleLoadClassificationSample = (sampleId: string) => {
+    const sample = sampleClassificationData[sampleId];
+    if (sample) {
+      setSelectedClassification(sample.label);
+      Object.entries(sample.data).forEach(([key, value]) => {
+        handleInputChange(key as keyof EipaFormData, value);
+      });
+    }
+  };
+
+  const handleLoadSignatureSample = (sampleId: string) => {
+    const sample = sampleSignatureData[sampleId];
+    if (sample) {
+      setSelectedSignature(sample.label);
+      Object.entries(sample.data).forEach(([key, value]) => {
+        handleInputChange(key as keyof EipaFormData, value);
+      });
+    }
+  };
+
   const quickLoadClientTrigger = (
     <div id="quick-client-select-renewal">
       <Select
@@ -87,49 +285,21 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
 
   const quickLoadAgentTrigger = (
     <div id="quick-agent-select-renewal">
-      <Select
-        onValueChange={(value) => {
-          if (value === 'eaip') {
-            handleInputChange('renewal_agent_name', 'East African Intellectual Property');
-            handleInputChange('renewal_agent_country', 'Ethiopia');
-            handleInputChange('renewal_agent_city', 'Addis Ababa');
-            handleInputChange('renewal_agent_subcity', 'Bole');
-            handleInputChange('renewal_agent_wereda', '03');
-            handleInputChange('renewal_agent_house_no', 'New');
-            handleInputChange('renewal_agent_telephone', '+251 11 661 2911');
-            handleInputChange('renewal_agent_email', 'info@eastafricanip.com');
-            handleInputChange('renewal_agent_pobox', '1234');
-            handleInputChange('renewal_agent_fax', '');
-          } else if (value === 'fikadu') {
-            handleInputChange('renewal_agent_name', 'Fikadu Asfaw');
-            handleInputChange('renewal_agent_country', 'Ethiopia');
-            handleInputChange('renewal_agent_city', 'Addis Ababa');
-            handleInputChange('renewal_agent_subcity', 'Bole');
-            handleInputChange('renewal_agent_wereda', '02');
-            handleInputChange('renewal_agent_house_no', '');
-            handleInputChange('renewal_agent_telephone', '+251 911 213 141');
-            handleInputChange('renewal_agent_email', 'fikadu@eastafricanip.com');
-            handleInputChange('renewal_agent_pobox', '1000');
-            handleInputChange('renewal_agent_fax', '+251115839201');
-          }
-        }}
-      >
+      <Select onValueChange={onAgentSelect} disabled={loadingAgents}>
         <SelectTrigger className="w-[180px] h-9">
-          <SelectValue placeholder="Load Agent" />
+          <SelectValue placeholder={loadingAgents ? "Loading..." : "Load Agent"} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="fikadu">
-            <div className="flex flex-col">
-              <span className="font-semibold">Fikadu Asfaw</span>
-              <span className="text-xs text-muted-foreground">Managing Partner</span>
-            </div>
-          </SelectItem>
-          <SelectItem value="eaip">
-            <div className="flex flex-col">
-              <span className="font-semibold">EAIP (Main Office)</span>
-              <span className="text-xs text-muted-foreground">Default Firm Details</span>
-            </div>
-          </SelectItem>
+          {agents.length > 0 ? agents.map(agent => (
+            <SelectItem key={agent.id} value={agent.id}>
+              <div className="flex flex-col">
+                <span className="font-semibold">{agent.name}</span>
+                <span className="text-xs text-muted-foreground">{agent.city}, {agent.country}</span>
+              </div>
+            </SelectItem>
+          )) : (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">No agents found</div>
+          )}
         </SelectContent>
       </Select>
     </div>
@@ -365,7 +535,29 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       </FormSection>
 
       {/* III. Use of Mark */}
-      <FormSection title="III. Use of Mark" icon={CheckSquare}>
+      <FormSection 
+        title="III. Use of Mark" 
+        icon={CheckSquare}
+        rightElement={
+          <Select
+            value={selectedUseOfMark || 'placeholder'}
+            onValueChange={(value) => {
+              if (value !== 'placeholder') {
+                handleLoadUseOfMarkSample(value);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Load sample data" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sample1">Goods Mark</SelectItem>
+              <SelectItem value="sample2">Service Mark</SelectItem>
+              <SelectItem value="sample3">Collective Mark</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      >
         <div className="flex flex-wrap gap-4 p-3 bg-muted/30 rounded-lg">
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
@@ -440,7 +632,29 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       </FormSection>
 
       {/* V. Case Details */}
-      <FormSection title="V. Case Details" icon={FileText}>
+      <FormSection 
+        title="V. Case Details" 
+        icon={FileText}
+        rightElement={
+          <Select
+            value={selectedCaseDetails || 'placeholder'}
+            onValueChange={(value) => {
+              if (value !== 'placeholder') {
+                handleLoadCaseDetailsSample(value);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Load sample data" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sample1">Kenya Registration</SelectItem>
+              <SelectItem value="sample2">Ethiopia Registration</SelectItem>
+              <SelectItem value="sample3">Uganda Registration</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Application No">
             <Input
@@ -465,7 +679,29 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       </FormSection>
 
       {/* VI. Classification */}
-      <FormSection title="VI. Classification" icon={List}>
+      <FormSection 
+        title="VI. Classification" 
+        icon={List}
+        rightElement={
+          <Select
+            value={selectedClassification || 'placeholder'}
+            onValueChange={(value) => {
+              if (value !== 'placeholder') {
+                handleLoadClassificationSample(value);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Load sample data" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sample1">Business Services</SelectItem>
+              <SelectItem value="sample2">Tech Services</SelectItem>
+              <SelectItem value="sample3">Legal Services</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      >
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-3">
             <label className="text-label text-[var(--eai-text)]">List of goods and or services (Split into 6 lines for PDF)</label>
@@ -506,7 +742,29 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       </FormSection>
 
       {/* Signature */}
-      <FormSection title="Signature" icon={PenTool}>
+      <FormSection 
+        title="Signature" 
+        icon={PenTool}
+        rightElement={
+          <Select
+            value={selectedSignature || 'placeholder'}
+            onValueChange={(value) => {
+              if (value !== 'placeholder') {
+                handleLoadSignatureSample(value);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Load sample data" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sample1">03/2026</SelectItem>
+              <SelectItem value="sample2">06/2026</SelectItem>
+              <SelectItem value="sample3">01/2026</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField label="Day">
             <Input
@@ -526,7 +784,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
             <Input
               value={formData.renewal_sign_year || ''}
               onChange={(e) => handleInputChange('renewal_sign_year', e.target.value)}
-              placeholder="YYYY"
+              placeholder="YY"
             />
           </FormField>
         </div>

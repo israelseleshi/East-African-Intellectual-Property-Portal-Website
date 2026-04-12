@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Field, FieldError } from "@/components/ui/field"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Typography } from "@/components/ui/typography"
 import { toast } from "sonner"
 import AuthLayout from "@/components/AuthLayout"
 import { ForgotPasswordPageSkeleton } from "@/components/AuthPageSkeleton"
@@ -165,16 +166,16 @@ export default function ForgotPasswordPage() {
             
             <CardHeader className="space-y-1 text-center">
               <motion.div variants={itemVariants}>
-                <CardTitle className="text-2xl font-bold">
+                <Typography.h1a>
                   {step === 'success' ? 'Password Reset Complete' : 'Forgot Password'}
-                </CardTitle>
+                </Typography.h1a>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <CardDescription>
+                <Typography.muted>
                   {step === 'email' && "Enter your email to receive a reset code"}
                   {step === 'otp' && "Enter the code sent to your email and create a new password"}
                   {step === 'success' && "Your password has been reset successfully"}
-                </CardDescription>
+                </Typography.muted>
               </motion.div>
             </CardHeader>
 
@@ -346,10 +347,10 @@ export default function ForgotPasswordPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <p className="text-muted-foreground">
+                    <Typography.muted>
                       Your password has been reset successfully.<br />
                       You can now sign in with your new password.
-                    </p>
+                    </Typography.muted>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -357,13 +358,15 @@ export default function ForgotPasswordPage() {
 
             <CardFooter className="justify-center">
               <motion.div 
-                className="text-center text-sm text-muted-foreground"
+                className="text-center"
                 variants={itemVariants}
               >
-                Remember your password?{" "}
-                <Button variant="link" className="px-0 h-auto" asChild>
-                  <Link to="/login">Sign in</Link>
-                </Button>
+                <Typography.muted>
+                  Remember your password?{" "}
+                  <Button variant="link" className="px-0 h-auto" asChild>
+                    <Link to="/login">Sign in</Link>
+                  </Button>
+                </Typography.muted>
               </motion.div>
             </CardFooter>
           </Card>

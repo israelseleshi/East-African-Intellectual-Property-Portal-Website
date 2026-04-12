@@ -45,5 +45,10 @@ export const casesApi = {
   async bulkDelete(ids: string[]) {
     const response = await apiClient.post('/cases/bulk-delete', { ids });
     return response.data;
+  },
+
+  async initiateRenewal(id: string, payload: Record<string, unknown>) {
+    const response = await apiClient.post(`/cases/${id}/renewal`, payload);
+    return response.data;
   }
 };

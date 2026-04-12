@@ -38,7 +38,7 @@ export function JurisdictionSpecificFields({
   onImageChange,
   onImageFileChange,
   showFields,
-  availableFields
+  availableFields,
 }: JurisdictionSpecificFieldsProps) {
   const handleInputChange = (field: keyof EipaFormData, value: string | boolean) => {
     setFormData((prev: EipaFormData) => ({ ...prev, [field]: value }));
@@ -87,6 +87,7 @@ export function JurisdictionSpecificFields({
         markImage={markImageBase64}
         onImageChange={onImageChange}
         onImageFileChange={onImageFileChange}
+        onNiceClassesChange={onNiceClassesChange}
       />
 
       <NiceClassificationSection
