@@ -316,7 +316,11 @@ try {
     if (Test-Path "client/public/.htaccess") {
       Copy-Item -Path "client/public/.htaccess" -Destination $frontendPkg -Force
     }
-    Compress-Archive -Path "$frontendPkg/*" -DestinationPath (Join-Path $deployTmp "frontend.zip") -Force
+    
+    $outZip = Join-Path $deployTmp "frontend.zip"
+    if (Test-Path $outZip) { Remove-Item $outZip -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($frontendPkg, $outZip)
   }
 
   if ($backendChanged) {
@@ -337,7 +341,10 @@ try {
     if (Test-Path (Join-Path $backendPkg "uploads")) { Remove-Item -Recurse -Force (Join-Path $backendPkg "uploads") }
     if (Test-Path (Join-Path $backendPkg "forms-upload")) { Remove-Item -Recurse -Force (Join-Path $backendPkg "forms-upload") }
 
-    Compress-Archive -Path "$backendPkg/*" -DestinationPath (Join-Path $deployTmp "backend.zip") -Force
+    $outZipBackend = Join-Path $deployTmp "backend.zip"
+    if (Test-Path $outZipBackend) { Remove-Item $outZipBackend -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($backendPkg, $outZipBackend)
   }
 
   Write-Host "Uploading artifacts..."
