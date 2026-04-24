@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Typography } from '@/components/ui/typography'
+import { Progress } from '@/components/ui/progress'
+import { Spinner } from '@/components/ui/spinner'
 import { getMarkImageCandidates } from '@/utils/markImage'
 import { useToast } from '@/components/ui/toast'
 import { casesApi } from '@/api/cases'
@@ -138,6 +140,8 @@ export default function TrademarksPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
 
   useEffect(() => { fetchCases() }, [q, status, jurisdiction, currentPage])
 
@@ -270,22 +274,29 @@ export default function TrademarksPage() {
   }
 
   const handleExportExcel = async () => {
-    const exportResponse = await casesApi.listPage({
-      q,
-      page: 1,
-      pageSize: 1000,
-      sort: 'created_at_desc',
-      status: status === 'ALL' ? undefined : status,
-      jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
-      includeDeadlines: false
-    })
-    const exportRows = Array.isArray(exportResponse?.data) ? exportResponse.data : []
-    if (!exportRows.length) return
+    setIsExporting(true)
+    setExportProgress(0)
+    try {
+      const exportResponse = await casesApi.listPage({
+        q,
+        page: 1,
+        pageSize: 1000,
+        sort: 'created_at_desc',
+        status: status === 'ALL' ? undefined : status,
+        jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
+        includeDeadlines: false
+      })
+      const exportRows = Array.isArray(exportResponse?.data) ? exportResponse.data : []
+      if (!exportRows.length) return
 
-    const ExcelJS = (await import('exceljs')).default
-    
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Trademarks')
+      const ExcelJS = (await import('exceljs')).default
+      
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Trademarks')
+
+      // Define all detail columns
+      // ... existing code, wait I'll keep the columns unchanged in this simple edit
+
 
     // Define all detail columns
     worksheet.columns = [
@@ -337,6 +348,9 @@ export default function TrademarksPage() {
     for (let i = 14; i <= 16; i++) { // Others (Gray)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
     }
+
+    const totalRows = exportRows.length
+    let processedRows = 0
 
     // Add data with images
     for (const c of exportRows) {
@@ -393,6 +407,8 @@ export default function TrademarksPage() {
           row.getCell(1).value = 'Image Unavailable'
         }
       }
+      processedRows++
+      setExportProgress(Math.round((processedRows / totalRows) * 100))
     }
 
     // Header borders
@@ -411,6 +427,13 @@ export default function TrademarksPage() {
     document.body.removeChild(link)
     
     addToast({ title: 'Export Complete', description: 'Detailed Excel file has been downloaded.' })
+    } catch (err) {
+      console.error('Export error:', err)
+      addToast({ title: 'Export Failed', description: 'Could not generate Excel file', variant: 'destructive' })
+    } finally {
+      setIsExporting(false)
+      setExportProgress(0)
+    }
   }
 
   return (
@@ -434,8 +457,20 @@ export default function TrademarksPage() {
               </Button>
             </div>
           )}
-          <Button variant="outline" onClick={handleExportExcel} className="bg-white"><DownloadSimple size={18} /><span className="hidden sm:inline">Export Excel</span></Button>
-          <Button onClick={() => navigate('/eipa-forms/application-form')}><Plus size={18} /><span className="hidden sm:inline">New Application</span></Button>
+          {isExporting && (
+            <div className="flex flex-col gap-1 mr-2 w-32">
+              <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                <span>Exporting...</span>
+                <span>{exportProgress}%</span>
+              </div>
+              <Progress value={exportProgress} className="h-1.5" />
+            </div>
+          )}
+          <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white">
+            {isExporting ? <Spinner className="mr-2" /> : <DownloadSimple size={18} className="mr-1" />}
+            <span className="hidden sm:inline">Export Excel</span>
+          </Button>
+          <Button onClick={() => navigate('/eipa-forms/application-form')}><Plus size={18} className="mr-1" /><span className="hidden sm:inline">New Application</span></Button>
         </div>
       </header>
 
