@@ -89,6 +89,57 @@ function getImageExtension(url: string, contentType: string | null): 'png' | 'jp
   return 'jpeg'
 }
 
+async function compressImageBytes(buffer: ArrayBuffer, mimeType: string): Promise<{ bytes: Uint8Array; extension: 'png' | 'jpeg' }> {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([buffer], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('No canvas context'))
+
+      const maxDim = 120
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width)
+          width = maxDim
+        } else {
+          width = Math.round((width * maxDim) / height)
+          height = maxDim
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+      // Fill white background for transparency to jpeg conversion
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, width, height)
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // Aggressive compression
+      canvas.toBlob(
+        (blobResult) => {
+          if (!blobResult) return reject(new Error('Compression failed'))
+          blobResult.arrayBuffer().then((buf) => {
+            resolve({ bytes: new Uint8Array(buf), extension: 'jpeg' })
+          }).catch(reject)
+        },
+        'image/jpeg',
+        0.5
+      )
+    }
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url)
+      reject(e)
+    }
+    img.src = url
+  })
+}
+
 async function fetchImageForExcel(imageUrl: string): Promise<{ bytes: Uint8Array; extension: 'png' | 'jpeg' } | null> {
   try {
     const controller = new AbortController();
@@ -111,9 +162,14 @@ async function fetchImageForExcel(imageUrl: string): Promise<{ bytes: Uint8Array
     }
     const buffer = await response.arrayBuffer()
     if (!buffer.byteLength) return null
-    return {
-      bytes: new Uint8Array(buffer),
-      extension: getImageExtension(imageUrl, contentType),
+    try {
+      return await compressImageBytes(buffer, contentType)
+    } catch (compressErr) {
+      console.warn('Image compression failed, using original:', compressErr)
+      return {
+        bytes: new Uint8Array(buffer),
+        extension: getImageExtension(imageUrl, contentType),
+      }
     }
   } catch (err) {
     console.error(`Error fetching image from ${imageUrl}:`, err);
@@ -300,11 +356,10 @@ export default function TrademarksPage() {
 
     // Define all detail columns
     worksheet.columns = [
-      { header: 'Mark Image', key: 'markImage', width: 18 },
+      { header: 'Mark Image', key: 'markImage', width: 22 },
       // Mark Info (Blue)
       { header: 'Mark Name', key: 'markName', width: 30 },
       { header: 'Mark Type', key: 'markType', width: 15 },
-      { header: 'International Class', key: 'class', width: 15 },
       { header: 'Filing Number', key: 'filingNumber', width: 20 },
       { header: 'Registration Number', key: 'regNumber', width: 20 },
       
@@ -336,16 +391,16 @@ export default function TrademarksPage() {
 
     // Color coding groups
     headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
-    for (let i = 2; i <= 6; i++) { // Mark Info (Blue)
+    for (let i = 2; i <= 5; i++) { // Mark Info (Blue) - Without Int Class
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
     }
-    for (let i = 7; i <= 11; i++) { // System/Status (Orange)
+    for (let i = 6; i <= 10; i++) { // System/Status (Orange)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
     }
-    for (let i = 12; i <= 13; i++) { // Client (Green)
+    for (let i = 11; i <= 12; i++) { // Client (Green)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
     }
-    for (let i = 14; i <= 16; i++) { // Others (Gray)
+    for (let i = 13; i <= 15; i++) { // Others (Gray)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
     }
 
@@ -358,7 +413,6 @@ export default function TrademarksPage() {
         markImage: c.mark_image || c.markImage ? 'Image' : 'No Image',
         markName: markLabel(c),
         markType: c.markType || 'Word',
-        class: (c as any).international_class || '—',
         filingNumber: c.filing_number || c.filingNumber || 'PENDING',
         regNumber: c.registration_number || (c as any).registrationNumber || '—',
         jurisdiction: JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction || 'Ethiopia',
@@ -373,13 +427,16 @@ export default function TrademarksPage() {
         createdAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '—'
       })
 
-      row.height = 50
+      row.height = 65
 
       // Add borders to all cells in the row
       row.eachCell({ includeEmpty: true }, (cell) => {
         cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
         cell.alignment = { vertical: 'middle', horizontal: 'left' }
       })
+
+      // Center the mark image specifically
+      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' }
 
       // Fetch and embed image
       const rawImagePath = (c.mark_image || c.markImage || '').trim()
@@ -400,8 +457,8 @@ export default function TrademarksPage() {
 
           row.getCell(1).value = ''
           worksheet.addImage(imageId, {
-            tl: { col: 0.1, row: row.number - 0.8 },
-            ext: { width: 48, height: 48 },
+            tl: { col: 0.15, row: row.number - 0.9 },
+            ext: { width: 55, height: 55 },
           })
         } else {
           row.getCell(1).value = 'Image Unavailable'
@@ -457,22 +514,34 @@ export default function TrademarksPage() {
               </Button>
             </div>
           )}
-          {isExporting && (
-            <div className="flex flex-col gap-1 mr-2 w-32">
-              <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-                <span>Exporting...</span>
-                <span>{exportProgress}%</span>
-              </div>
-              <Progress value={exportProgress} className="h-1.5" />
-            </div>
-          )}
           <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white">
-            {isExporting ? <Spinner className="mr-2" /> : <DownloadSimple size={18} className="mr-1" />}
+            <DownloadSimple size={18} className="mr-1" />
             <span className="hidden sm:inline">Export Excel</span>
           </Button>
           <Button onClick={() => navigate('/eipa-forms/application-form')}><Plus size={18} className="mr-1" /><span className="hidden sm:inline">New Application</span></Button>
         </div>
       </header>
+
+      {isExporting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-background rounded-xl p-8 shadow-2xl w-full max-w-[320px] flex flex-col items-center text-center space-y-6 border">
+            <div className="bg-primary/10 p-3 rounded-full">
+              <DownloadSimple size={36} className="text-primary animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <Typography.h4>Exporting Trademarks...</Typography.h4>
+              <Typography.muted className="text-sm">Compressing images and generating your Excel file.</Typography.muted>
+            </div>
+            <div className="w-full space-y-2 pt-2">
+              <div className="flex items-center justify-between px-1 text-sm font-extrabold text-muted-foreground">
+                <span>Progress</span>
+                <span>{exportProgress}%</span>
+              </div>
+              <Progress value={exportProgress} className="h-2.5 w-full bg-primary/10" />
+            </div>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
