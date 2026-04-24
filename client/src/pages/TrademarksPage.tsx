@@ -63,12 +63,19 @@ function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: st
   const resolveMarkImageUrl = (rawPath?: string) => {
     if (!rawPath) return ''
     if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
-    const devApiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '')
-    const origin = import.meta.env.PROD ? window.location.origin : devApiBase
+    
+    // Use window.location.origin for all environments - works whether served from same domain or different
+    const origin = window.location.origin
+    
+    // If path already starts with /, use it directly; otherwise add /
     const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
-    if (path.startsWith('/api/')) return `${origin}${path}`
-    if (path.startsWith('/uploads/')) return `${origin}/api${path}`
-    if (path.startsWith('/forms-download/')) return `${origin}/api${path}`
+    
+    // For paths starting with /uploads, /api, or /forms-download, prepend origin
+    if (path.startsWith('/api/') || path.startsWith('/uploads/') || path.startsWith('/forms-download/')) {
+      return `${origin}${path}`
+    }
+    
+    // Fallback: treat as forms-download path
     return `${origin}/api/forms-download/${path.replace(/^\//, '')}`
   }
 
@@ -97,6 +104,44 @@ function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: st
       ) : <ShieldCheck size={24} />}
     </div>
   )
+}
+
+function getImageExtension(url: string, contentType: string | null): 'png' | 'jpeg' {
+  const ct = (contentType || '').toLowerCase()
+  if (ct.includes('png')) return 'png'
+  if (ct.includes('jpeg') || ct.includes('jpg')) return 'jpeg'
+  const lowered = url.toLowerCase()
+  if (lowered.includes('.png')) return 'png'
+  return 'jpeg'
+}
+
+async function fetchImageForExcel(imageUrl: string): Promise<{ bytes: Uint8Array; extension: 'png' | 'jpeg' } | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    const response = await fetch(imageUrl, { 
+      signal: controller.signal,
+      mode: 'cors',
+      credentials: 'include'
+    });
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch image: ${response.status} ${response.statusText} - ${imageUrl}`);
+      return null;
+    }
+    const contentType = response.headers.get('content-type');
+    const buffer = await response.arrayBuffer()
+    if (!buffer.byteLength) return null
+    return {
+      bytes: new Uint8Array(buffer),
+      extension: getImageExtension(imageUrl, contentType),
+    }
+  } catch (err) {
+    console.error(`Error fetching image from ${imageUrl}:`, err);
+    return null
+  }
 }
 
 export default function TrademarksPage() {
@@ -251,6 +296,7 @@ export default function TrademarksPage() {
 
     // Define all detail columns
     worksheet.columns = [
+      { header: 'Mark Image', key: 'markImage', width: 18 },
       // Mark Info (Blue)
       { header: 'Mark Name', key: 'markName', width: 30 },
       { header: 'Mark Type', key: 'markType', width: 15 },
@@ -285,22 +331,39 @@ export default function TrademarksPage() {
     const borderStyle: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFD1D5DB' } }
 
     // Color coding groups
-    for (let i = 1; i <= 5; i++) { // Mark Info (Blue)
+    headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+    for (let i = 2; i <= 6; i++) { // Mark Info (Blue)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
     }
-    for (let i = 6; i <= 10; i++) { // System/Status (Orange)
+    for (let i = 7; i <= 11; i++) { // System/Status (Orange)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
     }
-    for (let i = 11; i <= 12; i++) { // Client (Green)
+    for (let i = 12; i <= 13; i++) { // Client (Green)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
     }
-    for (let i = 13; i <= 15; i++) { // Others (Gray)
+    for (let i = 14; i <= 16; i++) { // Others (Gray)
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
     }
 
-    // Add data
-    filteredRows.forEach(c => {
+    // Helper function to resolve image URL (same as in MarkInfoThumbnail)
+    const resolveUrlForExcel = (rawPath?: string) => {
+      if (!rawPath) return ''
+      if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
+      
+      const origin = window.location.origin
+      const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+      
+      if (path.startsWith('/api/') || path.startsWith('/uploads/') || path.startsWith('/forms-download/')) {
+        return `${origin}${path}`
+      }
+      
+      return `${origin}/api/forms-download/${path.replace(/^\//, '')}`
+    }
+
+    // Add data with images
+    for (const c of filteredRows) {
       const row = worksheet.addRow({
+        markImage: c.mark_image || c.markImage ? 'Image' : 'No Image',
         markName: markLabel(c),
         markType: c.markType || 'Word',
         class: (c as any).international_class || '—',
@@ -318,12 +381,36 @@ export default function TrademarksPage() {
         createdAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '—'
       })
 
+      row.height = 50
+
       // Add borders to all cells in the row
       row.eachCell({ includeEmpty: true }, (cell) => {
         cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
         cell.alignment = { vertical: 'middle', horizontal: 'left' }
       })
-    })
+
+      // Fetch and embed image
+      const rawImagePath = (c.mark_image || c.markImage || '').trim()
+      if (rawImagePath) {
+        const imageUrl = resolveUrlForExcel(rawImagePath)
+        const imagePayload = await fetchImageForExcel(imageUrl)
+        
+        if (imagePayload) {
+          const imageId = workbook.addImage({
+            buffer: imagePayload.bytes as any,
+            extension: imagePayload.extension,
+          })
+          
+          row.getCell(1).value = ''
+          worksheet.addImage(imageId, {
+            tl: { col: 0.1, row: row.number - 0.8 },
+            ext: { width: 48, height: 48 },
+          })
+        } else {
+          row.getCell(1).value = 'Image Unavailable'
+        }
+      }
+    }
 
     // Header borders
     headerRow.eachCell({ includeEmpty: true }, (cell) => {
