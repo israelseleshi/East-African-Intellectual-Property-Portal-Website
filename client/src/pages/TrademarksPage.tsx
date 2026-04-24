@@ -363,45 +363,94 @@ export default function TrademarksPage() {
       { header: 'Filing Number', key: 'filingNumber', width: 20 },
       { header: 'Registration Number', key: 'regNumber', width: 20 },
       
-      // Jurisdiction & Status (Orange)
+      // Jurisdiction & Status (Green)
       { header: 'Jurisdiction', key: 'jurisdiction', width: 20 },
       { header: 'Current Status', key: 'status', width: 15 },
       { header: 'Filing Date', key: 'filingDate', width: 15 },
       { header: 'Registration Date', key: 'regDate', width: 15 },
       { header: 'Next Action Date', key: 'nextAction', width: 15 },
       
-      // Client/Owner (Green)
+      // Client/Owner (Purple)
       { header: 'Client/Owner Name', key: 'client', width: 30 },
       { header: 'Client Type', key: 'clientType', width: 15 },
       
-      // Colors & Priority (Gray)
+      // Colors & Priority (Orange)
       { header: 'Color Indication', key: 'colors', width: 25 },
       { header: 'Priority Info', key: 'priority', width: 25 },
       { header: 'System Created', key: 'createdAt', width: 20 }
     ]
 
-    // Style header row
-    const headerRow = worksheet.getRow(1)
-    headerRow.height = 25
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
-    
-    // Borders for cells
+    // Insert 2 rows at the top for the Master Header and Categorization titles
+    worksheet.spliceRows(1, 0, [], [])
+
     const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
 
-    // Color coding groups
-    headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
-    for (let i = 2; i <= 5; i++) { // Mark Info (Blue) - Without Int Class
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+    // --- ROW 1: MASTER TITLE ---
+    worksheet.mergeCells('A1:O1')
+    const titleCell = worksheet.getCell('A1')
+    titleCell.value = 'EAST AFRICAN INTELLECTUAL PROPERTY PORTAL — TRADEMARKS MASTER LIST'
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FF1F497D' } } // Dark Blue text
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } } // Light Blue bg
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' }
+    titleCell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+    worksheet.getRow(1).height = 35
+
+    // --- ROW 2: CATEGORY GROUP HEADERS ---
+    worksheet.mergeCells('B2:E2') // columns 2 to 5
+    worksheet.mergeCells('F2:J2') // columns 6 to 10
+    worksheet.mergeCells('K2:L2') // columns 11 to 12
+    worksheet.mergeCells('M2:O2') // columns 13 to 15
+
+    worksheet.getCell('A2').value = '1. IMAGE'
+    worksheet.getCell('B2').value = '2. MARK IDENTIFICATION'
+    worksheet.getCell('F2').value = '3. REGISTRATION & STATUS'
+    worksheet.getCell('K2').value = '4. CLIENT INFORMATION'
+    worksheet.getCell('M2').value = '5. ADDITIONAL DETAILS'
+
+    const catFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+    const catAlign = { vertical: 'middle', horizontal: 'center' } as const
+
+    const categories = [
+      { cell: 'A2', color: 'FF4B5563' }, // Gray
+      { cell: 'B2', color: 'FF5B9BD5' }, // Blue
+      { cell: 'F2', color: 'FF70AD47' }, // Green
+      { cell: 'K2', color: 'FF7030A0' }, // Purple
+      { cell: 'M2', color: 'FFED7D31' }  // Orange
+    ]
+
+    for (const cat of categories) {
+      const cell = worksheet.getCell(cat.cell)
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cat.color } }
+      cell.font = catFont
+      cell.alignment = catAlign
+      cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
     }
-    for (let i = 6; i <= 10; i++) { // System/Status (Orange)
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
+    worksheet.getRow(2).height = 30
+
+    // --- ROW 3: COLUMN HEADERS ---
+    const headerRow = worksheet.getRow(3)
+    headerRow.height = 35
+    headerRow.font = { bold: true, color: { argb: 'FF000000' }, size: 10 }
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+    
+    // Light fills for Row 3 sub-headers to match their parent group colors
+    headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } } // Gray tint
+    for (let i = 2; i <= 5; i++) { // Mark Info (Light Blue tint)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }
     }
-    for (let i = 11; i <= 12; i++) { // Client (Green)
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
+    for (let i = 6; i <= 10; i++) { // Status (Light Green tint)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } }
     }
-    for (let i = 13; i <= 15; i++) { // Others (Gray)
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+    for (let i = 11; i <= 12; i++) { // Client (Light Purple tint)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4DFEC' } }
+    }
+    for (let i = 13; i <= 15; i++) { // Others (Light Orange tint)
+      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8CBAD' } }
+    }
+
+    // Apply borders for all Row 3 cells
+    for(let i = 1; i <= 15; i++) {
+        worksheet.getCell(3, i).border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
     }
 
     const totalRows = exportRows.length
