@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import ExcelJS from 'exceljs';
+import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   Plus, 
@@ -69,7 +68,6 @@ const CLIENT_TYPE_ICONS: Record<ApplicantType, typeof User> = {
 
 export default function ClientsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +75,9 @@ export default function ClientsPage() {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [selectedType, setSelectedType] = useState<ApplicantType | 'ALL'>('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  
+  // Transition state for non-blocking updates
+  const [isFiltering, startFilterTransition] = useTransition();
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -220,6 +221,7 @@ export default function ClientsPage() {
 
   const handleExportExcel = async () => {
     if ((clients || []).length === 0) return;
+    const ExcelJS = (await import('exceljs')).default
     
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Clients')
@@ -479,15 +481,25 @@ export default function ClientsPage() {
           <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
           <Input
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value
+              startFilterTransition(() => {
+                setSearchQuery(value)
+              })
+            }}
             placeholder="Search clients..."
             className="pl-10 bg-white border-muted hover:border-border transition-colors"
             data-tour="search-input"
           />
+          {isFiltering && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
-          <Select value={selectedType} onValueChange={(val) => setSelectedType(val as any)}>
+          <Select value={selectedType} onValueChange={(val) => startFilterTransition(() => setSelectedType(val as any))}>
             <SelectTrigger className="w-[160px] bg-white" data-tour="filter-type">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>

@@ -17,19 +17,19 @@ import { Agent } from '@/api/agents';
 interface AgentSectionProps {
     formData: EipaFormData;
     handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+    setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
 }
 
-export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInputChange }) => {
+export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInputChange, setFormData }) => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadAgents = async () => {
             try {
-                const response = await agentService.getAgents();
-                if (response.success && response.data) {
-                    setAgents(response.data);
-                }
+        const response = await agentService.getAgents();
+        const agentData = response.data || (Array.isArray(response) ? response : []);
+        setAgents(agentData);
             } catch (error) {
                 console.error('Failed to load agents:', error);
             } finally {
@@ -41,30 +41,57 @@ export const AgentSection: React.FC<AgentSectionProps> = ({ formData, handleInpu
 
     const onAgentSelect = (agentId: string) => {
       const agent = agents.find(a => a.id === agentId);
-      if (agent) {
-        // Handle Application Fields
-        handleInputChange('agent_name', agent.name);
-        handleInputChange('agent_country', agent.country);
-        handleInputChange('agent_city', agent.city);
-        handleInputChange('agent_subcity', agent.subcity);
-        handleInputChange('agent_woreda', agent.woreda);
-        handleInputChange('agent_house_no', agent.houseNo);
-        handleInputChange('agent_telephone', agent.telephone);
-        handleInputChange('agent_email', agent.email);
-        handleInputChange('agent_po_box', agent.poBox);
-        handleInputChange('agent_fax', agent.fax);
+      if (agent && setFormData) {
+        setFormData(prev => ({
+          ...prev,
+          // Handle Application Fields
+          agent_name: agent.name || '',
+          agent_country: agent.country || '',
+          agent_city: agent.city || '',
+          agent_subcity: agent.subcity || '',
+          agent_woreda: agent.woreda || '',
+          agent_house_no: agent.houseNo || '',
+          agent_telephone: agent.telephone || '',
+          agent_email: agent.email || '',
+          agent_po_box: agent.poBox || '',
+          agent_fax: agent.fax || '',
+
+          // Handle Renewal Fields (Mirroring Application Fields)
+          renewal_agent_name: agent.name || '',
+          renewal_agent_country: agent.country || '',
+          renewal_agent_city: agent.city || '',
+          renewal_agent_subcity: agent.subcity || '',
+          renewal_agent_wereda: agent.woreda || '',
+          renewal_agent_house_no: agent.houseNo || '',
+          renewal_agent_telephone: agent.telephone || '',
+          renewal_agent_email: agent.email || '',
+          renewal_agent_pobox: agent.poBox || '',
+          renewal_agent_fax: agent.fax || '',
+        }));
+      } else if (agent) {
+        // Fallback to individual calls if setFormData is not provided
+        handleInputChange('agent_name', agent.name || '');
+        handleInputChange('agent_country', agent.country || '');
+        handleInputChange('agent_city', agent.city || '');
+        handleInputChange('agent_subcity', agent.subcity || '');
+        handleInputChange('agent_woreda', agent.woreda || '');
+        handleInputChange('agent_house_no', agent.houseNo || '');
+        handleInputChange('agent_telephone', agent.telephone || '');
+        handleInputChange('agent_email', agent.email || '');
+        handleInputChange('agent_po_box', agent.poBox || '');
+        handleInputChange('agent_fax', agent.fax || '');
 
         // Handle Renewal Fields (Mirroring Application Fields)
-        handleInputChange('renewal_agent_name', agent.name);
-        handleInputChange('renewal_agent_country', agent.country);
-        handleInputChange('renewal_agent_city', agent.city);
-        handleInputChange('renewal_agent_subcity', agent.subcity);
-        handleInputChange('renewal_agent_wereda', agent.woreda);
-        handleInputChange('renewal_agent_house_no', agent.houseNo);
-        handleInputChange('renewal_agent_telephone', agent.telephone);
-        handleInputChange('renewal_agent_email', agent.email);
-        handleInputChange('renewal_agent_pobox', agent.poBox);
-        handleInputChange('renewal_agent_fax', agent.fax);
+        handleInputChange('renewal_agent_name', agent.name || '');
+        handleInputChange('renewal_agent_country', agent.country || '');
+        handleInputChange('renewal_agent_city', agent.city || '');
+        handleInputChange('renewal_agent_subcity', agent.subcity || '');
+        handleInputChange('renewal_agent_wereda', agent.woreda || '');
+        handleInputChange('renewal_agent_house_no', agent.houseNo || '');
+        handleInputChange('renewal_agent_telephone', agent.telephone || '');
+        handleInputChange('renewal_agent_email', agent.email || '');
+        handleInputChange('renewal_agent_pobox', agent.poBox || '');
+        handleInputChange('renewal_agent_fax', agent.fax || '');
       }
     };
 

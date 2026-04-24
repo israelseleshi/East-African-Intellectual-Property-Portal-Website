@@ -41,7 +41,7 @@ export function JurisdictionSpecificFields({
   availableFields,
 }: JurisdictionSpecificFieldsProps) {
   const handleInputChange = (field: keyof EipaFormData, value: string | boolean) => {
-    setFormData((prev: EipaFormData) => ({ ...prev, [field]: value }));
+    setFormData({ [field]: value } as Partial<EipaFormData>);
   };
 
   if (formType === 'RENEWAL') {
@@ -50,6 +50,7 @@ export function JurisdictionSpecificFields({
         <RenewalSection
           formData={formData}
           handleInputChange={handleInputChange}
+          setFormData={setFormData}
           clients={clients}
           selectedClientId={selectedClientId}
           handleClientSelect={onClientChange}
@@ -79,11 +80,13 @@ export function JurisdictionSpecificFields({
       <AgentSection
         formData={formData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
       />
 
       <MarkSpecificationSection
         formData={formData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
         markImage={markImageBase64}
         onImageChange={onImageChange}
         onImageFileChange={onImageFileChange}
@@ -93,6 +96,7 @@ export function JurisdictionSpecificFields({
       <NiceClassificationSection
         formData={formData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
         selectedClasses={niceClasses}
         onClassesChange={onNiceClassesChange}
       />
@@ -100,16 +104,19 @@ export function JurisdictionSpecificFields({
       <PrioritySection
         formData={formData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
       />
 
       <DisclaimerSection
         formData={formData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
       />
 
       <ChecklistSection
         formData={formData}
         handleInputChange={handleInputChange}
+        setFormData={setFormData}
       />
     </div>
   );

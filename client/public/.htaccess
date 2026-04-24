@@ -13,6 +13,10 @@ PassengerAppLogFile /home/falolega/logs/passenger.log
 # Let the /api subfolder handle its own routing via Passenger
 RewriteRule ^api(/.*)?$ - [L,PT]
 
+# Backward compatibility for legacy asset URLs stored as /uploads or /forms-download
+RewriteRule ^uploads/(.*)$ /api/uploads/$1 [L,PT]
+RewriteRule ^forms-download/(.*)$ /api/forms-download/$1 [L,PT]
+
 # Frontend SPA Routing
 RewriteRule ^index\.html$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f

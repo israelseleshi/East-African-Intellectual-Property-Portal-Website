@@ -3,14 +3,12 @@
     "target": "ESNext",
     "lib": ["ESNext", "dom"],
     "types": ["cypress", "node"],
-    "baseUrl": "..",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["../src/*"]
     },
     "allowJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node"
+    "esModuleInterop": true
   },
   "include": ["**/*.ts"]
 }

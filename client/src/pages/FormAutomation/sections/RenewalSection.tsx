@@ -18,6 +18,7 @@ import { Agent } from '@/api/agents';
 interface RenewalSectionProps {
   formData: EipaFormData;
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
   clients: Client[];
   selectedClientId: string;
   handleClientSelect: (clientId: string) => void;
@@ -146,6 +147,7 @@ const sampleSignatureData: Record<string, { data: Record<string, string>; label:
 export const RenewalSection: React.FC<RenewalSectionProps> = ({
   formData,
   handleInputChange,
+  setFormData,
   clients,
   selectedClientId,
   handleClientSelect,
@@ -165,9 +167,8 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
       const loadAgents = async () => {
           try {
               const response = await agentService.getAgents();
-              if (response.success && response.data) {
-                  setAgents(response.data);
-              }
+              const agentData = response.data || (Array.isArray(response) ? response : []);
+              setAgents(agentData);
           } catch (error) {
               console.error('Failed to load agents:', error);
           } finally {
@@ -200,57 +201,100 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
 
   const onAgentSelect = (agentId: string) => {
     const agent = agents.find(a => a.id === agentId);
-    if (agent) {
-      handleInputChange('renewal_agent_name', agent.name);
-      handleInputChange('renewal_agent_country', agent.country);
-      handleInputChange('renewal_agent_city', agent.city);
-      handleInputChange('renewal_agent_subcity', agent.subcity);
-      handleInputChange('renewal_agent_wereda', agent.woreda);
-      handleInputChange('renewal_agent_house_no', agent.houseNo);
-      handleInputChange('renewal_agent_telephone', agent.telephone);
-      handleInputChange('renewal_agent_email', agent.email);
-      handleInputChange('renewal_agent_pobox', agent.poBox);
-      handleInputChange('renewal_agent_fax', agent.fax);
+    if (agent && setFormData) {
+      setFormData(prev => ({
+        ...prev,
+        // Handle Application Fields
+        agent_name: agent.name || '',
+        agent_country: agent.country || '',
+        agent_city: agent.city || '',
+        agent_subcity: agent.subcity || '',
+        agent_woreda: agent.woreda || '',
+        agent_house_no: agent.houseNo || '',
+        agent_telephone: agent.telephone || '',
+        agent_email: agent.email || '',
+        agent_po_box: agent.poBox || '',
+        agent_fax: agent.fax || '',
+
+        // Handle Renewal Fields (Mirroring Application Fields)
+        renewal_agent_name: agent.name || '',
+        renewal_agent_country: agent.country || '',
+        renewal_agent_city: agent.city || '',
+        renewal_agent_subcity: agent.subcity || '',
+        renewal_agent_wereda: agent.woreda || '',
+        renewal_agent_house_no: agent.houseNo || '',
+        renewal_agent_telephone: agent.telephone || '',
+        renewal_agent_email: agent.email || '',
+        renewal_agent_pobox: agent.poBox || '',
+        renewal_agent_fax: agent.fax || '',
+      }));
+    } else if (agent) {
+      handleInputChange('renewal_agent_name', agent.name || '');
+      handleInputChange('renewal_agent_country', agent.country || '');
+      handleInputChange('renewal_agent_city', agent.city || '');
+      handleInputChange('renewal_agent_subcity', agent.subcity || '');
+      handleInputChange('renewal_agent_wereda', agent.woreda || '');
+      handleInputChange('renewal_agent_house_no', agent.houseNo || '');
+      handleInputChange('renewal_agent_telephone', agent.telephone || '');
+      handleInputChange('renewal_agent_email', agent.email || '');
+      handleInputChange('renewal_agent_pobox', agent.poBox || '');
+      handleInputChange('renewal_agent_fax', agent.fax || '');
     }
   };
 
   const handleLoadUseOfMarkSample = (sampleId: string) => {
     const sample = sampleUseOfMarkData[sampleId];
     if (sample) {
-      setSelectedUseOfMark(sample.label);
-      Object.entries(sample.data).forEach(([key, value]) => {
-        handleInputChange(key as keyof EipaFormData, value);
-      });
+      setSelectedUseOfMark(sampleId);
+      if (setFormData) {
+        setFormData(prev => ({ ...prev, ...sample.data }));
+      } else {
+        Object.entries(sample.data).forEach(([key, value]) => {
+          handleInputChange(key as keyof EipaFormData, value);
+        });
+      }
     }
   };
 
   const handleLoadCaseDetailsSample = (sampleId: string) => {
     const sample = sampleCaseDetailsData[sampleId];
     if (sample) {
-      setSelectedCaseDetails(sample.label);
-      Object.entries(sample.data).forEach(([key, value]) => {
-        handleInputChange(key as keyof EipaFormData, value);
-      });
+      setSelectedCaseDetails(sampleId);
+      if (setFormData) {
+        setFormData(prev => ({ ...prev, ...sample.data }));
+      } else {
+        Object.entries(sample.data).forEach(([key, value]) => {
+          handleInputChange(key as keyof EipaFormData, value);
+        });
+      }
     }
   };
 
   const handleLoadClassificationSample = (sampleId: string) => {
     const sample = sampleClassificationData[sampleId];
     if (sample) {
-      setSelectedClassification(sample.label);
-      Object.entries(sample.data).forEach(([key, value]) => {
-        handleInputChange(key as keyof EipaFormData, value);
-      });
+      setSelectedClassification(sampleId);
+      if (setFormData) {
+        setFormData(prev => ({ ...prev, ...sample.data }));
+      } else {
+        Object.entries(sample.data).forEach(([key, value]) => {
+          handleInputChange(key as keyof EipaFormData, value);
+        });
+      }
     }
   };
 
   const handleLoadSignatureSample = (sampleId: string) => {
     const sample = sampleSignatureData[sampleId];
     if (sample) {
-      setSelectedSignature(sample.label);
-      Object.entries(sample.data).forEach(([key, value]) => {
-        handleInputChange(key as keyof EipaFormData, value);
-      });
+      setSelectedSignature(sampleId);
+      if (setFormData) {
+        setFormData(prev => ({ ...prev, ...sample.data }));
+      } else {
+        Object.entries(sample.data).forEach(([key, value]) => {
+          handleInputChange(key as keyof EipaFormData, value);
+        });
+      }
     }
   };
 
@@ -544,7 +588,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={CheckSquare}
         rightElement={
           <Select
-            value={Object.keys(sampleUseOfMarkData).find(key => sampleUseOfMarkData[key].label === selectedUseOfMark) || ''}
+            value={selectedUseOfMark || ''}
             onValueChange={(value) => {
               handleLoadUseOfMarkSample(value);
             }}
@@ -639,7 +683,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={FileText}
         rightElement={
           <Select
-            value={Object.keys(sampleCaseDetailsData).find(key => sampleCaseDetailsData[key].label === selectedCaseDetails) || ''}
+            value={selectedCaseDetails || ''}
             onValueChange={(value) => {
               handleLoadCaseDetailsSample(value);
             }}
@@ -684,7 +728,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={List}
         rightElement={
           <Select
-            value={Object.keys(sampleClassificationData).find(key => sampleClassificationData[key].label === selectedClassification) || ''}
+            value={selectedClassification || ''}
             onValueChange={(value) => {
               handleLoadClassificationSample(value);
             }}
@@ -745,7 +789,7 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         icon={PenTool}
         rightElement={
           <Select
-            value={Object.keys(sampleSignatureData).find(key => sampleSignatureData[key].label === selectedSignature) || ''}
+            value={selectedSignature || ''}
             onValueChange={(value) => {
               handleLoadSignatureSample(value);
             }}

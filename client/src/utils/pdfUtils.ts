@@ -1,13 +1,5 @@
 import { PDFDocument, StandardFonts, PDFFont, PDFTextField, PDFCheckBox, PDFObject, PDFName, PDFArray, PDFDict, PDFHexString, PDFString } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import countries from 'world-countries'
-
-// Pre-process countries for flag logic
-const countryList = (countries as any).map((c: any) => ({
-  name: c.name.common,
-  value: c.name.common,
-  code: c.cca2,
-}));
 
 export async function getPdfFields(pdfUrl: string) {
   try {
@@ -335,7 +327,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['agent_country'], data.agent_country);
       await fillField(['agent_city'], data.agent_city);
       await fillField(['agent_subcity'], data.agent_subcity);
-      await fillField(['agent_woreda'], data.agent_woreda);
+      await fillField(['agent_woreda', 'agent_wereda'], data.agent_woreda || (data as any).agent_wereda);
       await fillField(['agent_house_no'], data.agent_house_no);
       await fillField(['agent_telephone'], data.agent_telephone);
       await fillField(['agent_email'], data.agent_email);

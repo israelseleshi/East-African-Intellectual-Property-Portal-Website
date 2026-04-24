@@ -1,7 +1,28 @@
 import type { CaseRow } from '../database/types.js';
-import { caseRepository, type CaseSearchFilters, type NiceMappingRow, type DeadlineRow, type CaseDetailRow } from '../repositories/caseRepository.js';
+import {
+  caseRepository,
+  type CaseSearchFilters,
+  type NiceMappingRow,
+  type DeadlineRow,
+  type CaseDetailRow,
+  type CaseListSort
+} from '../repositories/caseRepository.js';
 
 type CaseWithDeadlines = CaseRow & { deadlines: DeadlineRow[] };
+type PaginatedCaseResult = {
+  data: CaseWithDeadlines[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+};
+
+export interface CaseListQueryOptions {
+  page?: number;
+  pageSize?: number;
+  sort?: CaseListSort;
+  includeDeadlines?: boolean;
+}
 
 const normalizeDate = (value: unknown): string => {
   if (!value) return '';
@@ -135,26 +156,48 @@ const buildEipaFormFromNormalizedData = (
 };
 
 export const caseQueryService = {
-  async listCases(filters: CaseSearchFilters): Promise<CaseWithDeadlines[]> {
-    const cases = await caseRepository.findCases(filters);
+  async listCases(filters: CaseSearchFilters, options: CaseListQueryOptions = {}): Promise<PaginatedCaseResult> {
+    const includeDeadlines = options.includeDeadlines ?? false;
+    const result = await caseRepository.findCases(filters, {
+      page: options.page,
+      pageSize: options.pageSize,
+      sort: options.sort
+    });
+    const cases = result.rows;
+
     if (cases.length === 0) {
-      return [];
+      return {
+        data: [],
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        hasMore: result.hasMore
+      };
     }
 
-    const caseIds = cases.map((c) => c.id);
-    const deadlines = await caseRepository.findDeadlinesByCaseIds(caseIds);
-    const groupedDeadlines = deadlines.reduce<Map<string, DeadlineRow[]>>((acc, deadline) => {
-      const key = deadline.case_id;
-      const existing = acc.get(key) ?? [];
-      existing.push(deadline);
-      acc.set(key, existing);
-      return acc;
-    }, new Map<string, DeadlineRow[]>());
+    let groupedDeadlines = new Map<string, DeadlineRow[]>();
+    if (includeDeadlines) {
+      const caseIds = cases.map((c) => c.id);
+      const deadlines = await caseRepository.findDeadlinesByCaseIds(caseIds);
+      groupedDeadlines = deadlines.reduce<Map<string, DeadlineRow[]>>((acc, deadline) => {
+        const key = deadline.case_id;
+        const existing = acc.get(key) ?? [];
+        existing.push(deadline);
+        acc.set(key, existing);
+        return acc;
+      }, new Map<string, DeadlineRow[]>());
+    }
 
-    return cases.map((item) => ({
-      ...item,
-      deadlines: groupedDeadlines.get(item.id) ?? []
-    }));
+    return {
+      data: cases.map((item) => ({
+        ...item,
+        deadlines: groupedDeadlines.get(item.id) ?? []
+      })),
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      hasMore: result.hasMore
+    };
   },
 
   async getCaseById(caseId: string): Promise<Record<string, unknown> | null> {

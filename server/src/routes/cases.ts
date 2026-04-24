@@ -18,7 +18,19 @@ const router = express.Router();
 const caseListQuerySchema = z.object({
   q: z.string().optional(),
   status: z.string().optional(),
-  jurisdiction: z.string().optional()
+  jurisdiction: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(200).optional(),
+  limit: z.coerce.number().int().positive().max(200).optional(),
+  sort: z.enum([
+    'created_at_desc',
+    'created_at_asc',
+    'mark_name_asc',
+    'mark_name_desc',
+    'filing_date_desc',
+    'filing_date_asc'
+  ]).optional(),
+  includeDeadlines: z.union([z.boolean(), z.string()]).optional()
 });
 
 const caseIdParamSchema = z.object({
@@ -422,9 +434,15 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
 
-    const { q, status, jurisdiction } = parsed.data;
-    const cases = await caseQueryService.listCases({ q, status, jurisdiction });
-    res.json(cases);
+    const { q, status, jurisdiction, page, pageSize, limit, sort, includeDeadlines } = parsed.data;
+    const withDeadlines = includeDeadlines === true || includeDeadlines === 'true' || includeDeadlines === '1';
+    const resolvedPageSize = pageSize ?? limit;
+    const isPaginatedRequest = page !== undefined || resolvedPageSize !== undefined || sort !== undefined || includeDeadlines !== undefined;
+    const cases = await caseQueryService.listCases(
+      { q, status, jurisdiction },
+      { page, pageSize: resolvedPageSize, sort, includeDeadlines: withDeadlines || !isPaginatedRequest }
+    );
+    res.json(isPaginatedRequest ? cases : cases.data);
   } catch (error) {
     logRouteError(req, 'cases.list', error);
     sendApiError(req, res, 500, {

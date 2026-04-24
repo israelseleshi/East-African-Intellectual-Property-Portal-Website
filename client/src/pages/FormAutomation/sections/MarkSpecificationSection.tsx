@@ -12,15 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface MarkSpecificationSectionProps {
-  formData: EipaFormData;
-  handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
-  markImage: string | null;
-  onImageChange: (base64: string | null) => void;
-  onImageFileChange: (file: File | null) => void;
-  onNiceClassesChange?: (classes: number[]) => void;
-}
-
 const sampleMarkData: Record<string, { data: Record<string, string | boolean>; niceClasses?: number[]; label: string }> = {
   sample1: {
     label: 'ABC Logo',
@@ -81,9 +72,20 @@ const sampleMarkData: Record<string, { data: Record<string, string | boolean>; n
   },
 };
 
+interface MarkSpecificationSectionProps {
+  formData: EipaFormData;
+  handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
+  markImage: string | null;
+  onImageChange: (base64: string | null) => void;
+  onImageFileChange: (file: File | null) => void;
+  onNiceClassesChange?: (classes: number[]) => void;
+}
+
 export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> = ({
   formData,
   handleInputChange,
+  setFormData,
   markImage,
   onImageChange,
   onImageFileChange,
@@ -115,11 +117,29 @@ export const MarkSpecificationSection: React.FC<MarkSpecificationSectionProps> =
 
   const handleLoadSample = (sampleId: string) => {
     const sample = sampleMarkData[sampleId];
-    if (sample) {
-      setSelectedSample(sample.label);
+    if (sample && setFormData) {
+      setSelectedSample(sampleId);
+      setFormData(prev => ({
+        ...prev,
+        ...sample.data,
+        // Mirror to renewal fields if applicable
+        renewal_mark_logo: sample.data.mark_description as string || prev.renewal_mark_logo,
+      }));
+      
+      if (sample.niceClasses && onNiceClassesChange) {
+        onNiceClassesChange(sample.niceClasses);
+      }
+    } else if (sample) {
+      setSelectedSample(sampleId);
       Object.entries(sample.data).forEach(([key, value]) => {
-        handleInputChange(key as keyof EipaFormData, value);
+        handleInputChange(key as keyof EipaFormData, value as string | boolean);
       });
+      
+      // Mirror to renewal fields if applicable
+      if (sample.data.mark_description) {
+        handleInputChange('renewal_mark_logo', sample.data.mark_description as string);
+      }
+      
       if (sample.niceClasses && onNiceClassesChange) {
         onNiceClassesChange(sample.niceClasses);
       }

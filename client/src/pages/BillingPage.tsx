@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import ExcelJS from 'exceljs'
 import { toast } from 'sonner'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import {
   CurrencyDollar,
   ChartLineUp,
@@ -411,6 +409,7 @@ export default function BillingPage() {
 
   const handleDownload = async (tx: any) => {
     try {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
       const pdfDoc = await PDFDocument.create()
       const page = pdfDoc.addPage([595.28, 841.89])
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
@@ -618,12 +617,13 @@ export default function BillingPage() {
 
   const handleExportExcel = async () => {
     if (filteredTransactions.length === 0) return;
+    const ExcelJS = (await import('exceljs')).default
     
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Invoices')
 
     // Professional borders and fonts
-    const borderStyle: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFD1D5DB' } }
+    const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
 
     worksheet.columns = [
       { header: 'Invoice Number', key: 'number', width: 20 },

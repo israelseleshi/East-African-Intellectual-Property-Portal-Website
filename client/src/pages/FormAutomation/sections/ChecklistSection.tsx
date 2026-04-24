@@ -14,6 +14,7 @@ import {
 interface ChecklistSectionProps {
   formData: EipaFormData;
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
 }
 
 const sampleChecklistData: Record<string, { data: Record<string, string | boolean>; label: string }> = {
@@ -67,7 +68,7 @@ const sampleChecklistData: Record<string, { data: Record<string, string | boolea
   },
 };
 
-export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, handleInputChange }) => {
+export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, handleInputChange, setFormData }) => {
   const [selectedSample, setSelectedSample] = useState<string>('');
   const checklistOptions = [
     { id: 'chk_list_copies', label: '3 identical copies of mark' },
@@ -81,8 +82,14 @@ export const ChecklistSection: React.FC<ChecklistSectionProps> = ({ formData, ha
 
   const handleLoadSample = (sampleId: string) => {
     const sample = sampleChecklistData[sampleId];
-    if (sample) {
-      setSelectedSample(sample.label);
+    if (sample && setFormData) {
+      setSelectedSample(sampleId);
+      setFormData(prev => ({
+        ...prev,
+        ...sample.data
+      }));
+    } else if (sample) {
+      setSelectedSample(sampleId);
       Object.entries(sample.data).forEach(([key, value]) => {
         handleInputChange(key as keyof EipaFormData, value);
       });

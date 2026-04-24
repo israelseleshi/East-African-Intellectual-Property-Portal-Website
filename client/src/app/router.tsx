@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 
 import AppShell from './AppShell'
+import { PreloadProvider } from '../components/PreloadProvider'
 import { useAuthStore, canAccessFinance } from '../store/authStore'
 import ErrorPage from '../components/ErrorPage'
 
@@ -111,7 +112,7 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       {
-        element: <AppShell />,
+        element: <PreloadProvider><AppShell /></PreloadProvider>,
         children: [
           { index: true, element: withRouteSuspense(<DashboardPage />) },
           { path: 'trademarks', element: withRouteSuspense(<TrademarksPage />) },

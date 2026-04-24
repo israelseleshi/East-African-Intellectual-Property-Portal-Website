@@ -16,13 +16,14 @@ import {
 interface PrioritySectionProps {
   formData: EipaFormData;
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
 }
 
 const samplePriorityData: Record<string, { data: Record<string, string | boolean>; label: string }> = {
   sample1: {
     label: 'Kenya Priority',
     data: {
-      priority_country: 'KE',
+      priority_country: 'Kenya',
       priority_filing_date: '2025-06-15',
       priority_right_declaration: 'Priority claimed under Paris Convention',
       goods_and_services_covered_by_the_previous_application: 'Class 35 - Advertising; Business management; Office functions',
@@ -33,7 +34,7 @@ const samplePriorityData: Record<string, { data: Record<string, string | boolean
   sample2: {
     label: 'Ethiopia Priority',
     data: {
-      priority_country: 'ET',
+      priority_country: 'Ethiopia',
       priority_filing_date: '2025-03-20',
       priority_right_declaration: 'Priority claimed under Article 4 of the Paris Convention',
       goods_and_services_covered_by_the_previous_application: 'Class 41 - Education; Providing training; Entertainment services',
@@ -44,7 +45,7 @@ const samplePriorityData: Record<string, { data: Record<string, string | boolean
   sample3: {
     label: 'Uganda Priority',
     data: {
-      priority_country: 'UG',
+      priority_country: 'Uganda',
       priority_filing_date: '2025-09-01',
       priority_right_declaration: 'Priority claimed based on earlier filing',
       goods_and_services_covered_by_the_previous_application: 'Class 9 - Scientific instruments; Computer software',
@@ -54,7 +55,7 @@ const samplePriorityData: Record<string, { data: Record<string, string | boolean
   },
 };
 
-export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, handleInputChange }) => {
+export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, handleInputChange, setFormData }) => {
   const [selectedSample, setSelectedSample] = useState<string>('');
   const priorityDocOptions = [
     { id: 'chk_priority_accompanies', label: 'Documents accompany form' },
@@ -63,8 +64,14 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ formData, hand
 
   const handleLoadSample = (sampleId: string) => {
     const sample = samplePriorityData[sampleId];
-    if (sample) {
-      setSelectedSample(sample.label);
+    if (sample && setFormData) {
+      setSelectedSample(sampleId);
+      setFormData(prev => ({
+        ...prev,
+        ...sample.data
+      }));
+    } else if (sample) {
+      setSelectedSample(sampleId);
       Object.entries(sample.data).forEach(([key, value]) => {
         handleInputChange(key as keyof EipaFormData, value);
       });

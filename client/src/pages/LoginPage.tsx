@@ -334,9 +334,9 @@ export default function LoginPage() {
                 className="text-center"
                 variants={itemVariants}
               >
-                <Typography.muted>
+                <span className="text-sm text-muted-foreground">
                   Don't have an account?{" "}
-                  <motion.div
+                  <motion.span
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="inline-block"
@@ -344,8 +344,8 @@ export default function LoginPage() {
                     <Button variant="link" className="px-0 h-auto" asChild>
                       <Link to="/signup">Sign up</Link>
                     </Button>
-                  </motion.div>
-                </Typography.muted>
+                  </motion.span>
+                </span>
               </motion.div>
             </CardContent>
           </Card>
