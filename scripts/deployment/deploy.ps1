@@ -78,7 +78,11 @@ function Get-RelativePath {
   )
   $base = [System.IO.Path]::GetFullPath($BasePath)
   $full = [System.IO.Path]::GetFullPath($FullPath)
-  return [System.IO.Path]::GetRelativePath($base, $full).Replace('\', '/')
+  if (-not $base.EndsWith('\')) { $base += '\' }
+  if ($full.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $full.Substring($base.Length).Replace('\', '/')
+  }
+  return $full.Replace('\', '/')
 }
 
 function Get-FileManifest {
@@ -312,7 +316,14 @@ try {
     if (Test-Path "client/public/.htaccess") {
       Copy-Item -Path "client/public/.htaccess" -Destination $frontendPkg -Force
     }
-    Compress-Archive -Path "$frontendPkg/*" -DestinationPath (Join-Path $deployTmp "frontend.zip") -Force
+    
+    $outZip = Join-Path $deployTmp "frontend.zip"
+    if (Test-Path $outZip) { Remove-Item $outZip -Force }
+    
+    # Use native tar.exe for UNIX-compatible zip files (forward slash separator)
+    Push-Location $frontendPkg
+    tar.exe -a -c -f "$outZip" .
+    Pop-Location
   }
 
   if ($backendChanged) {
@@ -333,7 +344,13 @@ try {
     if (Test-Path (Join-Path $backendPkg "uploads")) { Remove-Item -Recurse -Force (Join-Path $backendPkg "uploads") }
     if (Test-Path (Join-Path $backendPkg "forms-upload")) { Remove-Item -Recurse -Force (Join-Path $backendPkg "forms-upload") }
 
-    Compress-Archive -Path "$backendPkg/*" -DestinationPath (Join-Path $deployTmp "backend.zip") -Force
+    $outZipBackend = Join-Path $deployTmp "backend.zip"
+    if (Test-Path $outZipBackend) { Remove-Item $outZipBackend -Force }
+
+    # Use native tar.exe for UNIX-compatible zip files
+    Push-Location $backendPkg
+    tar.exe -a -c -f "$outZipBackend" .
+    Pop-Location
   }
 
   Write-Host "Uploading artifacts..."
