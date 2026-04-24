@@ -78,7 +78,11 @@ function Get-RelativePath {
   )
   $base = [System.IO.Path]::GetFullPath($BasePath)
   $full = [System.IO.Path]::GetFullPath($FullPath)
-  return [System.IO.Path]::GetRelativePath($base, $full).Replace('\', '/')
+  if (-not $base.EndsWith('\')) { $base += '\' }
+  if ($full.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $full.Substring($base.Length).Replace('\', '/')
+  }
+  return $full.Replace('\', '/')
 }
 
 function Get-FileManifest {
