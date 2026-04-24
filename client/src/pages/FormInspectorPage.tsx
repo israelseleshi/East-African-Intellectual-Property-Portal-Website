@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { api, trademarkService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
 import { Typography } from '@/components/ui/typography';
@@ -23,15 +23,16 @@ import { useFormAutomation } from '../hooks/useFormAutomation';
 import { FormHeader } from './FormAutomation/components/FormHeader';
 import { PdfPreviewPanel } from './FormAutomation/components/PdfPreviewPanel';
 import { JurisdictionSpecificFields } from './FormAutomation/components/JurisdictionSpecificFields';
-import { fillPdfForm } from '../utils/pdfUtils';
 
 export default function FormInspectorPage() {
   const { toast: addToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     formType,
+    setFormType,
     formData,
     setFormData,
     clients,
@@ -61,6 +62,14 @@ export default function FormInspectorPage() {
   const uniqueDetectedFields = useMemo(() => Array.from(new Set(availableFields)).sort(), [availableFields]);
   
   const caseId = searchParams.get('caseId');
+
+  useEffect(() => {
+    if (location.pathname.includes('/eipa-forms/renewal-form')) {
+      setFormType('RENEWAL');
+      return;
+    }
+    setFormType('APPLICATION');
+  }, [location.pathname, setFormType]);
   
   useEffect(() => {
     if (caseId && formType === 'RENEWAL') {
@@ -239,6 +248,7 @@ export default function FormInspectorPage() {
   const handleDownloadPdf = async () => {
     try {
       const pdfFile = formType === 'RENEWAL' ? '/renewal_form.pdf' : '/application_form.pdf';
+      const { fillPdfForm } = await import('../utils/pdfUtils');
       // Pass true to flatten the PDF and make it non-editable
       const pdfBytes = await fillPdfForm(pdfFile, formData as unknown as Record<string, unknown>, true);
 
@@ -247,7 +257,17 @@ export default function FormInspectorPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = formType === 'RENEWAL' ? 'renewal_form.pdf' : 'application_form.pdf';
+        const formDataRecord = formData as unknown as Record<string, unknown>;
+        const rawMarkName = String(
+          formDataRecord.mark_name
+          || formDataRecord.mark_description
+          || formDataRecord.renewal_mark_logo
+          || 'UNKNOWN_MARK'
+        ).trim();
+        const safeMarkName = rawMarkName.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'UNKNOWN_MARK';
+        link.download = formType === 'RENEWAL'
+          ? `${safeMarkName}_Renewal_Form.pdf`
+          : `${safeMarkName}_Applicant_Form.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -267,6 +287,8 @@ export default function FormInspectorPage() {
     setSelectedClientId(clientId);
     const selectedClient = clients.find(c => c.id === clientId);
     if (selectedClient) {
+      // Use the loadFromClient method if available, or manually map
+      // For now, let's stick to the manual mapping but fix the field names
       setFormData(prev => ({
         ...prev,
         // Application fields
@@ -277,8 +299,8 @@ export default function FormInspectorPage() {
         wereda: selectedClient.wereda || '',
         city_name: selectedClient.city || '',
         city_code: (selectedClient as any).city_code || '',
-        state_name: (selectedClient as any).state_name || '',
-        state_code: (selectedClient as any).state_code || '',
+        state_name: (selectedClient as any).state_name || (selectedClient as any).stateName || '',
+        state_code: (selectedClient as any).state_code || (selectedClient as any).stateCode || '',
         house_no: selectedClient.house_no || '',
         zip_code: selectedClient.zip_code || '',
         telephone: selectedClient.telephone || '',
@@ -298,8 +320,8 @@ export default function FormInspectorPage() {
         renewal_address_zone: selectedClient.address_zone || '',
         renewal_city_name: selectedClient.city || '',
         renewal_city_code: (selectedClient as any).city_code || '',
-        renewal_state_name: (selectedClient as any).state_name || '',
-        renewal_state_code: (selectedClient as any).state_code || '',
+        renewal_state_name: (selectedClient as any).state_name || (selectedClient as any).stateName || '',
+        renewal_state_code: (selectedClient as any).state_code || (selectedClient as any).stateCode || '',
         renewal_zip_code: selectedClient.zip_code || '',
         renewal_wereda: selectedClient.wereda || '',
         renewal_house_no: selectedClient.house_no || '',
@@ -312,7 +334,6 @@ export default function FormInspectorPage() {
         renewal_chk_company: selectedClient.type === 'COMPANY',
         renewal_chk_male: selectedClient.type === 'INDIVIDUAL',
         renewal_chk_female: false,
-
       }));
     }
   };

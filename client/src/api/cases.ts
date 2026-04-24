@@ -4,11 +4,52 @@ export interface CasesQuery {
   q?: string;
   status?: string;
   jurisdiction?: string;
+  page?: number;
+  pageSize?: number;
+  sort?: 'created_at_desc' | 'created_at_asc' | 'mark_name_asc' | 'mark_name_desc' | 'filing_date_desc' | 'filing_date_asc';
+  includeDeadlines?: boolean;
+}
+
+export interface CasesListResponse<T = any> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 }
 
 export const casesApi = {
   async list(query?: CasesQuery) {
-    const response = await apiClient.get('/cases', { params: query });
+    const response = await apiClient.get('/cases', {
+      params: {
+        page: 1,
+        pageSize: 200,
+        includeDeadlines: true,
+        ...query
+      }
+    });
+    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+  },
+
+  async listPage<T = any>(query?: CasesQuery): Promise<CasesListResponse<T>> {
+    const response = await apiClient.get('/cases', {
+      params: {
+        page: 1,
+        pageSize: 25,
+        includeDeadlines: false,
+        sort: 'created_at_desc',
+        ...query
+      }
+    });
+    if (Array.isArray(response.data)) {
+      return {
+        data: response.data as T[],
+        total: response.data.length,
+        page: 1,
+        pageSize: response.data.length || 25,
+        hasMore: false
+      };
+    }
     return response.data;
   },
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useMemo, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { 
   FileText, 
@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useApi } from "@/hooks/useApi"
+import { useDashboardData } from "@/hooks/useSwr"
 import { formatNumber, formatDate } from "@/utils/formatters"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -31,56 +31,85 @@ interface DashboardStats {
   collectionRate?: number
 }
 
-interface CurrencyStats {
-  currency: string
-  totalInvoiced: number
-  totalOutstanding: number
-  totalOverdue: number
-}
-
-interface RecentActivity {
-  id: number
-  caseId: string
-  action: string
-  mark_name: string
-  createdAt: string
-}
-
-interface UnifiedData {
-  stats: DashboardStats
-  currencyBreakdown?: CurrencyStats[]
-  recentActivity: RecentActivity[]
-  upcomingDeadlines: any[]
-}
+// Static card configuration - outside component for stable reference
+const CARD_CONFIG = [
+  {
+    title: "Total Cases",
+    description: "All trademark files",
+    icon: Briefcase,
+    trend: "Real-time",
+    trendType: "neutral" as const,
+    link: "/trademarks",
+    getValue: (stats: DashboardStats) => formatNumber(stats?.totalCases || 0),
+  },
+  {
+    title: "Active Trademarks",
+    description: "Currently in-force",
+    icon: FileText,
+    trend: "Syncing",
+    trendType: "positive" as const,
+    link: "/trademarks",
+    getValue: (stats: DashboardStats) => formatNumber(stats?.activeTrademarks || 0),
+  },
+  {
+    title: "Pending Deadlines",
+    description: "Requires action",
+    icon: Clock,
+    trend: "Stable",
+    trendType: "neutral" as const,
+    link: "/deadlines",
+    getValue: (stats: DashboardStats) => {
+      const value = stats?.pendingDeadlines || 0;
+      return { value: formatNumber(value), trend: value > 10 ? "High" : "Stable", trendType: value > 10 ? "negative" as const : "neutral" as const };
+    },
+  },
+] as const;
 
 export default function DashboardPage() {
-  const { get } = useApi()
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const canViewFinance = user?.role === 'SUPER_ADMIN'
-  const [data, setData] = useState<UnifiedData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  
+  const { data, error, isLoading, mutate } = useDashboardData()
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true)
-        const result = await get('/dashboard/dashboard-unified')
-        setData(result)
-        setError(null)
-      } catch (err: any) {
-        console.error("Dashboard fetch error:", err)
-        setError("Failed to load real-time dashboard data. Please try again.")
-      } finally {
-        setLoading(false)
+  const stats = data?.stats;
+  const recentActivity = data?.recentActivity || [];
+
+  // Memoize dashboard cards
+  const DASHBOARD_CARDS = useMemo(() => {
+    return CARD_CONFIG.map((config) => {
+      const valueOrObj = config.getValue(stats as DashboardStats);
+      if (typeof valueOrObj === 'object') {
+        return {
+          ...config,
+          value: formatNumber((stats?.pendingDeadlines || 0)),
+          trend: valueOrObj.trend,
+          trendType: valueOrObj.trendType,
+        };
       }
-    }
+      return {
+        ...config,
+        value: valueOrObj,
+      };
+    });
+  }, [stats]);
 
-    fetchDashboardData()
-  }, [get])
+  // Memoize navigation handler
+  const handleCardClick = useCallback((link: string) => {
+    navigate(link);
+  }, [navigate]);
 
-  if (loading) {
+  // Memoize activity click handler
+  const handleActivityClick = useCallback((caseId: string) => {
+    navigate(`/trademarks/${caseId}`);
+  }, [navigate]);
+
+  // Memoize retry handler
+  const handleRetry = useCallback(() => {
+    mutate();
+  }, [mutate]);
+
+  if (isLoading) {
     return (
       <div className="flex flex-col gap-6 p-4 md:p-8">
         <div className="space-y-2">
@@ -160,9 +189,11 @@ export default function DashboardPage() {
             <CardTitle>Connection Error</CardTitle>
           </CardHeader>
           <CardContent>
-            <Typography.pb className="text-muted-foreground mb-4">{error}</Typography.pb>
+            <Typography.p className="text-muted-foreground mb-4">
+              Failed to load real-time dashboard data. Please try again.
+            </Typography.p>
             <Button 
-              onClick={() => window.location.reload()}
+              onClick={handleRetry}
               className="w-full"
             >
               Retry Connection
@@ -173,44 +204,11 @@ export default function DashboardPage() {
     )
   }
 
-  const stats = data?.stats
-  const recentActivity = data?.recentActivity || []
-
-  const DASHBOARD_CARDS = [
-    {
-      title: "Total Cases",
-      value: formatNumber(stats?.totalCases || 0),
-      description: "All trademark files",
-      icon: Briefcase,
-      trend: "Real-time",
-      trendType: "neutral",
-      link: "/trademarks"
-    },
-    {
-      title: "Active Trademarks",
-      value: formatNumber(stats?.activeTrademarks || 0),
-      description: "Currently in-force",
-      icon: FileText,
-      trend: "Syncing",
-      trendType: "positive",
-      link: "/trademarks"
-    },
-    {
-      title: "Pending Deadlines",
-      value: formatNumber(stats?.pendingDeadlines || 0),
-      description: "Requires action",
-      icon: Clock,
-      trend: stats?.pendingDeadlines && stats.pendingDeadlines > 10 ? "High" : "Stable",
-      trendType: stats?.pendingDeadlines && stats.pendingDeadlines > 10 ? "negative" : "neutral",
-      link: "/deadlines"
-    }
-  ]
-
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8">
       <div className="flex flex-col gap-1">
-        <Typography.h1a>Dashboard Overview</Typography.h1a>
-        <Typography.pa className="text-muted-foreground">Live data from East African Intellectual Property Registry.</Typography.pa>
+        <Typography.h1>Dashboard Overview</Typography.h1>
+        <Typography.p className="text-muted-foreground">Live data from East African Intellectual Property Registry.</Typography.p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -237,17 +235,17 @@ export default function DashboardPage() {
           <Card 
             key={card.title} 
             className="overflow-hidden cursor-pointer hover:border-primary/50 transition-colors group p-5"
-            onClick={() => navigate(card.link)}
+            onClick={() => handleCardClick(card.link)}
           >
             <div className="flex items-center justify-between">
-              <Typography.h4a className="truncate pr-2">{card.title}</Typography.h4a>
+              <Typography.h4 className="truncate pr-2">{card.title}</Typography.h4>
               <div className="flex items-center gap-2">
                 <card.icon className="size-5 text-muted-foreground shrink-0" />
                 <ChevronRight className="size-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
             <div className="mt-3">
-              <Typography.h2a className="text-primary">{card.value}</Typography.h2a>
+              <Typography.h2 className="text-primary">{card.value}</Typography.h2>
               <div className="flex items-center gap-2 mt-2 overflow-hidden">
                 <Badge 
                   variant={card.trendType === 'positive' ? 'secondary' : card.trendType === 'negative' ? 'destructive' : 'outline'}
@@ -284,7 +282,7 @@ export default function DashboardPage() {
                       <div 
                         key={activity.id} 
                         className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/trademarks/${activity.caseId}`)}
+                        onClick={() => handleActivityClick(activity.caseId)}
                       >
                         <div className="size-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
                           <Briefcase className="size-5 text-primary" />

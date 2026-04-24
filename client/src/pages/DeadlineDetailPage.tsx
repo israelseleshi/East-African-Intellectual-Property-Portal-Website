@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { trademarkService } from '@/utils/api'
-import { resolveMarkImageUrl } from '@/pages/TrademarkDetailInfoPage'
 
 type DeadlineDetail = {
   id: string

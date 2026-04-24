@@ -22,6 +22,26 @@ interface User {
   firm_name?: string;
 }
 
+type DbLikeError = {
+  code?: string;
+  errno?: number;
+  message?: string;
+};
+
+const isDbConnectivityError = (error: unknown): error is DbLikeError => {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as DbLikeError).code;
+  return [
+    'ETIMEDOUT',
+    'ECONNREFUSED',
+    'ENOTFOUND',
+    'PROTOCOL_CONNECTION_LOST',
+    'ER_ACCESS_DENIED_ERROR',
+    'ER_BAD_DB_ERROR',
+    'ER_NO_SUCH_TABLE'
+  ].includes(code || '');
+};
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1)
@@ -162,6 +182,19 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     logRouteError(req, 'auth.login', error);
+    if (isDbConnectivityError(error)) {
+      return sendApiError(req, res, 503, {
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'Database connection failed. Please verify DB host, firewall, and credentials.',
+        details: process.env.NODE_ENV !== 'production'
+          ? {
+            code: error.code,
+            message: error.message,
+            errno: error.errno
+          }
+          : undefined
+      });
+    }
     sendApiError(req, res, 500, {
       code: 'AUTHENTICATION_FAILED',
       message: 'Authentication failed'

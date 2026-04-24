@@ -27,6 +27,12 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/prod-api': {
+        target: 'https://eastafricanip.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/prod-api/, '/api'),
+      },
     }
   },
   build: {
@@ -34,27 +40,21 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks for better caching
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'vendor-react';
-            if (id.includes('react-dom')) return 'vendor-react';
-            if (id.includes('react-router')) return 'vendor-router';
-            if (id.includes('lucide-react')) return 'vendor-icons-lucide';
-            if (id.includes('@phosphor')) return 'vendor-icons-phosphor';
-            if (id.includes('recharts')) return 'vendor-charts';
-            if (id.includes('framer-motion')) return 'vendor-animation';
-            if (id.includes('pdf-lib')) return 'vendor-pdf';
-            if (id.includes('zustand')) return 'vendor-state';
-            if (id.includes('swr')) return 'vendor-swr';
-            if (id.includes('exceljs')) return 'vendor-excel';
-            if (id.includes('axios')) return 'vendor-http';
-            if (id.includes('sonner')) return 'vendor-toast';
-            if (id.includes('zod')) return 'vendor-validation';
-            if (id.includes('date-fns')) return 'vendor-date';
-            if (id.includes('world-countries')) return 'vendor-countries';
-            return 'vendor-misc';
-          }
-          if (id.includes('fonts')) return 'fonts';
+          // Keep only selective heavy-library chunks.
+          // Do not force React (or a catch-all vendor chunk), which can create
+          // circular chunk dependencies and runtime hook access failures.
+          if (!id.includes('node_modules')) return;
+          if (id.includes('recharts')) return 'vendor-charts';
+          if (id.includes('framer-motion')) return 'vendor-animation';
+          if (id.includes('pdf-lib')) return 'vendor-pdf';
+          if (id.includes('zustand')) return 'vendor-state';
+          if (id.includes('swr')) return 'vendor-swr';
+          if (id.includes('exceljs')) return 'vendor-excel';
+          if (id.includes('axios')) return 'vendor-http';
+          if (id.includes('sonner')) return 'vendor-toast';
+          if (id.includes('zod')) return 'vendor-validation';
+          if (id.includes('date-fns')) return 'vendor-date';
+          if (id.includes('world-countries')) return 'vendor-countries';
         }
       }
     }

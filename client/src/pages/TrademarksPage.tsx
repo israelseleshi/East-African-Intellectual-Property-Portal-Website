@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, CaretDown, Globe, Trash, CheckSquare, Square } from '@phosphor-icons/react'
-import ExcelJS from 'exceljs'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,10 +9,9 @@ import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Typography } from '@/components/ui/typography'
-import { trademarkService } from '@/utils/api'
+import { getMarkImageCandidates } from '@/utils/markImage'
 import { useToast } from '@/components/ui/toast'
 import { casesApi } from '@/api/cases'
-import { fillPdfForm } from '@/utils/pdfUtils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,34 +58,8 @@ function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: st
   const [candidateIndex, setCandidateIndex] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  const resolveMarkImageUrl = (rawPath?: string) => {
-    if (!rawPath) return ''
-    if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
-    
-    // Use window.location.origin for all environments - works whether served from same domain or different
-    const origin = window.location.origin
-    
-    // If path already starts with /, use it directly; otherwise add /
-    const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
-    
-    // For paths starting with /uploads, /api, or /forms-download, prepend origin
-    if (path.startsWith('/api/') || path.startsWith('/uploads/') || path.startsWith('/forms-download/')) {
-      return `${origin}${path}`
-    }
-    
-    // Fallback: treat as forms-download path
-    return `${origin}/api/forms-download/${path.replace(/^\//, '')}`
-  }
-
   const candidates = useMemo(() => {
-    const primary = resolveMarkImageUrl(markImage)
-    if (!primary) return []
-    const list = [primary]
-    if (!import.meta.env.PROD) {
-      const remote = primary.replace(/^http:\/\/localhost:\d+/i, 'https://eastafricanip.com').replace(/^http:\/\/127\.0\.0\.1:\d+/i, 'https://eastafricanip.com')
-      if (remote !== primary) list.push(remote)
-    }
-    return Array.from(new Set(list))
+    return getMarkImageCandidates(markImage)
   }, [markImage])
 
   useEffect(() => { setCandidateIndex(0); setFailed(false) }, [markImage, candidates.join('|')])
@@ -132,6 +104,9 @@ async function fetchImageForExcel(imageUrl: string): Promise<{ bytes: Uint8Array
       return null;
     }
     const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.toLowerCase().startsWith('image/')) {
+      return null;
+    }
     const buffer = await response.arrayBuffer()
     if (!buffer.byteLength) return null
     return {
@@ -151,6 +126,7 @@ export default function TrademarksPage() {
 
   const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_number?: string; filingDate?: string; filing_date?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string; registration_number?: string }>>([])
   const [loading, setLoading] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
   const [q, setQ] = useState('')
   const [jurisdiction, setJurisdiction] = useState<string | 'ALL'>('ALL')
   const [status, setStatus] = useState<string | 'ALL'>('ALL')
@@ -163,14 +139,26 @@ export default function TrademarksPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  useEffect(() => { fetchCases() }, [q, status, jurisdiction])
+  useEffect(() => { fetchCases() }, [q, status, jurisdiction, currentPage])
 
   const fetchCases = async () => {
     try {
       setLoading(true)
-      const data = await trademarkService.getCases({ q, status: status === 'ALL' ? undefined : status, jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction })
-      setCases(Array.isArray(data) ? data : [])
-    } catch { setCases([]) }
+      const response = await casesApi.listPage({
+        q,
+        page: currentPage,
+        pageSize,
+        sort: 'created_at_desc',
+        status: status === 'ALL' ? undefined : status,
+        jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
+        includeDeadlines: false
+      })
+      setCases(Array.isArray(response?.data) ? response.data : [])
+      setTotalCount(Number(response?.total || 0))
+    } catch {
+      setCases([])
+      setTotalCount(0)
+    }
     finally { setLoading(false) }
   }
 
@@ -210,18 +198,10 @@ export default function TrademarksPage() {
     }
   }
 
-  const filteredRows = useMemo(() => {
-    return cases.filter(c => {
-      const matchesQ = !q || (c.markName || c.mark_name || '').toLowerCase().includes(q.toLowerCase()) || (c.filingNumber || c.filing_number || '').toLowerCase().includes(q.toLowerCase()) || (c.client?.name || c.client_name || '').toLowerCase().includes(q.toLowerCase())
-      return matchesQ && (jurisdiction === 'ALL' || c.jurisdiction === jurisdiction) && (status === 'ALL' || c.status === status)
-    })
-  }, [cases, q, jurisdiction, status])
+  const filteredRows = useMemo(() => cases, [cases])
 
-  const totalPages = Math.ceil(filteredRows.length / pageSize)
-  const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return filteredRows.slice(start, start + pageSize)
-  }, [filteredRows, currentPage, pageSize])
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+  const paginatedRows = useMemo(() => filteredRows, [filteredRows])
 
   useEffect(() => { setCurrentPage(1) }, [q, jurisdiction, status])
 
@@ -268,6 +248,7 @@ export default function TrademarksPage() {
         chk_priority_submitted_later: !!caseData.chk_priority_submitted_later
       }
       
+      const { fillPdfForm } = await import('@/utils/pdfUtils')
       const pdfBytes = await fillPdfForm(pdfUrl, mergedData)
       const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
 
@@ -289,7 +270,19 @@ export default function TrademarksPage() {
   }
 
   const handleExportExcel = async () => {
-    if (!filteredRows.length) return
+    const exportResponse = await casesApi.listPage({
+      q,
+      page: 1,
+      pageSize: 1000,
+      sort: 'created_at_desc',
+      status: status === 'ALL' ? undefined : status,
+      jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
+      includeDeadlines: false
+    })
+    const exportRows = Array.isArray(exportResponse?.data) ? exportResponse.data : []
+    if (!exportRows.length) return
+
+    const ExcelJS = (await import('exceljs')).default
     
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Trademarks')
@@ -328,7 +321,7 @@ export default function TrademarksPage() {
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
     
     // Borders for cells
-    const borderStyle: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFD1D5DB' } }
+    const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
 
     // Color coding groups
     headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
@@ -345,23 +338,8 @@ export default function TrademarksPage() {
       headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
     }
 
-    // Helper function to resolve image URL (same as in MarkInfoThumbnail)
-    const resolveUrlForExcel = (rawPath?: string) => {
-      if (!rawPath) return ''
-      if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
-      
-      const origin = window.location.origin
-      const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
-      
-      if (path.startsWith('/api/') || path.startsWith('/uploads/') || path.startsWith('/forms-download/')) {
-        return `${origin}${path}`
-      }
-      
-      return `${origin}/api/forms-download/${path.replace(/^\//, '')}`
-    }
-
     // Add data with images
-    for (const c of filteredRows) {
+    for (const c of exportRows) {
       const row = worksheet.addRow({
         markImage: c.mark_image || c.markImage ? 'Image' : 'No Image',
         markName: markLabel(c),
@@ -392,15 +370,20 @@ export default function TrademarksPage() {
       // Fetch and embed image
       const rawImagePath = (c.mark_image || c.markImage || '').trim()
       if (rawImagePath) {
-        const imageUrl = resolveUrlForExcel(rawImagePath)
-        const imagePayload = await fetchImageForExcel(imageUrl)
-        
+        const candidates = getMarkImageCandidates(rawImagePath)
+        let imagePayload: { bytes: Uint8Array; extension: 'png' | 'jpeg' } | null = null
+
+        for (const candidate of candidates) {
+          imagePayload = await fetchImageForExcel(candidate)
+          if (imagePayload) break
+        }
+
         if (imagePayload) {
           const imageId = workbook.addImage({
             buffer: imagePayload.bytes as any,
             extension: imagePayload.extension,
           })
-          
+
           row.getCell(1).value = ''
           worksheet.addImage(imageId, {
             tl: { col: 0.1, row: row.number - 0.8 },
@@ -509,7 +492,7 @@ export default function TrademarksPage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <span className="text-sm text-muted-foreground w-full text-center sm:w-auto">{filteredRows.length} records</span>
+            <span className="text-sm text-muted-foreground w-full text-center sm:w-auto">{totalCount} records</span>
             <div className="flex items-center gap-1 border rounded-lg h-9 w-full sm:w-auto justify-center">
               <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')}><List size={18} /></Button>
               <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')}><SquaresFour size={18} /></Button>
@@ -522,7 +505,7 @@ export default function TrademarksPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}
         </div>
-      ) : filteredRows.length === 0 ? (
+      ) : totalCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center border rounded-xl">
           <MagnifyingGlass size={48} className="text-muted-foreground opacity-30 mb-4" />
           <Typography.h3a>No records found</Typography.h3a>
@@ -602,7 +585,9 @@ export default function TrademarksPage() {
           </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t px-4 py-3">
-              <span className="text-sm text-muted-foreground">Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredRows.length)} of {filteredRows.length}</span>
+              <span className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+              </span>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={16} /></Button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(page => (

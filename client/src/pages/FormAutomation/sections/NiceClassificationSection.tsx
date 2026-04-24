@@ -12,13 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface NiceClassificationSectionProps {
-  formData: EipaFormData;
-  handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
-  selectedClasses: number[];
-  onClassesChange: (classes: number[]) => void;
-}
-
 const sampleGoodsServicesData: Record<string, { data: Record<string, string>; niceClasses?: number[]; label: string }> = {
   sample1: {
     label: 'Business Services',
@@ -58,9 +51,18 @@ const sampleGoodsServicesData: Record<string, { data: Record<string, string>; ni
   },
 };
 
+interface NiceClassificationSectionProps {
+  formData: EipaFormData;
+  handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
+  selectedClasses: number[];
+  onClassesChange: (classes: number[]) => void;
+}
+
 export const NiceClassificationSection: React.FC<NiceClassificationSectionProps> = ({
   formData,
   handleInputChange,
+  setFormData,
   selectedClasses,
   onClassesChange,
 }) => {
@@ -68,10 +70,27 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
 
   const handleLoadSample = (sampleId: string) => {
     const sample = sampleGoodsServicesData[sampleId];
-    if (sample) {
-      setSelectedSample(sample.label);
+    if (sample && setFormData) {
+      setSelectedSample(sampleId);
+      setFormData(prev => {
+        const newData = { ...prev, ...sample.data };
+        Object.entries(sample.data).forEach(([key, value]) => {
+          const renewalKey = key.replace('goods_services_list_', 'renewal_goods_services_') as keyof EipaFormData;
+          (newData as any)[renewalKey] = value;
+        });
+        return newData;
+      });
+      if (sample.niceClasses) {
+        onClassesChange(sample.niceClasses);
+      }
+    } else if (sample) {
+      setSelectedSample(sampleId);
       Object.entries(sample.data).forEach(([key, value]) => {
         handleInputChange(key as keyof EipaFormData, value);
+        
+        // Mirror to renewal fields
+        const renewalKey = key.replace('goods_services_list_', 'renewal_goods_services_') as keyof EipaFormData;
+        handleInputChange(renewalKey, value);
       });
       if (sample.niceClasses) {
         onClassesChange(sample.niceClasses);
@@ -81,7 +100,7 @@ export const NiceClassificationSection: React.FC<NiceClassificationSectionProps>
 
   const quickLoadTrigger = (
     <Select
-      value={Object.keys(sampleGoodsServicesData).find(key => sampleGoodsServicesData[key].label === selectedSample) || ''}
+      value={selectedSample || ''}
       onValueChange={(value) => {
         handleLoadSample(value);
       }}

@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { authService } from '@/utils/api'
 import { toast } from 'sonner'
-import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { agentsApi, Agent } from '@/api/agents'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import {
@@ -228,11 +227,10 @@ export default function ProfilePage() {
       </header>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
+        <TabsList className="grid w-full grid-cols-3 max-w-[450px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -467,9 +465,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-6">
-          <ActivityHeatmap />
-        </TabsContent>
+
       </Tabs>
 
       <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>

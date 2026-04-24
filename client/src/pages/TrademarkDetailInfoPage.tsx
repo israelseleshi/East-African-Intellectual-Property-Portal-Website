@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CountrySelector } from '@/components/CountrySelector'
 import { trademarkService } from '@/utils/api'
+import { getMarkImageCandidates, resolveMarkImageUrl } from '@/utils/markImage'
 import { usePageTitleStore } from '@/store/pageTitleStore'
 import { toast } from 'sonner'
 import { fillPdfForm } from '@/utils/pdfUtils'
@@ -125,20 +126,6 @@ const STATUS_COLORS: Record<string, string> = {
   ABANDONED: 'bg-gray-700 text-white hover:bg-gray-800'
 }
 
-export const resolveMarkImageUrl = (rawPath?: string) => {
-  if (!rawPath) return ''
-  if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath
-  
-  const origin = window.location.origin
-  const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
-  
-  if (path.startsWith('/api/') || path.startsWith('/uploads/') || path.startsWith('/forms-download/')) {
-    return `${origin}${path}`
-  }
-  
-  return `${origin}/api/forms-download/${path.replace(/^\//, '')}`
-}
-
 function safeDate(value?: string) {
   if (!value) return '—'
   const d = new Date(value)
@@ -233,14 +220,7 @@ function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: st
   const [failed, setFailed] = useState(false)
 
   const candidates = useMemo(() => {
-    const primary = resolveMarkImageUrl(markImage)
-    if (!primary) return []
-    const list = [primary]
-    if (!import.meta.env.PROD) {
-      const remote = primary.replace(/^http:\/\/localhost:\d+/i, 'https://eastafricanip.com').replace(/^http:\/\/127\.0\.0\.1:\d+/i, 'https://eastafricanip.com')
-      if (remote !== primary) list.push(remote)
-    }
-    return Array.from(new Set(list))
+    return getMarkImageCandidates(markImage)
   }, [markImage])
 
   useEffect(() => { setCandidateIndex(0); setFailed(false) }, [markImage, candidates.join('|')])

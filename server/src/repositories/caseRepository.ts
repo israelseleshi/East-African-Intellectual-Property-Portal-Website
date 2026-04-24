@@ -9,6 +9,28 @@ export interface CaseSearchFilters {
   jurisdiction?: string;
 }
 
+export type CaseListSort =
+  | 'created_at_desc'
+  | 'created_at_asc'
+  | 'mark_name_asc'
+  | 'mark_name_desc'
+  | 'filing_date_desc'
+  | 'filing_date_asc';
+
+export interface CaseListOptions {
+  page?: number;
+  pageSize?: number;
+  sort?: CaseListSort;
+}
+
+export interface CaseListResult {
+  rows: CaseRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
 export interface DeadlineRow extends RowDataPacket {
   case_id: string;
   [key: string]: unknown;
@@ -59,11 +81,31 @@ const normalizeSearchFilters = (filters: CaseSearchFilters) => ({
   jurisdiction: typeof filters.jurisdiction === 'string' ? filters.jurisdiction.trim() : ''
 });
 
+const normalizeListOptions = (options?: CaseListOptions) => {
+  const normalizedPage = Number(options?.page ?? 1);
+  const normalizedPageSize = Number(options?.pageSize ?? 25);
+  const page = Number.isFinite(normalizedPage) ? Math.max(1, Math.floor(normalizedPage)) : 1;
+  const pageSize = Number.isFinite(normalizedPageSize) ? Math.min(200, Math.max(1, Math.floor(normalizedPageSize))) : 25;
+  const sort: CaseListSort = options?.sort ?? 'created_at_desc';
+  return { page, pageSize, sort };
+};
+
+const CASE_LIST_ORDER_BY: Record<CaseListSort, string> = {
+  created_at_desc: 'tc.created_at DESC',
+  created_at_asc: 'tc.created_at ASC',
+  mark_name_asc: 'tc.mark_name ASC',
+  mark_name_desc: 'tc.mark_name DESC',
+  filing_date_desc: 'tc.filing_date DESC',
+  filing_date_asc: 'tc.filing_date ASC'
+};
+
 export const caseRepository = {
-  async findCases(filters: CaseSearchFilters): Promise<CaseRow[]> {
+  async findCases(filters: CaseSearchFilters, options?: CaseListOptions): Promise<CaseListResult> {
     const normalized = normalizeSearchFilters(filters);
-    let sql = `
-      SELECT tc.*, c.name as client_name, c.type as client_type
+    const { page, pageSize, sort } = normalizeListOptions(options);
+    const offset = (page - 1) * pageSize;
+
+    let whereSql = `
       FROM trademark_cases tc
       JOIN clients c ON tc.client_id = c.id
       WHERE tc.deleted_at IS NULL AND c.deleted_at IS NULL
@@ -71,24 +113,59 @@ export const caseRepository = {
     const params: string[] = [];
 
     if (normalized.status && normalized.status !== 'ALL') {
-      sql += ' AND tc.status = ?';
+      whereSql += ' AND tc.status = ?';
       params.push(normalized.status);
     }
 
     if (normalized.jurisdiction && normalized.jurisdiction !== 'ALL') {
-      sql += ' AND tc.jurisdiction = ?';
+      whereSql += ' AND tc.jurisdiction = ?';
       params.push(normalized.jurisdiction);
     }
 
     if (normalized.q) {
       const like = `%${normalized.q}%`;
-      sql += ' AND (tc.mark_name LIKE ? OR tc.filing_number LIKE ? OR c.name LIKE ?)';
+      whereSql += ' AND (tc.mark_name LIKE ? OR tc.filing_number LIKE ? OR c.name LIKE ?)';
       params.push(like, like, like);
     }
 
-    sql += ' ORDER BY tc.created_at DESC';
-    const [rows] = await pool.execute(sql, params);
-    return rows as CaseRow[];
+    const [countRows] = await pool.execute(
+      `SELECT COUNT(*) AS total ${whereSql}`,
+      params
+    );
+    const total = Number((countRows as Array<RowDataPacket & { total: unknown }>)[0]?.total ?? 0) || 0;
+
+    let sql = `
+      SELECT
+        tc.id,
+        tc.client_id,
+        tc.jurisdiction,
+        tc.status,
+        tc.flow_stage,
+        tc.mark_name,
+        tc.mark_type,
+        tc.filing_number,
+        tc.filing_date,
+        tc.registration_dt,
+        tc.next_action_date,
+        tc.certificate_number,
+        tc.priority,
+        tc.color_indication,
+        tc.mark_image,
+        tc.created_at,
+        tc.updated_at,
+        c.name as client_name,
+        c.type as client_type
+      ${whereSql}
+    `;
+    sql += ` ORDER BY ${CASE_LIST_ORDER_BY[sort]} LIMIT ? OFFSET ?`;
+    const [rows] = await pool.execute(sql, [...params, String(pageSize), String(offset)]);
+    return {
+      rows: rows as CaseRow[],
+      total,
+      page,
+      pageSize,
+      hasMore: offset + (rows as CaseRow[]).length < total
+    };
   },
 
   async findDeadlinesByCaseIds(caseIds: string[]): Promise<DeadlineRow[]> {

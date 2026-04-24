@@ -14,6 +14,7 @@ import {
 interface DisclaimerSectionProps {
   formData: EipaFormData;
   handleInputChange: (field: keyof EipaFormData, value: string | boolean) => void;
+  setFormData?: React.Dispatch<React.SetStateAction<EipaFormData>>;
 }
 
 const sampleDisclaimerData: Record<string, { data: Record<string, string>; label: string }> = {
@@ -40,13 +41,19 @@ const sampleDisclaimerData: Record<string, { data: Record<string, string>; label
   },
 };
 
-export const DisclaimerSection: React.FC<DisclaimerSectionProps> = ({ formData, handleInputChange }) => {
+export const DisclaimerSection: React.FC<DisclaimerSectionProps> = ({ formData, handleInputChange, setFormData }) => {
   const [selectedSample, setSelectedSample] = useState<string>('');
 
   const handleLoadSample = (sampleId: string) => {
     const sample = sampleDisclaimerData[sampleId];
-    if (sample) {
-      setSelectedSample(sample.label);
+    if (sample && setFormData) {
+      setSelectedSample(sampleId);
+      setFormData(prev => ({
+        ...prev,
+        ...sample.data
+      }));
+    } else if (sample) {
+      setSelectedSample(sampleId);
       Object.entries(sample.data).forEach(([key, value]) => {
         handleInputChange(key as keyof EipaFormData, value);
       });
