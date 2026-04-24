@@ -85,7 +85,7 @@ const normalizeListOptions = (options?: CaseListOptions) => {
   const normalizedPage = Number(options?.page ?? 1);
   const normalizedPageSize = Number(options?.pageSize ?? 25);
   const page = Number.isFinite(normalizedPage) ? Math.max(1, Math.floor(normalizedPage)) : 1;
-  const pageSize = Number.isFinite(normalizedPageSize) ? Math.min(200, Math.max(1, Math.floor(normalizedPageSize))) : 25;
+  const pageSize = Number.isFinite(normalizedPageSize) ? Math.min(10000, Math.max(1, Math.floor(normalizedPageSize))) : 25;
   const sort: CaseListSort = options?.sort ?? 'created_at_desc';
   return { page, pageSize, sort };
 };

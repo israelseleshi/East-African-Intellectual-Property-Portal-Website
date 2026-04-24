@@ -20,8 +20,8 @@ const caseListQuerySchema = z.object({
   status: z.string().optional(),
   jurisdiction: z.string().optional(),
   page: z.coerce.number().int().positive().optional(),
-  pageSize: z.coerce.number().int().positive().max(200).optional(),
-  limit: z.coerce.number().int().positive().max(200).optional(),
+  pageSize: z.coerce.number().int().positive().max(10000).optional(),
+  limit: z.coerce.number().int().positive().max(10000).optional(),
   sort: z.enum([
     'created_at_desc',
     'created_at_asc',
