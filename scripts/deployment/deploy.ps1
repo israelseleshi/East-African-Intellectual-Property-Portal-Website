@@ -319,8 +319,11 @@ try {
     
     $outZip = Join-Path $deployTmp "frontend.zip"
     if (Test-Path $outZip) { Remove-Item $outZip -Force }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($frontendPkg, $outZip)
+    
+    # Use native tar.exe for UNIX-compatible zip files (forward slash separator)
+    Push-Location $frontendPkg
+    tar.exe -a -c -f $outZip *
+    Pop-Location
   }
 
   if ($backendChanged) {
@@ -343,8 +346,11 @@ try {
 
     $outZipBackend = Join-Path $deployTmp "backend.zip"
     if (Test-Path $outZipBackend) { Remove-Item $outZipBackend -Force }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($backendPkg, $outZipBackend)
+
+    # Use native tar.exe for UNIX-compatible zip files
+    Push-Location $backendPkg
+    tar.exe -a -c -f $outZipBackend *
+    Pop-Location
   }
 
   Write-Host "Uploading artifacts..."
