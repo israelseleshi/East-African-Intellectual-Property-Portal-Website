@@ -322,7 +322,7 @@ try {
     
     # Use native tar.exe for UNIX-compatible zip files (forward slash separator)
     Push-Location $frontendPkg
-    tar.exe -a -c -f $outZip *
+    tar.exe -a -c -f "$outZip" .
     Pop-Location
   }
 
@@ -349,7 +349,7 @@ try {
 
     # Use native tar.exe for UNIX-compatible zip files
     Push-Location $backendPkg
-    tar.exe -a -c -f $outZipBackend *
+    tar.exe -a -c -f "$outZipBackend" .
     Pop-Location
   }
 
