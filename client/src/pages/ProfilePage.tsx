@@ -382,15 +382,45 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-[550px]">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="agents">Agents</TabsTrigger>
-          {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
-        </TabsList>
+      <div className="flex gap-6">
+        {/* Vertical Tabs Sidebar */}
+        <div className="w-48 flex-shrink-0">
+          <Tabs defaultValue="profile" className="flex gap-6">
+            <TabsList className="flex flex-col w-full h-auto bg-transparent gap-1">
+              <TabsTrigger 
+                value="profile" 
+                className="justify-start px-4 py-3 data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+              >
+                <User className="mr-2 size-4" />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger 
+                value="security" 
+                className="justify-start px-4 py-3 data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+              >
+                <Shield className="mr-2 size-4" />
+                Security
+              </TabsTrigger>
+              <TabsTrigger 
+                value="agents" 
+                className="justify-start px-4 py-3 data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+              >
+                <Briefcase className="mr-2 size-4" />
+                Agents
+              </TabsTrigger>
+              {isUserSuperAdmin && (
+                <TabsTrigger 
+                  value="pending" 
+                  className="justify-start px-4 py-3 data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg"
+                >
+                  <UserPlus className="mr-2 size-4" />
+                  Pending Admins
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-        <TabsContent value="profile" className="space-y-6">
+            <div className="flex-1">
+              <TabsContent value="profile" className="space-y-6 mt-0">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1">
@@ -496,7 +526,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
+            <TabsContent value="security" className="space-y-6 mt-0">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -593,7 +623,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="agents" className="space-y-6">
+            <TabsContent value="agents" className="space-y-6 mt-0">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1">
@@ -665,7 +695,7 @@ export default function ProfilePage() {
         </TabsContent>
 
         {/* Pending Admins Tab */}
-        <TabsContent value="pending" className="space-y-6">
+        <TabsContent value="pending" className="space-y-6 mt-0">
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -793,8 +823,9 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-      </Tabs>
+            </div>
+          </Tabs>
+        </div>
 
       <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1042,6 +1073,7 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }
