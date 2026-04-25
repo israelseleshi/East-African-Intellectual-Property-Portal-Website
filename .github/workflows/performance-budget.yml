@@ -26,4 +26,4 @@ jobs:
         run: npm run build --prefix client
 
       - name: Enforce chunk budget
-        run: npm run perf:budget --prefix client
+        run: npm run perf:budget:fail-test --prefix client

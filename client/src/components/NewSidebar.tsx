@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { useAuthStore, canAccessFinance } from "@/store/authStore"
+import { useAuthStore, canAccessFinance, isSuperAdmin } from "@/store/authStore"
 import { useSidebar } from "@/components/ui/sidebar"
 import {
   Sidebar,
@@ -12,6 +12,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/sonner"
 import {
   LayoutDashboard,
   Archive,
@@ -22,11 +23,22 @@ import {
   Menu,
   Trash2,
   User,
-  LogOut
+  LogOut,
+  UserPlus
 } from "lucide-react"
 import { useSettingsStore, SIDEBAR_FONT_SIZES } from "@/store/settingsStore"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-const navItems: Array<{ label: string; to: string; icon: React.ForwardRefExoticComponent<Omit<import("lucide-react").LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>; requiresFinance?: boolean }> = [
+const navItems: Array<{ label: string; to: string; icon: React.ForwardRefExoticComponent<Omit<import("lucide-react").LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>; requiresFinance?: boolean; requiresSuperAdmin?: boolean }> = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard },
   { label: 'Trademarks', to: '/trademarks', icon: Archive },
   { label: 'Application Form', to: '/eipa-forms/application-form', icon: Shield },
@@ -44,6 +56,7 @@ function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuthStore()
   const isCollapsed = state === "collapsed"
   const sidebarFontSize = useSettingsStore((state) => state.sidebarFontSize)
+  const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false)
 
   const fontSizeValue = SIDEBAR_FONT_SIZES.find(f => f.value === sidebarFontSize)?.size || '12px'
 
@@ -65,7 +78,11 @@ function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   const filteredNav = user 
-    ? navItems.filter((item) => !item.requiresFinance || canAccessFinance(user))
+    ? navItems.filter((item) => {
+        if (item.requiresFinance && !canAccessFinance(user)) return false
+        if (item.requiresSuperAdmin && !isSuperAdmin(user)) return false
+        return true
+      })
     : navItems
 
   return (
@@ -142,10 +159,7 @@ function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           {/* Logout Button */}
           <button 
-            onClick={() => {
-              logout()
-              handleLinkClick()
-            }}
+            onClick={() => setLogoutDialogOpen(true)}
             className={`flex items-center gap-3 px-4 py-3 transition-colors bg-red-600 text-white hover:bg-red-700 ${isCollapsed ? 'justify-center' : 'justify-start'}`}
           >
             <LogOut className="h-5 w-5" />
@@ -153,6 +167,31 @@ function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </button>
         </nav>
       </SidebarFooter>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                logout()
+                toast.error("You have been logged out", { style: { background: '#dc2626', color: '#fff' }, duration: 3000 })
+                handleLinkClick()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   )
 }

@@ -180,6 +180,59 @@ export default function ProfilePage() {
     }
   }
 
+  // Pending Admins handlers
+  const fetchPendingAdmins = async () => {
+    if (!isUserSuperAdmin) return
+    try {
+      setPendingLoading(true)
+      const response = await authApi.listPendingAdmins()
+      setPendingAdmins(response.admins || [])
+    } catch (error) {
+      console.error("Failed to load pending admins:", error)
+    } finally {
+      setPendingLoading(false)
+    }
+  }
+
+  const handleApproveAdmin = async (adminId: string) => {
+    try {
+      setPendingProcessing(adminId)
+      await authApi.approveAdmin(adminId)
+      toast.success("Administrator approved successfully")
+      setPendingAdmins(pendingAdmins.filter(a => a.id !== adminId))
+    } catch (error) {
+      toast.error("Failed to approve administrator")
+    } finally {
+      setPendingProcessing(null)
+    }
+  }
+
+  const handleRejectAdmin = async (adminId: string) => {
+    try {
+      setPendingProcessing(adminId)
+      await authApi.rejectAdmin(adminId)
+      toast.success("Administrator rejected")
+      setPendingAdmins(pendingAdmins.filter(a => a.id !== adminId))
+    } catch (error) {
+      toast.error("Failed to reject administrator")
+    } finally {
+      setPendingProcessing(null)
+    }
+  }
+
+  useEffect(() => {
+    if (isUserSuperAdmin) {
+      fetchPendingAdmins()
+    }
+  }, [isUserSuperAdmin])
+
+  const filteredPendingAdmins = pendingAdmins.filter(admin => 
+    !pendingSearch || 
+    admin.full_name?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    admin.email?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    admin.firm_name?.toLowerCase().includes(pendingSearch.toLowerCase())
+  )
+
   const handleDeleteAgent = async (id: string) => {
     if (!confirm('Are you sure you want to delete this agent?')) return
     try {
@@ -263,59 +316,6 @@ export default function ProfilePage() {
     navigator.clipboard.writeText(backupCodes.join('\n'))
     toast.success('Copied', { description: 'Backup codes copied to clipboard' })
   }
-
-  // Pending Admins handlers
-  const fetchPendingAdmins = async () => {
-    if (!isUserSuperAdmin) return
-    try {
-      setPendingLoading(true)
-      const response = await authApi.listPendingAdmins()
-      setPendingAdmins(response.admins || [])
-    } catch (error) {
-      console.error("Failed to load pending admins:", error)
-    } finally {
-      setPendingLoading(false)
-    }
-  }
-
-  const handleApproveAdmin = async (adminId: string) => {
-    try {
-      setPendingProcessing(adminId)
-      await authApi.approveAdmin(adminId)
-      toast.success("Administrator approved successfully")
-      setPendingAdmins(pendingAdmins.filter(a => a.id !== adminId))
-    } catch (error) {
-      toast.error("Failed to approve administrator")
-    } finally {
-      setPendingProcessing(null)
-    }
-  }
-
-  const handleRejectAdmin = async (adminId: string) => {
-    try {
-      setPendingProcessing(adminId)
-      await authApi.rejectAdmin(adminId)
-      toast.success("Administrator rejected")
-      setPendingAdmins(pendingAdmins.filter(a => a.id !== adminId))
-    } catch (error) {
-      toast.error("Failed to reject administrator")
-    } finally {
-      setPendingProcessing(null)
-    }
-  }
-
-  useEffect(() => {
-    if (isUserSuperAdmin) {
-      fetchPendingAdmins()
-    }
-  }, [isUserSuperAdmin])
-
-  const filteredPendingAdmins = pendingAdmins.filter(admin => 
-    !pendingSearch || 
-    admin.full_name?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    admin.email?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    admin.firm_name?.toLowerCase().includes(pendingSearch.toLowerCase())
-  )
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
