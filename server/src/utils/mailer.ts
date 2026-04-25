@@ -190,3 +190,106 @@ export const sendPasswordResetOtp = async (email: string, name: string, otp: str
     return false;
   }
 };
+
+export const sendApprovalEmail = async (email: string, name: string) => {
+  const mailOptions = {
+    from: `"EAIP TPMS" <${process.env.MAIL_USER}>`,
+    to: email,
+    subject: 'Your EAIP TPMS Account Has Been Approved',
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff;">
+        <div style="margin-bottom: 32px;">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td width="100" style="vertical-align: middle;">
+                <img src="https://eastafricanip.com/eaip-logo.png" alt="EAIP Logo" style="width: 100px; height: auto; display: block;">
+              </td>
+              <td style="vertical-align: middle; padding-left: 20px; text-align: left;">
+                <h1 style="color: #0056b3; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.01em;">EAIP TPMS</h1>
+                <p style="color: #64748b; font-size: 15px; margin-top: 4px; font-weight: 400;">Legal Practice Management System</p>
+              </td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color: #f8fafc; padding: 40px; border-radius: 12px; border: 1px solid #edf2f7;">
+          <h2 style="color: #16a34a; margin-top: 0; font-size: 20px; font-weight: 600; margin-bottom: 16px;">Account Approved! ✓</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">Hello ${name},</p>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">Great news! Your administrator account has been approved. You now have full access to the East African IP Legal Practice Management System.</p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="https://eastafricanip.com/login" style="background-color: #16a34a; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">Login to Dashboard</a>
+          </div>
+        </div>
+        
+        <div style="margin-top: 40px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 24px;">
+          <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 8px;">Authorized Legal Access Only</p>
+          <p style="color: #cbd5e1; font-size: 11px; margin: 0;">&copy; 2026 East African IP. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Approval email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending approval email:', error);
+    return false;
+  }
+};
+
+export const sendRejectionEmail = async (email: string, name: string, remainingAttempts: number) => {
+  const mailOptions = {
+    from: `"EAIP TPMS" <${process.env.MAIL_USER}>`,
+    to: email,
+    subject: 'Your EAIP TPMS Account Application Update',
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff;">
+        <div style="margin-bottom: 32px;">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td width="100" style="vertical-align: middle;">
+                <img src="https://eastafricanip.com/eaip-logo.png" alt="EAIP Logo" style="width: 100px; height: auto; display: block;">
+              </td>
+              <td style="vertical-align: middle; padding-left: 20px; text-align: left;">
+                <h1 style="color: #0056b3; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.01em;">EAIP TPMS</h1>
+                <p style="color: #64748b; font-size: 15px; margin-top: 4px; font-weight: 400;">Legal Practice Management System</p>
+              </td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color: #f8fafc; padding: 40px; border-radius: 12px; border: 1px solid #edf2f7;">
+          <h2 style="color: #dc2626; margin-top: 0; font-size: 20px; font-weight: 600; margin-bottom: 16px;">Application Not Approved</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">Hello ${name},</p>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">Your administrator account application has been reviewed and was not approved at this time. You may submit a new application in the future.</p>
+          ${remainingAttempts > 0 ? `
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">You have <strong>${remainingAttempts}</strong> re-application attempt(s) remaining.</p>
+          ` : `
+          <p style="color: #dc2626; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">You have exhausted all re-application attempts.</p>
+          `}
+          
+          <div style="background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-top: 24px;">
+            <p style="color: #475569; font-size: 14px; margin-top: 0;">If you believe this is an error or would like more information, please contact the system administrator.</p>
+          </div>
+        </div>
+        
+        <div style="margin-top: 40px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 24px;">
+          <p style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 8px;">Authorized Legal Access Only</p>
+          <p style="color: #cbd5e1; font-size: 11px; margin: 0;">&copy; 2026 East African IP. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Rejection email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending rejection email:', error);
+    return false;
+  }
+};

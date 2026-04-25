@@ -4,6 +4,16 @@ import { useAuthStore } from '../store/authStore'
 import { Menu } from 'lucide-react'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useState, useEffect } from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type Props = {
   title: string
@@ -21,6 +31,7 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
   const hint = useMemo(() => (navigator.platform.toLowerCase().includes('mac') ? 'Cmd' : 'Ctrl'), [])
   const { user, logout } = useAuthStore()
   const { toggleSidebar } = useSidebar()
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--eai-border)] bg-[var(--eai-bg)]/70 backdrop-blur-md">
@@ -95,7 +106,7 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
             </div>
 
             <button
-              onClick={logout}
+              onClick={() => setLogoutDialogOpen(true)}
               className="flex h-9 w-9 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] hover:bg-red-50 hover:text-red-600 transition-colors shadow-sm"
               title="Logout"
             >
@@ -104,6 +115,27 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={logout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

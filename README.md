@@ -24,6 +24,7 @@ A comprehensive trademark portfolio management system for East African intellect
 - [Trash & Soft Delete](#trash--soft-delete)
 - [Dashboard & Analytics](#dashboard--analytics)
 - [Fee Schedules](#fee-schedules)
+- [Admin Approval Workflow](#admin-approval-workflow)
 - [Development](#development)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
@@ -51,6 +52,7 @@ The East African Intellectual Property Trademark Management System (EAIP TPMS) i
 
 #### 1. Authentication & Authorization
 - **User Registration** with email verification via OTP
+- **Admin Approval Workflow** - Admin accounts require SUPER_ADMIN approval before login
 - **Secure Login** with JWT tokens
 - **Role-Based Access Control** (Super Admin, Admin, User)
 - **Password Reset** via OTP-based verification
@@ -1024,6 +1026,110 @@ GET /fees/calculate/ET/FILED?extraClasses=2
   currency: 'USD'
 }
 ```
+
+---
+
+## Admin Approval Workflow
+
+### Overview
+
+The Admin Approval Workflow provides a secure process for managing administrator access to the system. New ADMIN accounts must be approved by a SUPER_ADMIN before they can log in.
+
+### Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ADMIN REGISTRATION FLOW                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. User registers as ADMIN                                           │
+│     POST /auth/register { role: 'ADMIN', ... }                        │
+│                                                                         │
+│     → is_approved = 0 (pending)                                        │
+│     → is_verified = 0 (not verified)                                   │
+│     → rejection_count = 0                                              │
+│                                                                         │
+│  2. User verifies email (OTP)                                         │
+│     POST /auth/verify-otp { email, otp }                               │
+│                                                                         │
+│     → is_verified = 1                                                  │
+│     → Login blocked (pending approval)                                  │
+│                                                                         │
+│  3. User attempts login                                                │
+│     POST /auth/login { email, password }                                │
+│                                                                         │
+│     → Returns 403: "ACCOUNT_PENDING_APPROVAL"                         │
+│                                                                         │
+│  4. SUPER_ADMIN reviews pending admin                                   │
+│     GET /auth/pending                                                  │
+│                                                                         │
+│  5. SUPER_ADMIN approves                                               │
+│     PATCH /auth/approve/:userId                                        │
+│                                                                         │
+│     → is_approved = 1                                                  │
+│     → Approval email sent to admin                                      │
+│                                                                         │
+│  6. Admin can now login                                               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### SUPER_ADMIN Registration (Automatic Approval)
+
+When registering with `role: 'SUPER_ADMIN'`:
+- Account is automatically approved (`is_approved = 1`)
+- Can login immediately after email verification
+
+### Rejection Flow
+
+If SUPER_ADMIN rejects an admin:
+- `rejection_count` increments
+- Admin can re-register up to 3 times
+- After 3 rejections, account is deactivated (`is_active = 0`)
+- Rejection email sent with remaining attempts info
+
+### Database Schema Changes
+
+```sql
+-- Add approval columns to users table
+ALTER TABLE users 
+ADD COLUMN is_approved BOOLEAN DEFAULT 0 AFTER is_verified,
+ADD COLUMN rejection_count INT DEFAULT 0 AFTER is_approved;
+
+-- Update existing SUPER_ADMINs to be auto-approved
+UPDATE users SET is_approved = 1 WHERE role = 'SUPER_ADMIN';
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| GET | `/auth/pending` | List pending admins | SUPER_ADMIN |
+| PATCH | `/auth/approve/:userId` | Approve admin | SUPER_ADMIN |
+| PATCH | `/auth/reject/:userId` | Reject admin | SUPER_ADMIN |
+
+### Login Error Codes
+
+| Code | Description |
+|------|-------------|
+| `ACCOUNT_PENDING_APPROVAL` | Admin verified but not approved |
+| `ACCOUNT_REJECTED` | Admin rejected (includes rejection_count in details) |
+| `ACCOUNT_NOT_VERIFIED` | Email not verified |
+
+### Frontend Pages
+
+- **Pending Admins Page**: `/pending-admins` (accessible to SUPER_ADMIN only)
+  - Lists all pending admin requests
+  - Search functionality
+  - Approve/Reject buttons
+  - Shows firm name, email, and registration date
+
+### Email Notifications
+
+| Event | Recipient | Template |
+|-------|-----------|----------|
+| Admin Approved | Admin | Welcome + approval confirmation |
+| Admin Rejected | Admin | Rejection notice + remaining attempts |
 
 ---
 

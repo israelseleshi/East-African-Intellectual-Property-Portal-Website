@@ -13,6 +13,17 @@ import { Separator } from '@/components/ui/separator'
 import { useSettingsStore, TopBarDesign } from '@/store/settingsStore'
 import { SettingsPanel } from './SettingsPanel'
 import { motion } from 'framer-motion'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useState } from 'react'
 
 type TopBarProps = {
   title: string
@@ -28,6 +39,7 @@ export default function TopBar({ title, onOpenCommand, children }: TopBarProps) 
 function CenteredTopBar({ title, onOpenCommand }: TopBarProps) {
   const { logout, user } = useAuthStore()
   const { toggleSidebar } = useSidebar()
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   const userInitial = user?.full_name?.charAt(0) || 'U'
   const roleLabel = user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'
@@ -63,7 +75,7 @@ function CenteredTopBar({ title, onOpenCommand }: TopBarProps) {
           <Button
             variant="destructive"
             size="sm"
-            onClick={logout}
+            onClick={() => setLogoutDialogOpen(true)}
             className="h-9 gap-2 px-4 rounded-none font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
           >
             <LogOut className="h-4 w-4" />
@@ -71,6 +83,27 @@ function CenteredTopBar({ title, onOpenCommand }: TopBarProps) {
           </Button>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out of your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={logout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

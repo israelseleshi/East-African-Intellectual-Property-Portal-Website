@@ -348,6 +348,7 @@ export default function TrademarksPage() {
       const ExcelJS = (await import('exceljs')).default
       
       const workbook = new ExcelJS.Workbook()
+      ;(workbook.properties as any).defaultFont = 'Times New Roman'
       const worksheet = workbook.addWorksheet('Trademarks')
 
       // Define all detail columns

@@ -25,6 +25,7 @@ const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'))
 const FormInspectorPage = lazy(() => import('../pages/FormInspectorPage'))
 const TrashPage = lazy(() => import('../pages/TrashPage'))
 const ProfilePage = lazy(() => import('../pages/ProfilePage'))
+const PendingAdminsPage = lazy(() => import('../pages/PendingAdminsPage'))
 
 const withRouteSuspense = (node: ReactNode) => (
   <Suspense fallback={null}>
@@ -138,7 +139,8 @@ export const router = createBrowserRouter([
           ]
         },
           { path: 'trash', element: withRouteSuspense(<TrashPage />) },
-          { path: 'profile', element: withRouteSuspense(<ProfilePage />) }
+          { path: 'profile', element: withRouteSuspense(<ProfilePage />) },
+          { path: 'pending-admins', element: withRouteSuspense(<PendingAdminsPage />) }
         ]
       }
     ]

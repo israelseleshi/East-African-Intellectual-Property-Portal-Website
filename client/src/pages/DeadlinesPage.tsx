@@ -8,6 +8,7 @@ import {
   WarningCircle,
   CheckCircle,
   List,
+  DownloadSimple,
 } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
@@ -76,6 +77,7 @@ export default function DeadlinesPage() {
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newMonth = new Date(currentMonth)
@@ -139,6 +141,78 @@ export default function DeadlinesPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const stats = { total: filteredDeadlines.length, overdue: filteredDeadlines.filter(d => getDaysRemaining(d.due_date) < 0).length, upcoming: filteredDeadlines.filter(d => { const days = getDaysRemaining(d.due_date); return days >= 0 && days <= 30; }).length, today: filteredDeadlines.filter(d => { const today = new Date().toISOString().split('T')[0]; return d.due_date === today; }).length }
 
+  const handleExportExcel = async () => {
+    if (filteredDeadlines.length === 0) return
+    setIsExporting(true)
+    try {
+      const ExcelJS = (await import('exceljs')).default
+      const workbook = new ExcelJS.Workbook()
+      ;(workbook.properties as any).defaultFont = 'Times New Roman'
+      const worksheet = workbook.addWorksheet('Deadlines')
+
+      const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
+
+      worksheet.columns = [
+        { header: 'Trademark', key: 'mark', width: 30 },
+        { header: 'Deadline Type', key: 'type', width: 20 },
+        { header: 'Due Date', key: 'dueDate', width: 15 },
+        { header: 'Days Remaining', key: 'daysRemaining', width: 15 },
+        { header: 'Jurisdiction', key: 'jurisdiction', width: 15 },
+        { header: 'Client', key: 'client', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Priority', key: 'priority', width: 15 },
+      ]
+
+      const headerRow = worksheet.getRow(1)
+      headerRow.height = 25
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
+      for (let i = 1; i <= 8; i++) {
+        headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+        headerRow.getCell(i).border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+      }
+
+      filteredDeadlines.forEach(d => {
+        const daysLeft = getDaysRemaining(d.due_date)
+        const row = worksheet.addRow({
+          mark: d.mark || '—',
+          type: DEADLINE_TYPE_LABELS[d.type || 'GENERIC'] || d.type || 'Other',
+          dueDate: d.due_date ? new Date(d.due_date).toISOString().split('T')[0] : '—',
+          daysRemaining: daysLeft < 0 ? `Overdue (${Math.abs(daysLeft)})` : daysLeft === 0 ? 'Today' : daysLeft,
+          jurisdiction: JURISDICTION_NAMES[d.jurisdiction || 'ALL'] || d.jurisdiction || '—',
+          client: d.client || '—',
+          status: d.status || '—',
+          priority: d.priority || '—'
+        })
+
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
+          cell.alignment = { vertical: 'middle', horizontal: 'left' }
+
+          if (Number(cell.row) === 1) return
+          if (daysLeft < 0) {
+            cell.font = { color: { argb: 'FFDC2626' } }
+          } else if (daysLeft <= 7) {
+            cell.font = { color: { argb: 'FFD97706' } }
+          }
+        })
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `deadlines_export_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error('Export error:', err)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="w-full p-4 md:p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
@@ -161,6 +235,10 @@ export default function DeadlinesPage() {
           <Typography.h1a>Statutory Deadlines</Typography.h1a>
           <Typography.muted>Critical tracking for oppositions, renewals, and responses.</Typography.muted>
         </div>
+        <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white">
+          <DownloadSimple size={18} className="mr-1" />
+          <span>Export Excel</span>
+        </Button>
       </header>
 
       <div className="mx-4 md:mx-8 pb-8">

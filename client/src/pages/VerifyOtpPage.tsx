@@ -159,7 +159,20 @@ export default function VerifyOtpPage() {
       const response = await authApi.verifyOtp({ email, otp: otpValue })
       setSignupEmail("")
       login(response.user)
-      toast.success("Account verified successfully!")
+      
+      // Show different message based on role
+      const userRole = response.user?.role
+      if (userRole === 'SUPER_ADMIN') {
+        toast.success("Welcome! Your account is fully activated.", {
+          description: "You now have full access to the system.",
+          duration: 5_000,
+        })
+      } else {
+        toast.success("Email verified successfully!", {
+          description: "Your account is now awaiting approval from a Super Administrator before you can login.",
+          duration: 8_000,
+        })
+      }
       navigate("/")
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }

@@ -620,6 +620,7 @@ export default function BillingPage() {
     const ExcelJS = (await import('exceljs')).default
     
     const workbook = new ExcelJS.Workbook()
+    ;(workbook.properties as any).defaultFont = 'Times New Roman'
     const worksheet = workbook.addWorksheet('Invoices')
 
     // Professional borders and fonts
