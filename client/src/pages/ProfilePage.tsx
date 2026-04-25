@@ -5,9 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Typography } from '@/components/ui/typography'
-import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase, Key, Smartphone, AlertTriangle } from 'lucide-react'
+import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase, Key, Smartphone, AlertTriangle, UserPlus, Check, X, Search, Clock, Building } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { authService } from '@/utils/api'
 import { toast } from 'sonner'
 import { agentsApi, Agent } from '@/api/agents'
@@ -67,6 +68,13 @@ export default function ProfilePage() {
   const [showBackupCodes, setShowBackupCodes] = useState(false)
   const [disableDialogOpen, setDisableDialogOpen] = useState(false)
   const [disableCode, setDisableCode] = useState('')
+
+  // Pending Admins state
+  const [pendingAdmins, setPendingAdmins] = useState<any[]>([])
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const [pendingProcessing, setPendingProcessing] = useState<string | null>(null)
+  const [pendingSearch, setPendingSearch] = useState("")
+  const isUserSuperAdmin = user?.role === 'SUPER_ADMIN'
 
   useEffect(() => {
     if (user) {
@@ -256,6 +264,59 @@ export default function ProfilePage() {
     toast.success('Copied', { description: 'Backup codes copied to clipboard' })
   }
 
+  // Pending Admins handlers
+  const fetchPendingAdmins = async () => {
+    if (!isUserSuperAdmin) return
+    try {
+      setPendingLoading(true)
+      const response = await authApi.listPendingAdmins()
+      setPendingAdmins(response.admins || [])
+    } catch (error) {
+      console.error("Failed to load pending admins:", error)
+    } finally {
+      setPendingLoading(false)
+    }
+  }
+
+  const handleApproveAdmin = async (adminId: string) => {
+    try {
+      setPendingProcessing(adminId)
+      await authApi.approveAdmin(adminId)
+      toast.success("Administrator approved successfully")
+      setPendingAdmins(pendingAdmins.filter(a => a.id !== adminId))
+    } catch (error) {
+      toast.error("Failed to approve administrator")
+    } finally {
+      setPendingProcessing(null)
+    }
+  }
+
+  const handleRejectAdmin = async (adminId: string) => {
+    try {
+      setPendingProcessing(adminId)
+      await authApi.rejectAdmin(adminId)
+      toast.success("Administrator rejected")
+      setPendingAdmins(pendingAdmins.filter(a => a.id !== adminId))
+    } catch (error) {
+      toast.error("Failed to reject administrator")
+    } finally {
+      setPendingProcessing(null)
+    }
+  }
+
+  useEffect(() => {
+    if (isUserSuperAdmin) {
+      fetchPendingAdmins()
+    }
+  }, [isUserSuperAdmin])
+
+  const filteredPendingAdmins = pendingAdmins.filter(admin => 
+    !pendingSearch || 
+    admin.full_name?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    admin.email?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+    admin.firm_name?.toLowerCase().includes(pendingSearch.toLowerCase())
+  )
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }))
   }
@@ -322,10 +383,11 @@ export default function ProfilePage() {
       </header>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-[450px]">
+        <TabsList className="grid w-full grid-cols-4 max-w-[550px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
+          {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -724,6 +786,136 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pending Admins Tab */}
+      <TabsContent value="pending" className="space-y-6">
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="size-5" />
+                  Pending Administrators
+                </CardTitle>
+                <CardDescription>Review and approve new administrator accounts.</CardDescription>
+              </div>
+              <div className="relative flex-1 md:w-[250px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input 
+                  placeholder="Search administrators..." 
+                  className="pl-9 bg-muted/50"
+                  value={pendingSearch}
+                  onChange={(e) => setPendingSearch(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {pendingLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-20 w-full" />
+                ))}
+              </div>
+            ) : filteredPendingAdmins.length === 0 ? (
+              <div className="text-center py-12">
+                <UserPlus size={48} className="mx-auto text-muted-foreground mb-4" />
+                <Typography.h3>No Pending Administrators</Typography.h3>
+                <Typography.muted>
+                  {pendingSearch ? "No administrators match your search." : "All administrator accounts have been reviewed."}
+                </Typography.muted>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredPendingAdmins.map((admin) => (
+                  <div
+                    key={admin.id}
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background rounded-lg border"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-primary font-semibold">
+                            {admin.full_name?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-semibold">{admin.full_name}</div>
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Mail size={12} />
+                            {admin.email}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground ml-13">
+                        {admin.firm_name && (
+                          <div className="flex items-center gap-2">
+                            <Building size={12} />
+                            {admin.firm_name}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Clock size={12} />
+                          Applied {new Date(admin.created_at).toLocaleDateString()}
+                        </div>
+                        {admin.rejection_count > 0 && (
+                          <div className="flex items-center gap-1 text-amber-600">
+                            <AlertTriangle size={12} />
+                            <span className="text-xs font-medium">
+                              Rejected {admin.rejection_count}/3 times
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {admin.rejection_count >= 3 ? (
+                        <Badge variant="destructive" className="text-xs">
+                          Permanently Rejected
+                        </Badge>
+                      ) : admin.is_approved === 1 ? (
+                        <Badge className="bg-green-600 text-xs">
+                          Approved
+                        </Badge>
+                      ) : admin.rejection_count > 0 ? (
+                        <Badge variant="destructive" className="text-xs">
+                          Rejected ({admin.rejection_count})
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          Pending
+                        </Badge>
+                      )}
+                      {admin.rejection_count < 3 && (
+                        <>
+                          <Button
+                            onClick={() => handleApproveAdmin(admin.id)}
+                            disabled={pendingProcessing === admin.id}
+                            className="bg-green-600 hover:bg-green-700"
+                            size="sm"
+                          >
+                            <Check size={16} className="mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            onClick={() => handleRejectAdmin(admin.id)}
+                            disabled={pendingProcessing === admin.id}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <X size={16} className="mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
       {/* 2FA Setup Dialog */}
       <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
