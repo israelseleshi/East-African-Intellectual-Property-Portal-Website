@@ -61,3 +61,13 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         next();
     });
 };
+
+export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (req.user?.role !== 'SUPER_ADMIN') {
+        return sendApiError(req, res, 403, {
+            code: 'FORBIDDEN',
+            message: 'Access denied. Super admin access required.'
+        });
+    }
+    next();
+};

@@ -12,6 +12,9 @@ const poolConfig: any = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: parseInt(process.env.DB_PORT || '3306'),
+  connectTimeout: 30000,
+  // Handle connection issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 };
 
 // Only use connection string if explicit variables are missing or if DATABASE_URL is specifically provided

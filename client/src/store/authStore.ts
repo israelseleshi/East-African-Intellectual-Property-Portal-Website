@@ -10,6 +10,10 @@ interface User {
   role: Role;
   phone?: string;
   firm_name?: string;
+  is_verified?: boolean;
+  is_approved?: boolean;
+  rejection_count?: number;
+  totp_enabled?: boolean;
 }
 
 interface AuthState {

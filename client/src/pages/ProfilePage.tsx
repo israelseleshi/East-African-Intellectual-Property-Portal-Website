@@ -5,13 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Typography } from '@/components/ui/typography'
-import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase } from 'lucide-react'
+import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase, Key, Smartphone, AlertTriangle } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { authService } from '@/utils/api'
 import { toast } from 'sonner'
 import { agentsApi, Agent } from '@/api/agents'
+import { authApi } from '@/api/auth'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { CountrySelector } from '@/components/CountrySelector'
 import {
   Table,
   TableBody,
@@ -54,6 +56,18 @@ export default function ProfilePage() {
   })
   const [agentFormLoading, setAgentFormLoading] = useState(false)
 
+  // 2FA state
+  const [totpEnabled, setTotpEnabled] = useState(false)
+  const [totpLoading, setTotpLoading] = useState(false)
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false)
+  const [totpSecret, setTotpSecret] = useState('')
+  const [totpUri, setTotpUri] = useState('')
+  const [verifyCode, setVerifyCode] = useState('')
+  const [backupCodes, setBackupCodes] = useState<string[]>([])
+  const [showBackupCodes, setShowBackupCodes] = useState(false)
+  const [disableDialogOpen, setDisableDialogOpen] = useState(false)
+  const [disableCode, setDisableCode] = useState('')
+
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
@@ -74,7 +88,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchAgents()
+    fetch2FAStatus()
   }, [])
+
+  const fetch2FAStatus = async () => {
+    try {
+      const response = await authApi.get2FAStatus()
+      setTotpEnabled(response.totp_enabled || false)
+    } catch (error) {
+      console.error('Failed to fetch 2FA status:', error)
+    }
+  }
 
   const fetchAgents = async () => {
     setAgentsLoading(true)
@@ -159,6 +183,77 @@ export default function ProfilePage() {
         description: error.response?.data?.error || 'Failed to delete agent'
       })
     }
+  }
+
+  // 2FA Handlers
+  const handleStart2FASetup = async () => {
+    setTotpLoading(true)
+    try {
+      const response = await authApi.setup2FA()
+      setTotpSecret(response.secret)
+      setTotpUri(response.totpUri)
+      setSetupDialogOpen(true)
+      setVerifyCode('')
+    } catch (error: any) {
+      toast.error('Error', {
+        description: error.response?.data?.message || 'Failed to setup 2FA'
+      })
+    } finally {
+      setTotpLoading(false)
+    }
+  }
+
+  const handleVerify2FA = async () => {
+    if (!verifyCode || verifyCode.length !== 6) {
+      toast.error('Please enter a 6-digit code')
+      return
+    }
+    setTotpLoading(true)
+    try {
+      const response = await authApi.verify2FA(verifyCode)
+      setBackupCodes(response.backupCodes)
+      setShowBackupCodes(true)
+      setSetupDialogOpen(false)
+      setTotpEnabled(true)
+      toast.success('2FA Enabled', { description: 'Two-factor authentication is now enabled.' })
+    } catch (error: any) {
+      toast.error('Error', {
+        description: error.response?.data?.message || 'Invalid code. Please try again.'
+      })
+    } finally {
+      setTotpLoading(false)
+    }
+  }
+
+  const handleDisable2FA = () => {
+    setDisableDialogOpen(true)
+    setDisableCode('')
+  }
+
+  const handleConfirmDisable2FA = async () => {
+    if (!disableCode || disableCode.length !== 6) {
+      toast.error("Please enter a 6-digit code")
+      return
+    }
+    setTotpLoading(true)
+    try {
+      await authApi.disable2FA(disableCode)
+      setTotpEnabled(false)
+      setDisableDialogOpen(false)
+      setDisableCode('')
+      toast.success('2FA Disabled', { description: 'Two-factor authentication has been disabled.' })
+    } catch (error: any) {
+      toast.error('Error', {
+        description: error.response?.data?.message || 'Invalid code. Please try again.'
+      })
+    } finally {
+      setTotpLoading(false)
+    }
+  }
+
+  const handleCopyBackupCodes = () => {
+    navigator.clipboard.writeText(backupCodes.join('\n'))
+    toast.success('Copied', { description: 'Backup codes copied to clipboard' })
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -390,6 +485,48 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               </form>
+              
+              <Separator className="my-6" />
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Typography.h3 className="flex items-center gap-2">
+                      <Smartphone className="size-5" />
+                      Two-Factor Authentication
+                    </Typography.h3>
+                    <Typography.muted>
+                      {totpEnabled 
+                        ? 'Your account is protected with 2FA' 
+                        : 'Add an extra layer of security to your account'}
+                    </Typography.muted>
+                  </div>
+                  <Badge variant={totpEnabled ? 'default' : 'secondary'} className={totpEnabled ? 'bg-green-600' : ''}>
+                    {totpEnabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+                
+                <div className="flex gap-2">
+                  {!totpEnabled ? (
+                    <Button onClick={handleStart2FASetup} disabled={totpLoading} variant="outline">
+                      {totpLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Key className="mr-2 size-4" />}
+                      Enable 2FA
+                    </Button>
+                  ) : (
+                    <Button onClick={handleDisable2FA} disabled={totpLoading} variant="destructive" size="sm">
+                      {totpLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                      Disable 2FA
+                    </Button>
+                  )}
+                </div>
+                
+                {totpEnabled && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AlertTriangle className="size-3" />
+                    Don't lose access! Save backup codes when enabling 2FA.
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -488,11 +625,11 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="country" className="text-sm font-medium">Country</label>
-                <Input 
-                  id="country" 
-                  value={agentFormData.country} 
-                  onChange={handleAgentFormChange}
-                  placeholder="Country"
+                <CountrySelector 
+                  value={agentFormData.country}
+                  onChange={(value) => setAgentFormData(prev => ({ ...prev, country: value }))}
+                  placeholder="Select country"
+                  id="country"
                 />
               </div>
               <div className="space-y-2">
@@ -583,6 +720,133 @@ export default function ProfilePage() {
             <Button onClick={handleSaveAgent} disabled={agentFormLoading || !agentFormData.name}>
               {agentFormLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
               {editingAgent ? 'Save Changes' : 'Add Agent'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2FA Setup Dialog */}
+      <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="size-5" />
+              Setup Two-Factor Authentication
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <p className="mb-4">Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)</p>
+              <div className="flex justify-center p-4 bg-white rounded-lg">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(totpUri)}`} 
+                  alt="QR Code" 
+                  className="w-48 h-48"
+                />
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Can't scan? Enter this code manually: <code className="bg-muted px-1 rounded">{totpSecret}</code>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Enter verification code</label>
+              <Input 
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit code"
+                maxLength={6}
+                className="text-center text-xl tracking-[0.5em] font-mono"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSetupDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleVerify2FA} disabled={totpLoading || verifyCode.length !== 6}>
+              {totpLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Verify & Enable
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Backup Codes Dialog */}
+      <Dialog open={showBackupCodes} onOpenChange={setShowBackupCodes}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="size-5" />
+              Backup Codes
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Important:</strong> Save these backup codes in a secure location. 
+                Each code can only be used once if you lose access to your authenticator app.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {backupCodes.map((code, index) => (
+                <code key={index} className="text-sm bg-muted px-2 py-1 rounded font-mono text-center">
+                  {code}
+                </code>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCopyBackupCodes}>
+              Copy Codes
+            </Button>
+            <Button onClick={() => setShowBackupCodes(false)}>
+              I've Saved My Codes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable 2FA Dialog */}
+      <Dialog open={disableDialogOpen} onOpenChange={setDisableDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-destructive" />
+              Disable Two-Factor Authentication
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive">
+                <strong>Warning:</strong> Disabling 2FA will make your account less secure. 
+                You'll only need your password to log in.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Enter authenticator code or backup code</label>
+              <Input 
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit code"
+                maxLength={6}
+                className="text-center text-xl tracking-[0.5em] font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the 6-digit code from your authenticator app or one of your backup codes.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisableDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDisable2FA} 
+              disabled={totpLoading || disableCode.length !== 6}
+            >
+              {totpLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Disable 2FA
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -7,8 +7,14 @@ export interface UserRow {
   full_name: string;
   role: string;
   is_verified: boolean;
+  is_approved: boolean;
+  is_active: boolean;
+  rejection_count: number;
+  phone?: string;
+  firm_name?: string;
   password_hash?: string;
   last_login?: Date;
+  created_at?: Date;
 }
 
 export interface CaseRow {

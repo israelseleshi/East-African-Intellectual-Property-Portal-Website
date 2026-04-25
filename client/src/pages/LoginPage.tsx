@@ -10,7 +10,7 @@ import { Field, FieldGroup, FieldLegend, FieldError } from "@/components/ui/fiel
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Typography } from "@/components/ui/typography"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import AuthLayout from "@/components/AuthLayout"
 import { LoginPageSkeleton } from "@/components/AuthPageSkeleton"
@@ -91,6 +91,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [shake, setShake] = useState(false)
+  
+  // 2FA state
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [tempUserId, setTempUserId] = useState<string | null>(null)
+  const [totpCode, setTotpCode] = useState("")
 
   useEffect(() => {
     const timer = setTimeout(() => setIsPageLoading(false), 100)
@@ -123,7 +128,7 @@ export default function LoginPage() {
     return true
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
@@ -133,15 +138,96 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const response = await authApi.login(formData)
+      
+      // Check if 2FA is required
+      if (response.requires2FA) {
+        setRequires2FA(true)
+        setTempUserId(response.userId)
+        toast.info("Please enter your 2FA code")
+        setIsLoading(false)
+        return
+      }
+      
       login(response.user)
       toast.success("Welcome back! Login successful.")
       setTimeout(() => navigate("/"), 100)
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
-      toast.error(err.response?.data?.message || "Invalid email or password")
+      // Handle axios errors properly
+      let status = 0
+      let code = ''
+      let message = ''
+      let rejectionCount = 0
+      
+      if (error && typeof error === 'object') {
+        const err = error as Record<string, unknown>
+        if (err.response) {
+          const res = err.response as { status?: number; data?: Record<string, unknown> }
+          status = res.status || 0
+          if (res.data) {
+            code = (res.data.code as string) || ''
+            message = (res.data.message as string) || ''
+            const details = res.data.details as Record<string, unknown> | undefined
+            rejectionCount = (details?.rejection_count as number) || 0
+          }
+        }
+      }
+      
+      const remaining = 3 - rejectionCount
+      
+      console.log('Login error:', { status, code, message, rejectionCount })
+      
+      if (rejectionCount >= 3) {
+        toast.error("Account permanently rejected", { style: { background: '#dc2626', color: '#fff' } })
+      } else if (status === 403 || code === 'ACCOUNT_PENDING_APPROVAL') {
+        if (rejectionCount > 0) {
+          toast.error(`Rejected ${rejectionCount}/3 - ${remaining} attempts left`, { style: { background: '#ea580c', color: '#fff' } })
+        } else {
+          toast.error("Account pending approval", { style: { background: '#f97316', color: '#fff' } })
+        }
+      } else if (status === 401 || code === 'INVALID_CREDENTIALS') {
+        toast.error(message || "Invalid email or password", { style: { background: '#dc2626', color: '#fff' } })
+      } else if (code === 'ACCOUNT_NOT_VERIFIED') {
+        toast.error("Please verify your email first", { style: { background: '#dc2626', color: '#fff' } })
+      } else {
+        toast.error(message || "Login failed", { style: { background: '#dc2626', color: '#fff' } })
+      }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!totpCode || totpCode.length !== 6) {
+      toast.error("Please enter a 6-digit code")
+      return
+    }
+    if (!tempUserId) {
+      toast.error("Session expired. Please login again.")
+      setRequires2FA(false)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await authApi.verify2FALogin(tempUserId, totpCode)
+      login(response.user)
+      toast.success("Welcome back! Login successful.")
+      setTimeout(() => navigate("/"), 100)
+    } catch (error: unknown) {
+      setShake(true)
+      setTimeout(() => setShake(false), 400)
+      const err = error as { response?: { data?: { message?: string } } }
+      toast.error(err.response?.data?.message || "Invalid code. Try again.", { style: { background: '#dc2626', color: '#fff' } })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleReset2FA = () => {
+    setRequires2FA(false)
+    setTempUserId(null)
+    setTotpCode("")
   }
 
   if (isPageLoading) {
@@ -178,17 +264,84 @@ export default function LoginPage() {
               <motion.div
                 variants={itemVariants}
               >
-                <Typography.h1a>Welcome back</Typography.h1a>
+                <Typography.h1a>{requires2FA ? 'Two-Factor Authentication' : 'Welcome back'}</Typography.h1a>
               </motion.div>
               <motion.div
                 variants={itemVariants}
               >
                 <Typography.muted>
-                  Enter your credentials to access your account
+                  {requires2FA ? 'Enter the code from your authenticator app' : 'Enter your credentials to access your account'}
                 </Typography.muted>
               </motion.div>
             </CardHeader>
             <CardContent>
+              {requires2FA ? (
+                <motion.form 
+                  onSubmit={handleVerify2FA} 
+                  className="space-y-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <motion.div
+                    variants={fieldVariants}
+                    custom={0}
+                  >
+                    <Field className="gap-2">
+                      <FieldLegend className="mb-2">Verification Code</FieldLegend>
+                      <Input
+                        id="totpCode"
+                        type="text"
+                        placeholder="Enter 6-digit code"
+                        value={totpCode}
+                        onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        maxLength={6}
+                        disabled={isLoading}
+                        className="text-center text-2xl tracking-[0.5em] font-mono"
+                        autoFocus
+                      />
+                    </Field>
+                  </motion.div>
+
+                  <motion.div variants={fieldVariants} custom={1}>
+                    <motion.div
+                      whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                      whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                    >
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={isLoading || totpCode.length !== 6}
+                      >
+                        {isLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <motion.span
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            >
+                              <Loader2 className="size-4" />
+                            </motion.span>
+                            <span>Verifying...</span>
+                          </span>
+                        ) : (
+                          "Verify"
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div variants={fieldVariants} custom={2}>
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleReset2FA}
+                      disabled={isLoading}
+                    >
+                      Back to Login
+                    </Button>
+                  </motion.div>
+                </motion.form>
+              ) : (
               <motion.form 
                 onSubmit={handleSubmit} 
                 className="space-y-4"
@@ -319,6 +472,7 @@ export default function LoginPage() {
                   </motion.div>
                 </motion.div>
               </motion.form>
+              )}
               
               <motion.div 
                 className="relative my-6"

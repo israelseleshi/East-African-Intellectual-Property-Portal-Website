@@ -4,11 +4,12 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { pool } from '../database/db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireSuperAdmin } from '../middleware/auth.js';
 import { JWT_SECRET } from '../utils/constants.js';
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOtp } from '../utils/mailer.js';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOtp, sendApprovalEmail, sendRejectionEmail } from '../utils/mailer.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 import { logger } from '../utils/logger.js';
+import { generateTotpSecret, generateTotpUri, verifyTotpCode, generateBackupCodes, validateBackupCode } from '../utils/totp.js';
 
 interface User {
   id: string;
@@ -17,9 +18,15 @@ interface User {
   password_hash: string;
   role: string;
   is_verified: boolean;
+  is_approved: boolean;
   is_active: boolean;
+  rejection_count: number;
   phone?: string;
   firm_name?: string;
+  created_at?: Date;
+  totp_secret?: string;
+  totp_enabled?: number;
+  backup_codes?: string;
 }
 
 type DbLikeError = {
@@ -149,11 +156,31 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    if (!user.is_approved) {
+      return sendApiError(req, res, 403, {
+        code: 'ACCOUNT_PENDING_APPROVAL',
+        message: 'Your account is pending approval from super administrator.',
+        details: {
+          rejection_count: user.rejection_count || 0,
+          email: user.email
+        }
+      });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return sendApiError(req, res, 401, {
         code: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password'
+      });
+    }
+
+    // Check if 2FA is enabled
+    if (user.totp_enabled) {
+      return res.status(200).json({
+        requires2FA: true,
+        userId: user.id,
+        message: 'Please enter your 2FA code'
       });
     }
 
@@ -330,19 +357,24 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const userId = crypto.randomUUID();
+const userId = crypto.randomUUID();
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     const normalizedRole = role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
+    const isApproved = normalizedRole === 'SUPER_ADMIN' ? 1 : 0;
 
     await pool.execute(
-      'INSERT INTO users (id, full_name, email, phone, firm_name, password_hash, role, verification_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, fullName, email, phone || null, firmName || null, passwordHash, normalizedRole, otp]
+      'INSERT INTO users (id, full_name, email, phone, firm_name, password_hash, role, verification_code, is_active, is_verified, is_approved, rejection_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0)',
+      [userId, fullName, email, phone || null, firmName || null, passwordHash, normalizedRole, otp, isApproved]
     );
 
     await sendVerificationEmail(email, otp);
 
-    res.status(201).json({ message: 'Account created successfully', userId, email });
+    if (normalizedRole === 'SUPER_ADMIN') {
+      res.status(201).json({ message: 'Account created and activated. You can now login.', userId, email });
+    } else {
+      res.status(201).json({ message: 'Account created successfully. Awaiting approval from super administrator.', userId, email });
+    }
   } catch (error) {
     logRouteError(req, 'auth.register', error);
     sendApiError(req, res, 500, {
@@ -573,6 +605,313 @@ router.post('/reset-password', async (req, res) => {
   } catch (error) {
     logRouteError(req, 'auth.reset-password', error);
     sendApiError(req, res, 500, { code: 'RESET_PASSWORD_FAILED', message: 'Failed to reset password' });
+  }
+});
+
+router.get('/pending', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, full_name, email, phone, firm_name, created_at, is_approved, rejection_count 
+       FROM users 
+       WHERE role = 'ADMIN' AND is_verified = 1 AND is_active = 1 
+       ORDER BY rejection_count DESC, created_at DESC`
+    );
+    res.json({ admins: rows });
+  } catch (error) {
+    logRouteError(req, 'auth.pending', error);
+    sendApiError(req, res, 500, { code: 'FETCH_PENDING_FAILED', message: 'Failed to fetch pending administrators' });
+  }
+});
+
+router.patch('/approve/:userId', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const [existing] = await pool.execute(
+      'SELECT id, full_name, email FROM users WHERE id = ? AND role = ? AND is_active = 1',
+      [userId, 'ADMIN']
+    );
+    const user = (existing as User[])[0];
+
+    if (!user) {
+      return sendApiError(req, res, 404, { code: 'USER_NOT_FOUND', message: 'Administrator not found' });
+    }
+
+    await pool.execute(
+      'UPDATE users SET is_approved = 1 WHERE id = ?',
+      [userId]
+    );
+
+    await sendApprovalEmail(user.email, user.full_name);
+
+    res.json({ message: 'Administrator approved successfully' });
+  } catch (error) {
+    logRouteError(req, 'auth.approve', error);
+    sendApiError(req, res, 500, { code: 'APPROVE_FAILED', message: 'Failed to approve administrator' });
+  }
+});
+
+router.patch('/reject/:userId', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const [existing] = await pool.execute(
+      'SELECT id, full_name, email, rejection_count FROM users WHERE id = ? AND role = ?',
+      [userId, 'ADMIN']
+    );
+    const user = (existing as User[])[0];
+
+    if (!user) {
+      return sendApiError(req, res, 404, { code: 'USER_NOT_FOUND', message: 'Administrator not found' });
+    }
+
+    const currentCount = user.rejection_count || 0;
+    if (currentCount >= 3) {
+      await pool.execute(
+        'UPDATE users SET is_active = 0, rejection_count = rejection_count + 1 WHERE id = ?',
+        [userId]
+      );
+    } else {
+      await pool.execute(
+        'UPDATE users SET is_approved = 0, rejection_count = rejection_count + 1, verification_code = NULL WHERE id = ?',
+        [userId]
+      );
+    }
+
+    await sendRejectionEmail(user.email, user.full_name, 3 - currentCount - 1);
+
+    res.json({ message: 'Administrator rejected', remaining_attempts: 3 - currentCount - 1 });
+  } catch (error) {
+    logRouteError(req, 'auth.reject', error);
+    sendApiError(req, res, 500, { code: 'REJECT_FAILED', message: 'Failed to reject administrator' });
+  }
+});
+
+// TOTP 2FA Routes
+router.post('/2fa/setup', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return sendApiError(req, res, 401, { code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
+
+    const [rows] = await pool.execute('SELECT email, full_name, totp_enabled FROM users WHERE id = ?', [userId]);
+    const user = (rows as User[])[0];
+    if (!user) {
+      return sendApiError(req, res, 404, { code: 'USER_NOT_FOUND', message: 'User not found' });
+    }
+
+    if (user.totp_enabled) {
+      return sendApiError(req, res, 400, { code: '2FA_ALREADY_ENABLED', message: '2FA is already enabled' });
+    }
+
+    const secret = generateTotpSecret();
+    const totpUri = generateTotpUri(secret, user.email);
+
+    await pool.execute(
+      'UPDATE users SET totp_secret = ? WHERE id = ?',
+      [secret, userId]
+    );
+
+    res.json({ 
+      secret, 
+      totpUri,
+      message: 'TOTP secret generated. Scan QR code with Google Authenticator.' 
+    });
+  } catch (error) {
+    logRouteError(req, 'auth.2fa.setup', error);
+    sendApiError(req, res, 500, { code: '2FA_SETUP_FAILED', message: 'Failed to setup 2FA' });
+  }
+});
+
+router.post('/2fa/verify', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { code } = req.body;
+    
+    if (!code || code.length !== 6) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CODE', message: 'Please enter a 6-digit code' });
+    }
+
+    const [rows] = await pool.execute('SELECT totp_secret, backup_codes FROM users WHERE id = ?', [userId]);
+    const user = (rows as User[])[0];
+    if (!user || !user.totp_secret) {
+      return sendApiError(req, res, 400, { code: '2FA_NOT_SETUP', message: 'Please setup 2FA first' });
+    }
+
+    const isValid = verifyTotpCode(user.totp_secret, code);
+    if (!isValid) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CODE', message: 'Invalid verification code' });
+    }
+
+    const backupCodes = generateBackupCodes(10);
+
+    await pool.execute(
+      'UPDATE users SET totp_enabled = 1, totp_verified_at = NOW(), backup_codes = ? WHERE id = ?',
+      [JSON.stringify(backupCodes), userId]
+    );
+
+    res.json({ 
+      message: '2FA enabled successfully',
+      backupCodes 
+    });
+  } catch (error) {
+    logRouteError(req, 'auth.2fa.verify', error);
+    sendApiError(req, res, 500, { code: '2FA_VERIFY_FAILED', message: 'Failed to enable 2FA' });
+  }
+});
+
+router.post('/2fa/disable', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { code } = req.body;
+    
+    if (!code || code.length !== 6) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CODE', message: 'Please enter a 6-digit code or backup code' });
+    }
+
+    const [rows] = await pool.execute('SELECT totp_secret, backup_codes FROM users WHERE id = ?', [userId]);
+    const user = (rows as User[])[0];
+    if (!user) {
+      return sendApiError(req, res, 404, { code: 'USER_NOT_FOUND', message: 'User not found' });
+    }
+
+    let isValid = false;
+
+    // Try TOTP code first
+    if (user.totp_secret) {
+      isValid = verifyTotpCode(user.totp_secret, code);
+    }
+
+    // If not valid, try backup codes
+    if (!isValid && user.backup_codes) {
+      const backupCodes = JSON.parse(user.backup_codes);
+      const result = validateBackupCode(backupCodes, code);
+      if (result.valid) {
+        isValid = true;
+        await pool.execute(
+          'UPDATE users SET backup_codes = ? WHERE id = ?',
+          [JSON.stringify(result.remainingCodes), userId]
+        );
+      }
+    }
+
+    if (!isValid) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CODE', message: 'Invalid code' });
+    }
+
+    await pool.execute(
+      'UPDATE users SET totp_enabled = 0, totp_secret = NULL, totp_verified_at = NULL, backup_codes = NULL WHERE id = ?',
+      [userId]
+    );
+
+    res.json({ message: '2FA disabled successfully' });
+  } catch (error) {
+    logRouteError(req, 'auth.2fa.disable', error);
+    sendApiError(req, res, 500, { code: '2FA_DISABLE_FAILED', message: 'Failed to disable 2FA' });
+  }
+});
+
+router.post('/2fa/verify-login', async (req, res) => {
+  try {
+    const { userId, code } = req.body;
+    
+    if (!userId || !code) {
+      return sendApiError(req, res, 400, { code: 'MISSING_FIELDS', message: 'User ID and code are required' });
+    }
+
+    const [rows] = await pool.execute('SELECT totp_secret, backup_codes FROM users WHERE id = ? AND is_active = 1', [userId]);
+    const user = (rows as User[])[0];
+    if (!user) {
+      return sendApiError(req, res, 404, { code: 'USER_NOT_FOUND', message: 'User not found' });
+    }
+
+    let isValid = false;
+    let usedBackupCode = false;
+
+    // Try TOTP code first
+    if (user.totp_secret) {
+      isValid = verifyTotpCode(user.totp_secret, code);
+    }
+
+    // If not valid, try backup codes
+    if (!isValid && user.backup_codes) {
+      const backupCodes = JSON.parse(user.backup_codes);
+      const result = validateBackupCode(backupCodes, code);
+      if (result.valid) {
+        isValid = true;
+        usedBackupCode = true;
+        await pool.execute(
+          'UPDATE users SET backup_codes = ? WHERE id = ?',
+          [JSON.stringify(result.remainingCodes), userId]
+        );
+      }
+    }
+
+    if (!isValid) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CODE', message: 'Invalid verification code' });
+    }
+
+    // Generate tokens after successful 2FA
+    const [userRows] = await pool.execute('SELECT * FROM users WHERE id = ?', [userId]);
+    const userData = (userRows as User[])[0];
+
+    await pool.execute('UPDATE users SET last_login = NOW() WHERE id = ?', [userId]);
+
+    const jti = crypto.randomUUID();
+    const accessToken = signAccess(userData);
+    const refreshToken = signRefresh(userData, jti);
+
+    setAuthCookies(res, accessToken, refreshToken);
+
+    res.json({
+      user: {
+        id: userData.id,
+        full_name: userData.full_name,
+        email: userData.email,
+        role: userData.role,
+        phone: userData.phone,
+        firm_name: userData.firm_name
+      }
+    });
+  } catch (error) {
+    logRouteError(req, 'auth.2fa.verify-login', error);
+    sendApiError(req, res, 500, { code: '2FA_VERIFY_FAILED', message: 'Verification failed' });
+  }
+});
+
+router.get('/2fa/status', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    const [rows] = await pool.execute('SELECT totp_enabled, totp_verified_at FROM users WHERE id = ?', [userId]);
+    const user = (rows as User[])[0];
+    
+    res.json({ 
+      totp_enabled: user?.totp_enabled || false,
+      totp_verified_at: user?.totp_verified_at
+    });
+  } catch (error) {
+    logRouteError(req, 'auth.2fa.status', error);
+    sendApiError(req, res, 500, { code: '2FA_STATUS_FAILED', message: 'Failed to get 2FA status' });
+  }
+});
+
+router.get('/2fa/backup-codes', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    const [rows] = await pool.execute('SELECT backup_codes FROM users WHERE id = ?', [userId]);
+    const user = (rows as User[])[0];
+    
+    if (!user?.backup_codes) {
+      return sendApiError(req, res, 404, { code: 'NO_BACKUP_CODES', message: 'No backup codes found. Please enable 2FA first.' });
+    }
+    
+    res.json({ backupCodes: JSON.parse(user.backup_codes) });
+  } catch (error) {
+    logRouteError(req, 'auth.2fa.backup-codes', error);
+    sendApiError(req, res, 500, { code: 'BACKUP_CODES_FAILED', message: 'Failed to get backup codes' });
   }
 });
 
