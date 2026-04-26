@@ -260,30 +260,38 @@ const handleSubmit = async (e: React.FormEvent) => {
                     transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   />
                 </motion.div>
-            <CardHeader className="space-y-1">
+            <CardHeader>
               {requires2FA && (
-                <motion.div variants={itemVariants} className="flex items-center gap-3">
-                  <motion.img
-                    src="/google-authenticator-logo.png"
-                    alt="Google Authenticator"
-                    className="w-10 h-10"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </motion.div>
+                <div className="grid grid-cols-[auto_1fr] gap-4 items-center">
+                  <motion.div variants={itemVariants}>
+                    <motion.img
+                      src="/google-authenticator-logo.png"
+                      alt="Google Authenticator"
+                      className="w-12 h-12"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  </motion.div>
+                  <div>
+                    <motion.div variants={itemVariants}>
+                      <Typography.h1a className="!mb-1">Two-Factor Authentication</Typography.h1a>
+                    </motion.div>
+                    <motion.div variants={itemVariants}>
+                      <Typography.lead>Enter the code from your authenticator app</Typography.lead>
+                    </motion.div>
+                  </div>
+                </div>
               )}
-              <motion.div
-                variants={itemVariants}
-              >
-                <Typography.h1a>{requires2FA ? 'Two-Factor Authentication' : 'Welcome back'}</Typography.h1a>
-              </motion.div>
-              <motion.div
-                variants={itemVariants}
-              >
-                <Typography.lead>
-                  {requires2FA ? 'Enter the code from your authenticator app' : 'Enter your credentials to access your account'}
-                </Typography.lead>
-              </motion.div>
+              {!requires2FA && (
+                <>
+                  <motion.div variants={itemVariants}>
+                    <Typography.h1a>Welcome back</Typography.h1a>
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
+                    <Typography.lead>Enter your credentials to access your account</Typography.lead>
+                  </motion.div>
+                </>
+              )}
             </CardHeader>
             <CardContent>
               {requires2FA ? (
