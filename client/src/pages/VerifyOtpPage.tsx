@@ -279,7 +279,7 @@ export default function VerifyOtpPage() {
                             value={digit}
                             onChange={handleChange(index)}
                             onKeyDown={handleKeyDown(index)}
-                            className="size-12 text-center text-lg font-semibold transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                            className="size-12 text-center text-lg font-medium transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             disabled={isLoading}
                             aria-invalid={!!error}
                           />

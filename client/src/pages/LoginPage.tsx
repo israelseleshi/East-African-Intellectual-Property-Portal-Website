@@ -269,9 +269,9 @@ const handleSubmit = async (e: React.FormEvent) => {
               <motion.div
                 variants={itemVariants}
               >
-                <Typography.muted>
+                <Typography.lead>
                   {requires2FA ? 'Enter the code from your authenticator app' : 'Enter your credentials to access your account'}
-                </Typography.muted>
+                </Typography.lead>
               </motion.div>
             </CardHeader>
             <CardContent>
@@ -296,7 +296,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                         onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         maxLength={6}
                         disabled={isLoading}
-                        className="text-center text-2xl tracking-[0.5em] font-mono"
+                        className="text-center text-2xl tracking-[0.5em]"
                         autoFocus
                       />
                     </Field>

@@ -373,6 +373,10 @@ export default function ProfilePage() {
     }
   }
 
+  const tabsClassName = isUserSuperAdmin 
+    ? "grid w-full grid-cols-4 max-w-[550px]" 
+    : "grid w-full grid-cols-2 max-w-[350px]"
+
   return (
     <div className="w-full p-4 md:p-8 space-y-6 max-w-4xl mx-auto min-h-screen">
       <header className="flex items-center justify-between">
@@ -383,10 +387,10 @@ export default function ProfilePage() {
       </header>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-[550px]">
+        <TabsList className={tabsClassName}>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="agents">Agents</TabsTrigger>
+          {isUserSuperAdmin && <TabsTrigger value="agents">Agents</TabsTrigger>}
           {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
         </TabsList>
 
@@ -946,7 +950,7 @@ export default function ProfilePage() {
                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="6-digit code"
                 maxLength={6}
-                className="text-center text-xl tracking-[0.5em] font-mono"
+                className="text-center text-xl tracking-[0.5em]"
               />
             </div>
           </div>
@@ -1020,7 +1024,7 @@ export default function ProfilePage() {
                 onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="6-digit code"
                 maxLength={6}
-                className="text-center text-xl tracking-[0.5em] font-mono"
+                className="text-center text-xl tracking-[0.5em]"
               />
               <p className="text-xs text-muted-foreground">
                 Enter the 6-digit code from your authenticator app or one of your backup codes.

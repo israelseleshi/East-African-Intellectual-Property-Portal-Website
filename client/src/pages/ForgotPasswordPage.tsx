@@ -249,7 +249,7 @@ export default function ForgotPasswordPage() {
                           if (errors.otp) setErrors({ ...errors, otp: '' })
                         }}
                         disabled={isLoading}
-                        className="text-center text-xl tracking-[0.3em] font-mono"
+                        className="text-center text-xl tracking-widest"
                       />
                       <AnimatePresence>
                         {errors.otp && (
