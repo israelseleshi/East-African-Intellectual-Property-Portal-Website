@@ -182,7 +182,7 @@ function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <AlertDialogAction 
               onClick={() => {
                 logout()
-                toast.error("You have been logged out", { style: { background: '#dc2626', color: '#fff' }, duration: 3000 })
+                toast("You have been logged out", { style: { background: '#ffffff', color: '#000000' }, duration: 3000 })
                 handleLinkClick()
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

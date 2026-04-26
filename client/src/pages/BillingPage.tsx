@@ -18,7 +18,6 @@ import {
   CaretLeft,
   CaretRight,
   X,
-  MagnifyingGlass,
   FileArrowDown,
   CreditCard,
   SquaresFour,
@@ -37,6 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DatePicker } from '@/components/ui/date-picker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,6 +96,7 @@ export default function BillingPage() {
     notes: ''
   })
   const [clients, setClients] = useState<any[]>([])
+  const [trademarks, setTrademarks] = useState<string[]>([])
   const [creatingInvoice, setCreatingInvoice] = useState(false)
   const [newInvoice, setNewInvoice] = useState({
     clientId: '',
@@ -115,15 +116,22 @@ export default function BillingPage() {
     overdueCount: 0
   })
 
-  const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
+  const [filters, setFilters] = useState<{
+    dateFrom?: Date
+    dateTo?: Date
+    status: string
+    client: string
+    trademark: string
+  }>({
+    dateFrom: undefined,
+    dateTo: undefined,
     status: '__all__',
-    client: '__all__'
+    client: '__all__',
+    trademark: '__all__'
   })
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
-  const itemsPerPage = viewMode === 'grid' ? 6 : 10
+  const itemsPerPage = viewMode === 'grid' ? 6 : 5
 
   // Selection state for bulk actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -181,6 +189,7 @@ export default function BillingPage() {
           .reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0)
         
         const uniqueClients = new Set(data.map((inv: any) => inv.client_name)).size
+        const uniqueTrademarks = [...new Set(data.map((inv: any) => inv.mark_name).filter(Boolean))]
         const overdueCount = data.filter((inv: any) => inv.status === 'OVERDUE').length
 
         setStats({
@@ -190,6 +199,7 @@ export default function BillingPage() {
           clientCount: uniqueClients,
           overdueCount
         })
+        setTrademarks(uniqueTrademarks.sort())
       }
     } catch (error) {
       console.error('Failed to fetch transactions:', error)
@@ -211,13 +221,8 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchTransactions()
+    fetchClients()
   }, [fetchTransactions])
-
-  useEffect(() => {
-    if (isCreateInvoiceModalOpen) {
-      fetchClients()
-    }
-  }, [isCreateInvoiceModalOpen, fetchClients])
 
   const addLineItem = () => {
     setLineItems([...lineItems, { description: '', category: 'OFFICIAL_FEE', amount: '' }])
@@ -332,11 +337,12 @@ export default function BillingPage() {
     return transactions.filter((tx) => {
       const txDate = tx.issueDate || tx.date
       const txDateObj = txDate ? new Date(txDate) : null
-      const fromOk = !filters.dateFrom || (txDateObj ? txDateObj >= new Date(filters.dateFrom) : true)
-      const toOk = !filters.dateTo || (txDateObj ? txDateObj <= new Date(`${filters.dateTo}T23:59:59`) : true)
+      const fromOk = !filters.dateFrom || (txDateObj ? txDateObj >= filters.dateFrom : true)
+      const toOk = !filters.dateTo || (txDateObj ? txDateObj <= new Date(filters.dateTo.getFullYear(), filters.dateTo.getMonth(), filters.dateTo.getDate(), 23, 59, 59) : true)
       const statusOk = filters.status === '__all__' || tx.status === filters.status
-      const clientOk = filters.client === '__all__' || tx.clientName.toLowerCase().includes(filters.client.toLowerCase())
-      return fromOk && toOk && statusOk && clientOk
+      const clientOk = filters.client === '__all__' || tx.clientId === filters.client
+      const trademarkOk = filters.trademark === '__all__' || tx.markName === filters.trademark
+      return fromOk && toOk && statusOk && clientOk && trademarkOk
     })
   }, [transactions, filters])
 
@@ -389,10 +395,11 @@ export default function BillingPage() {
 
   const resetFilters = () => {
     setFilters({
-      dateFrom: '',
-      dateTo: '',
+      dateFrom: undefined,
+      dateTo: undefined,
       status: '__all__',
-      client: '__all__'
+      client: '__all__',
+      trademark: '__all__'
     })
   }
 
@@ -845,25 +852,59 @@ export default function BillingPage() {
         {/* Filters */}
         <Card className="border shadow-sm">
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-lg">Transaction History</CardTitle>
                 {filters.status !== '__all__' && (
                   <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
-                    Filter: {filters.status} <X size={12} className="ml-1" />
+                    Status: {filters.status} <X size={12} className="ml-1" />
+                  </Badge>
+                )}
+                {filters.client !== '__all__' && (
+                  <Badge variant="outline" className="bg-orange-500 text-white hover:bg-orange-600 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, client: '__all__' }))}>
+                    {clients.find(c => c.id === filters.client)?.name || 'Client'} <X size={12} className="ml-1" />
+                  </Badge>
+                )}
+                {filters.trademark !== '__all__' && (
+                  <Badge variant="outline" className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, trademark: '__all__' }))}>
+                    {filters.trademark} <X size={12} className="ml-1" />
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                  <Input
-                    placeholder="Search..."
-                    className="pl-9 w-[200px] bg-[#E8E8ED]"
-                    value={filters.client === '__all__' ? '' : filters.client}
-                    onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value || '__all__' }))}
-                  />
-                </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Date Range */}
+                <DateRangePicker
+                  fromDate={filters.dateFrom}
+                  toDate={filters.dateTo}
+                  onDateChange={(from, to) => setFilters(prev => ({ ...prev, dateFrom: from, dateTo: to }))}
+                  placeholder="Select date range"
+                  className="w-[240px] bg-[#E8E8ED]"
+                />
+                {/* Client Filter */}
+                <Select value={filters.client} onValueChange={(val) => setFilters(prev => ({ ...prev, client: val }))}>
+                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]">
+                    <SelectValue placeholder="All Clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Clients</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Trademark Filter */}
+                <Select value={filters.trademark} onValueChange={(val) => setFilters(prev => ({ ...prev, trademark: val }))}>
+                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]">
+                    <SelectValue placeholder="All Trademarks" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Trademarks</SelectItem>
+                    {trademarks.map((tm) => (
+                      <SelectItem key={tm} value={tm}>{tm}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Status Filter */}
                 <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
                   <SelectTrigger className="w-[140px] bg-[#E8E8ED]">
                     <SelectValue placeholder="Status" />

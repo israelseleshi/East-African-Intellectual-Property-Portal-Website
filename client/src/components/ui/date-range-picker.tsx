@@ -51,9 +51,6 @@ export function DateRangePicker({
           }}
           onSelect={(range) => {
             onDateChange?.(range?.from, range?.to)
-            if (range?.from && range?.to) {
-              setOpen(false)
-            }
           }}
           disabled={(date) => date > new Date()}
           numberOfMonths={2}
