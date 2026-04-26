@@ -260,7 +260,18 @@ const handleSubmit = async (e: React.FormEvent) => {
                     transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   />
                 </motion.div>
-            <CardHeader className="space-y-1 text-center">
+            <CardHeader className="space-y-1">
+              {requires2FA && (
+                <motion.div variants={itemVariants} className="flex items-center gap-3">
+                  <motion.img
+                    src="/google-authenticator-logo.png"
+                    alt="Google Authenticator"
+                    className="w-10 h-10"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </motion.div>
+              )}
               <motion.div
                 variants={itemVariants}
               >
