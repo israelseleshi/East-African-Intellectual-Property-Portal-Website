@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
+import { useSettingsStore } from '@/store/settingsStore'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -26,9 +28,11 @@ import {
 
 export default function ProfilePage() {
   const { user, login } = useAuthStore()
+  const { companyInfo, setCompanyInfo, fetchCompanySettings, saveCompanySettings, settingsSaving, settingsLoading } = useSettingsStore()
   
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isEditingCompany, setIsEditingCompany] = useState(false)
   const [formData, setFormData] = useState({
     fullName: user?.full_name || '',
     email: user?.email || '',
@@ -97,6 +101,7 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchAgents()
     fetch2FAStatus()
+    fetchCompanySettings()
   }, [])
 
   const fetch2FAStatus = async () => {
@@ -389,6 +394,7 @@ export default function ProfilePage() {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className={tabsClassName}>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           {isUserSuperAdmin && <TabsTrigger value="agents">Agents</TabsTrigger>}
           {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
@@ -593,6 +599,176 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="company" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="size-5" />
+                  Company Information
+                </CardTitle>
+                <CardDescription>Update your company details for invoice headers and documents.</CardDescription>
+              </div>
+              {!isEditingCompany && (
+                <Button onClick={() => setIsEditingCompany(true)} variant="outline" size="sm">
+                  <Edit2 className="mr-2 size-4" />
+                  Edit Company
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={async (e) => { 
+                e.preventDefault()
+                const success = await saveCompanySettings()
+                if (success) {
+                  toast.success('Company settings saved')
+                  setIsEditingCompany(false)
+                } else {
+                  toast.error('Failed to save company settings')
+                }
+              }} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <label htmlFor="companyName" className="text-sm font-medium">Company Name</label>
+                    <Input 
+                      id="companyName" 
+                      value={companyInfo.companyName} 
+                      onChange={(e) => setCompanyInfo({ companyName: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="Your company name" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="companyAddress" className="text-sm font-medium">Address</label>
+                    <Input 
+                      id="companyAddress" 
+                      value={companyInfo.companyAddress} 
+                      onChange={(e) => setCompanyInfo({ companyAddress: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="Street address" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="companyCity" className="text-sm font-medium">City</label>
+                    <Input 
+                      id="companyCity" 
+                      value={companyInfo.companyCity} 
+                      onChange={(e) => setCompanyInfo({ companyCity: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="Addis Ababa, Ethiopia" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="companyEmail" className="text-sm font-medium">Email</label>
+                    <Input 
+                      id="companyEmail" 
+                      type="email"
+                      value={companyInfo.companyEmail} 
+                      onChange={(e) => setCompanyInfo({ companyEmail: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="info@company.com" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="companyPhone" className="text-sm font-medium">Phone</label>
+                    <Input 
+                      id="companyPhone" 
+                      value={companyInfo.companyPhone} 
+                      onChange={(e) => setCompanyInfo({ companyPhone: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="+251 91 123 4567" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="companyWebsite" className="text-sm font-medium">Website</label>
+                    <Input 
+                      id="companyWebsite" 
+                      value={companyInfo.companyWebsite} 
+                      onChange={(e) => setCompanyInfo({ companyWebsite: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="www.company.com" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="taxId" className="text-sm font-medium">Tax ID / Registration</label>
+                    <Input 
+                      id="taxId" 
+                      value={companyInfo.taxId} 
+                      onChange={(e) => setCompanyInfo({ taxId: e.target.value })}
+                      disabled={!isEditingCompany}
+                      placeholder="Tax identification number" 
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label htmlFor="logoUrl" className="text-sm font-medium">Company Logo</label>
+                    <div className="flex items-center gap-4">
+                      {companyInfo.logoUrl ? (
+                        <div className="relative size-24 rounded-lg border overflow-hidden bg-muted">
+                          <img 
+                            src={companyInfo.logoUrl} 
+                            alt="Company logo" 
+                            className="w-full h-full object-contain"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="size-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                          <Building className="size-8 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <Input 
+                          id="logoUrl" 
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={!isEditingCompany}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                setCompanyInfo({ logoUrl: event.target?.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                        <label 
+                          htmlFor="logoUrl" 
+                          className={cn(
+                            "inline-flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors",
+                            isEditingCompany 
+                              ? "border-input bg-background hover:bg-muted" 
+                              : "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Building className="size-4" />
+                          {isEditingCompany ? "Upload Logo" : "Upload Logo"}
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          PNG, JPG up to 2MB. Preview above.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {isEditingCompany && (
+                  <div className="flex gap-2 pt-4">
+                    <Button onClick={() => setIsEditingCompany(false)} variant="outline">
+                      Cancel
+                    </Button>
+                    <Button type="submit">
+                      <Save className="mr-2 size-4" />
+                      Save Changes
+                    </Button>
+                  </div>
+                )}
+              </form>
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,36 +1,100 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { settingsApi } from '@/api/settings'
 
 export type SidebarFontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 export type TopBarDesign = 'minimal' | 'centered' | 'spacious' | 'condensed' | 'classic'
 export type DashboardDesign = 'command' | 'timeline' | 'kanban' | 'calendar' | 'analytics' | 'action' | 'client' | 'registry' | 'launch' | 'hybrid'
 export type InvoiceDesign = 'classic'
 
+export type CompanyInfo = {
+  companyName: string
+  companyAddress: string
+  companyCity: string
+  companyEmail: string
+  companyPhone: string
+  companyWebsite: string
+  taxId: string
+  logoUrl: string
+}
+
 interface SettingsState {
   sidebarFontSize: SidebarFontSize
   topBarDesign: TopBarDesign
   dashboardDesign: DashboardDesign
   invoiceDesign: InvoiceDesign
+  companyInfo: CompanyInfo
+  settingsLoading: boolean
+  settingsSaving: boolean
   setSidebarFontSize: (size: SidebarFontSize) => void
   setTopBarDesign: (design: TopBarDesign) => void
   setDashboardDesign: (design: DashboardDesign) => void
   setInvoiceDesign: (design: InvoiceDesign) => void
+  setCompanyInfo: (info: Partial<CompanyInfo>) => void
+  fetchCompanySettings: () => Promise<void>
+  saveCompanySettings: () => Promise<boolean>
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sidebarFontSize: 'lg',
       topBarDesign: 'minimal',
       dashboardDesign: 'command',
       invoiceDesign: 'classic',
+      companyInfo: {
+        companyName: 'EAST AFRICAN INTELLECTUAL PROPERTY',
+        companyAddress: '',
+        companyCity: 'Addis Ababa, Ethiopia',
+        companyEmail: 'info@eastafricanip.com',
+        companyPhone: '',
+        companyWebsite: 'www.eastafricanip.com',
+        taxId: '',
+        logoUrl: ''
+      },
+      settingsLoading: false,
+      settingsSaving: false,
       setSidebarFontSize: (size) => set({ sidebarFontSize: size }),
       setTopBarDesign: (design) => set({ topBarDesign: design }),
       setDashboardDesign: (design) => set({ dashboardDesign: design }),
       setInvoiceDesign: (design) => set({ invoiceDesign: design }),
+      setCompanyInfo: (info) => set((state) => ({ companyInfo: { ...state.companyInfo, ...info } })),
+      fetchCompanySettings: async () => {
+        try {
+          set({ settingsLoading: true })
+          const res = await settingsApi.getSettings()
+          set({ companyInfo: res.data, settingsLoading: false })
+        } catch (error) {
+          console.error('Failed to fetch company settings:', error)
+          set({ settingsLoading: false })
+        }
+      },
+      saveCompanySettings: async () => {
+        const { companyInfo } = get()
+        try {
+          set({ settingsSaving: true })
+          await settingsApi.updateSettings(companyInfo)
+          set({ settingsSaving: false })
+          return true
+        } catch (error) {
+          console.error('Failed to save company settings:', error)
+          set({ settingsSaving: false })
+          return false
+        }
+      },
     }),
     {
       name: 'eaip-settings',
+      partialize: (state) => ({
+        sidebarFontSize: state.sidebarFontSize,
+        topBarDesign: state.topBarDesign,
+        dashboardDesign: state.dashboardDesign,
+        invoiceDesign: state.invoiceDesign,
+        companyInfo: {
+          ...state.companyInfo,
+          logoUrl: '' // Don't store large logo in localStorage
+        }
+      })
     }
   )
 )

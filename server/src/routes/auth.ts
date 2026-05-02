@@ -9,7 +9,25 @@ import { JWT_SECRET } from '../utils/constants.js';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOtp, sendApprovalEmail, sendRejectionEmail } from '../utils/mailer.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 import { logger } from '../utils/logger.js';
-import { generateTotpSecret, generateTotpUri, verifyTotpCode, generateBackupCodes, validateBackupCode } from '../utils/totp.js';
+import { generateTotpSecret, generateTotpUri, verifyTotpCode, generateBackupCodes, validateBackupCode, encryptTotpSecret, decryptTotpSecret } from '../utils/totp.js';
+import rateLimit from 'express-rate-limit';
+
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs for sensitive endpoints
+  message: { success: false, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // 10 login attempts per 15 minutes per IP
+  message: { success: false, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many login attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 interface User {
   id: string;
@@ -27,6 +45,7 @@ interface User {
   totp_secret?: string;
   totp_enabled?: number;
   backup_codes?: string;
+  totp_verified_at?: Date;
 }
 
 type DbLikeError = {
@@ -102,28 +121,31 @@ const signRefresh = (user: User, jti: string) =>
   );
 
 const setAuthCookies = (res: express.Response, accessToken: string, refreshToken: string) => {
+  const isSecure = isProd || process.env.REQUEST_SCHEME === 'https';
   res.cookie(ACCESS_COOKIE, accessToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: isSecure,
     sameSite: 'lax',
-    path: '/api'
+    path: '/',
+    domain: undefined
   });
   res.cookie(REFRESH_COOKIE, refreshToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: isSecure,
     sameSite: 'lax',
-    path: '/api/auth'
+    path: '/',
+    domain: undefined
   });
 };
 
 const clearAuthCookies = (res: express.Response) => {
-  res.clearCookie(ACCESS_COOKIE, { path: '/api' });
-  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+  res.clearCookie(ACCESS_COOKIE, { path: '/' });
+  res.clearCookie(REFRESH_COOKIE, { path: '/' });
 };
 
 const router = express.Router();
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -333,7 +355,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -358,7 +380,7 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
 const userId = crypto.randomUUID();
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+     const otp = crypto.randomBytes(3).toString('hex').toUpperCase();
 
     const normalizedRole = role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
     const isApproved = normalizedRole === 'SUPER_ADMIN' ? 1 : 0;
@@ -531,7 +553,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -545,8 +567,8 @@ router.post('/forgot-password', async (req, res) => {
       return res.json({ message: 'If an account exists with this email, a reset code has been sent.' });
     }
 
-    const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const resetTokenHash = crypto.createHash('sha256').update(resetOtp).digest('hex');
+     const resetOtp = crypto.randomBytes(3).toString('hex').toUpperCase();
+     const resetTokenHash = crypto.createHash('sha256').update(resetOtp).digest('hex');
     const expiresAt = new Date(Date.now() + 600000); // 10 minutes
 
     await pool.execute(
@@ -575,7 +597,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
   try {
     const { email, otp, password } = req.body;
     if (!email || !otp || !password) {
@@ -705,13 +727,14 @@ router.post('/2fa/setup', authenticateToken, async (req, res) => {
       return sendApiError(req, res, 400, { code: '2FA_ALREADY_ENABLED', message: '2FA is already enabled' });
     }
 
-    const secret = generateTotpSecret();
-    const totpUri = generateTotpUri(secret, user.email);
-
-    await pool.execute(
-      'UPDATE users SET totp_secret = ? WHERE id = ?',
-      [secret, userId]
-    );
+     const secret = generateTotpSecret();
+     const totpUri = generateTotpUri(secret, user.email);
+     const encrypted = encryptTotpSecret(secret);
+     
+     await pool.execute(
+       'UPDATE users SET totp_secret_encrypted = ?, totp_secret_iv = ?, totp_secret_tag = ?, totp_secret = NULL WHERE id = ?',
+       [encrypted.encrypted, encrypted.iv, encrypted.tag, userId]
+     );
 
     res.json({ 
       secret, 
@@ -727,6 +750,10 @@ router.post('/2fa/setup', authenticateToken, async (req, res) => {
 router.post('/2fa/verify', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
+    if (!userId) {
+      return sendApiError(req, res, 401, { code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
+    
     const { code } = req.body;
     
     if (!code || code.length !== 6) {
@@ -739,7 +766,7 @@ router.post('/2fa/verify', authenticateToken, async (req, res) => {
       return sendApiError(req, res, 400, { code: '2FA_NOT_SETUP', message: 'Please setup 2FA first' });
     }
 
-    const isValid = verifyTotpCode(user.totp_secret, code);
+    const isValid = verifyTotpCode(user.totp_secret, code || '');
     if (!isValid) {
       return sendApiError(req, res, 400, { code: 'INVALID_CODE', message: 'Invalid verification code' });
     }
@@ -764,6 +791,10 @@ router.post('/2fa/verify', authenticateToken, async (req, res) => {
 router.post('/2fa/disable', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
+    if (!userId) {
+      return sendApiError(req, res, 401, { code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
+    
     const { code } = req.body;
     
     if (!code || code.length !== 6) {
@@ -812,7 +843,7 @@ router.post('/2fa/disable', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/2fa/verify-login', async (req, res) => {
+router.post('/2fa/verify-login', authLimiter, async (req, res) => {
   try {
     const { userId, code } = req.body;
     
@@ -883,6 +914,9 @@ router.post('/2fa/verify-login', async (req, res) => {
 router.get('/2fa/status', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
+    if (!userId) {
+      return sendApiError(req, res, 401, { code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
     
     const [rows] = await pool.execute('SELECT totp_enabled, totp_verified_at FROM users WHERE id = ?', [userId]);
     const user = (rows as User[])[0];
@@ -900,6 +934,9 @@ router.get('/2fa/status', authenticateToken, async (req, res) => {
 router.get('/2fa/backup-codes', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.id;
+    if (!userId) {
+      return sendApiError(req, res, 401, { code: 'UNAUTHORIZED', message: 'Not authenticated' });
+    }
     
     const [rows] = await pool.execute('SELECT backup_codes FROM users WHERE id = ?', [userId]);
     const user = (rows as User[])[0];

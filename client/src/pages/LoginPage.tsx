@@ -238,18 +238,16 @@ const handleSubmit = async (e: React.FormEvent) => {
     )
   }
 
-return (
+  return (
     <AuthLayout>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl mx-auto">
-        {/* Left Side - Login Form */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="w-full max-w-md"
-        >
-          <motion.div variants={cardVariants}>
-            <Card className="w-full my-4 rounded-xl shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="w-full max-w-md"
+      >
+        <motion.div variants={cardVariants}>
+          <Card className="w-full my-4 rounded-none shadow-lg">
                 <motion.div 
                   className="flex justify-center pt-6 pb-2"
                   variants={itemVariants}
@@ -329,8 +327,7 @@ return (
                       whileTap={{ scale: isLoading ? 1 : 0.98 }}
                     >
                       <Button 
-
-type="submit" 
+                        type="submit" 
                         className="w-full" 
                         disabled={isLoading || totpCode.length !== 6}
                       >
@@ -345,77 +342,132 @@ type="submit"
                             <span>Verifying...</span>
                           </span>
                         ) : (
-                          "Verify & Login"
+                          "Verify"
                         )}
                       </Button>
                     </motion.div>
                   </motion.div>
+
+                  <motion.div variants={fieldVariants} custom={2}>
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleReset2FA}
+                      disabled={isLoading}
+                    >
+                      Back to Login
+                    </Button>
+                  </motion.div>
                 </motion.form>
               ) : (
-                <motion.form 
-                  onSubmit={handleLogin} 
-                  className="space-y-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+              <motion.form 
+                onSubmit={handleSubmit} 
+                className="space-y-4"
+                variants={itemVariants}
+              >
+                <motion.div
+                  variants={fieldVariants}
+                  custom={0}
+                  animate={shake ? "shake" : "visible"}
                 >
-                  <motion.div variants={fieldVariants} custom={0}>
-                    <Field data-invalid={!!errors.email}>
-                      <FieldLegend>Email</FieldLegend>
+                  <Field className="gap-2" data-invalid={!!errors.email}>
+                    <FieldLegend className="mb-2">Email</FieldLegend>
+                    <motion.div
+                      whileFocus={{ scale: 1.01 }}
+                      transition={{ duration: 0.15 }}
+                    >
                       <Input
                         id="email"
                         type="email"
-                        placeholder="you@company.com"
+                        placeholder="Enter your email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={handleChange("email")}
                         disabled={isLoading}
-                        className="h-11"
+                        aria-invalid={!!errors.email}
+                        className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                       />
-                      {errors.email && <FieldError>{errors.email}</FieldError>}
-                    </Field>
-                  </motion.div>
+                    </motion.div>
+                    <AnimatePresence mode="wait">
+                      {errors.email && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <FieldError>{errors.email}</FieldError>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Field>
+                </motion.div>
 
-                  <motion.div variants={fieldVariants} custom={1}>
-                    <Field data-invalid={!!errors.password}>
-                      <FieldLegend>Password</FieldLegend>
-                      <div className="relative">
+                <motion.div
+                  variants={fieldVariants}
+                  custom={1}
+                  animate={shake ? "shake" : "visible"}
+                >
+                  <Field className="gap-2" data-invalid={!!errors.password}>
+                    <div className="flex items-center justify-between">
+                      <FieldLegend className="mb-2">Password</FieldLegend>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button variant="link" className="px-0 text-xs h-auto" asChild>
+                          <Link to="/forgot-password">Forgot password?</Link>
+                        </Button>
+                      </motion.div>
+                    </div>
+                    <div className="relative">
+                      <motion.div
+                        whileFocus={{ scale: 1.01 }}
+                        transition={{ duration: 0.15 }}
+                      >
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
                           value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          onChange={handleChange("password")}
+                          className="pr-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                           disabled={isLoading}
-                          className="h-11 pr-10"
+                          aria-invalid={!!errors.password}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                      </div>
-                      {errors.password && <FieldError>{errors.password}</FieldError>}
-                    </Field>
-                  </motion.div>
-
-                  <motion.div variants={fieldVariants} custom={2}>
-                    <div className="flex items-center justify-between text-sm">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" className="rounded border-input" />
-                        <span className="text-muted-foreground">Remember me</span>
-                      </label>
-                      <Button variant="link" size="sm" asChild>
-                        <Link to="/forgot-password">Forgot password?</Link>
-                      </Button>
+                      </motion.div>
+                      <motion.button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors cursor-pointer hover:text-foreground"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
+                      </motion.button>
                     </div>
-                  </motion.div>
+                    <AnimatePresence mode="wait">
+                      {errors.password && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <FieldError>{errors.password}</FieldError>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Field>
+                </motion.div>
 
-                  <motion.div 
-                    variants={fieldVariants} 
-                    custom={3}
+                <motion.div variants={fieldVariants} custom={2}>
+                  <motion.div
                     whileHover={{ scale: isLoading ? 1 : 1.02 }}
                     whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                    transition={{ duration: 0.15 }}
                   >
                     <Button 
                       type="submit" 
@@ -437,7 +489,8 @@ type="submit"
                       )}
                     </Button>
                   </motion.div>
-                </motion.form>
+                </motion.div>
+              </motion.form>
               )}
               
               <motion.div 
@@ -471,128 +524,6 @@ type="submit"
           </Card>
         </motion.div>
       </motion.div>
-
-      {/* Right Side - Dashboard Preview */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        className="hidden lg:flex flex-col items-center justify-center"
-      >
-        <DashboardPreview />
-      </motion.div>
     </AuthLayout>
-  )
-}
-
-function DashboardPreview() {
-  const steps = [
-    { num: "01", title: "Login", desc: "Enter your credentials" },
-    { num: "02", title: "2FA Verify", desc: "Google Authenticator" },
-    { num: "03", title: "Dashboard", desc: "Manage trademarks" },
-  ]
-
-  return (
-    <div className="relative w-full max-w-lg">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-1 shadow-2xl"
-        style={{
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.3)'
-        }}
-      >
-        <div className="bg-white/50 rounded-[22px] overflow-hidden">
-          {/* Mock Browser Header */}
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3 flex items-center gap-2">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-            </div>
-            <div className="flex-1 flex justify-center">
-              <div className="bg-white/10 rounded-full px-4 py-1 text-xs text-white/60">
-                eastafricanip.com
-              </div>
-            </div>
-          </div>
-
-          <div className="flex h-[380px]">
-            {/* Sidebar */}
-            <div className="w-16 bg-gradient-to-b from-[#1e4b6d] to-[#12334d] p-2 flex flex-col gap-1">
-              <div className="w-10 h-10 rounded-lg bg-white/10 mx-auto mb-2" />
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className={`w-10 h-10 rounded-lg mx-auto ${i === 0 ? 'bg-white/20' : 'bg-white/5'}`} />
-              ))}
-            </div>
-
-            {/* Main Content Area */}
-            <div className="flex-1 p-4 bg-slate-50">
-              {/* Top Bar */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-32 h-6 bg-slate-200 rounded" />
-                <div className="w-20 h-6 bg-slate-200 rounded-full" />
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 mb-2" />
-                  <div className="w-16 h-3 bg-slate-200 rounded mb-1" />
-                  <div className="w-10 h-2 bg-slate-100 rounded" />
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 mb-2" />
-                  <div className="w-16 h-3 bg-slate-200 rounded mb-1" />
-                  <div className="w-10 h-2 bg-slate-100 rounded" />
-                </div>
-              </div>
-
-              {/* Chart Area */}
-              <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm mb-4 h-24">
-                <div className="flex items-end justify-between gap-1 h-full pb-2">
-                  {[40, 65, 45, 80, 55, 70, 90].map((h, i) => (
-                    <div key={i} className="flex-1 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t" style={{ height: `${h}%` }} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent List */}
-              <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
-                    <div className="w-6 h-6 rounded bg-slate-100" />
-                    <div className="flex-1">
-                      <div className="w-20 h-2 bg-slate-200 rounded mb-1" />
-                      <div className="w-12 h-1.5 bg-slate-100 rounded" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Step Indicators */}
-      <div className="flex justify-center gap-4 mt-6">
-        {steps.map((step, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 + i * 0.15 }}
-            className="flex items-center gap-2 px-3 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-white/20"
-          >
-            <span className="w-5 h-5 rounded-full bg-[#1e4b6d] text-white text-[10px] flex items-center justify-center font-medium">
-              {step.num}
-            </span>
-            <span className="text-xs font-medium text-slate-700">{step.title}</span>
-            <span className="text-[10px] text-slate-400 hidden sm:inline">{step.desc}</span>
-          </motion.div>
-        ))}
-      </div>
-    </div>
   )
 }

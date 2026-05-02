@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
+import { useSettingsStore } from '@/store/settingsStore'
 import {
   CurrencyDollar,
   ChartLineUp,
@@ -82,6 +83,7 @@ const EIPO_FEES = [
 
 export default function BillingPage() {
   const navigate = useNavigate()
+  const { companyInfo } = useSettingsStore()
 
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -443,12 +445,14 @@ export default function BillingPage() {
         y -= 40
       }
 
-      const companyInfo = [
-        'EAST AFRICAN INTELLECTUAL PROPERTY',
-        'Addis Ababa, Ethiopia',
-        'Email: info@eastafricanip.com | Web: www.eastafricanip.com'
+      const companyInfoLines = [
+        companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY',
+        companyInfo.companyCity || 'Addis Ababa, Ethiopia',
+        companyInfo.companyEmail && companyInfo.companyWebsite 
+          ? `Email: ${companyInfo.companyEmail} | Web: ${companyInfo.companyWebsite}`
+          : 'Email: info@eastafricanip.com | Web: www.eastafricanip.com'
       ]
-      companyInfo.forEach((line, i) => {
+      companyInfoLines.forEach((line, i) => {
         const fontSize = i === 0 ? 14 : 9
         const font = i === 0 ? boldFont : regularFont
         const textWidth = font.widthOfTextAtSize(line, fontSize)

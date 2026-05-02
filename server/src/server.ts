@@ -24,6 +24,7 @@ import oppositionsRoutes from './routes/oppositions.js';
 import feesRoutes from './routes/fees.js';
 import formsRoutes from './routes/forms.js';
 import agentsRoutes from './routes/agents.js';
+import settingsRoutes from './routes/settings.js';
 import { ensureAuthTables, pool } from './database/db.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -32,6 +33,9 @@ import { csrfMiddleware, csrfTokenSetter } from './middleware/csrf.js';
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Trust proxy for Apache Passenger
+app.set('trust proxy', 1);
 
 const nativeConsoleError = console.error.bind(console);
 const nativeConsoleWarn = console.warn.bind(console);
@@ -176,6 +180,7 @@ const registerRoutes = (prefix: string = '') => {
   app.use(`${prefix}/fees`, feesRoutes);
   app.use(`${prefix}/forms`, formsRoutes);
   app.use(`${prefix}/agents`, agentsRoutes);
+  app.use(`${prefix}/settings`, settingsRoutes);
 };
 
 // Register routes at both root and /api

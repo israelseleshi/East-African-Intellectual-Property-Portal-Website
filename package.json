@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "npm run dev --prefix client",
-    "dev:web": "npm run dev --prefix client",
+    "dev:web": "cd client && npx vite",
     "dev:api": "npm run dev --prefix server",
-    "dev:all": "concurrently -n \"WEB,API\" -c \"cyan,magenta\" \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:all": "node scripts/ensure-ssh-tunnel.js && concurrently -n \"WEB,API\" -c \"cyan,magenta\" \"npm run dev:web\" \"npm run dev:api\"",
     "build": "npm run build --prefix client && npm run build --prefix server",
     "typecheck": "npm run typecheck --prefix client && npm run typecheck --prefix server",
     "lint": "npm run lint --prefix client && npm run lint --prefix server",
@@ -14,13 +14,30 @@
     "migrate:mark-image-base64:dry": "npm run migrate:mark-image-base64:dry --prefix server",
     "healthcheck:mark-image-schema": "npm run healthcheck:mark-image-schema --prefix server",
     "sync:tables": "node server/generate_tables.js",
-    "audit:structure": "node scripts/dev-tools/audit-structure.js"
+    "audit:structure": "node scripts/dev-tools/audit-structure.js",
+    "tm:migrate": "node TM_MIGRATION_FILES/scripts/run-migration.js",
+    "tm:migrate:dry": "node TM_MIGRATION_FILES/scripts/run-migration.js --dry-run",
+    "tm:transform": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/01-transform.ts",
+    "tm:images": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/02-images.ts",
+    "tm:insert": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts",
+    "tm:insert:clients": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --module clients",
+    "tm:insert:agents": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --module agents",
+    "tm:insert:cases": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --module cases",
+    "tm:insert:nice": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --module nice",
+    "tm:insert:assets": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --module assets",
+    "tm:insert:history": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --module history",
+    "tm:insert:dry": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/03-insert.ts --dry-run",
+    "tm:verify": "npx tsx --env-file=server/.env TM_MIGRATION_FILES/scripts/04-verify.ts",
+    "tm:ssh": "node TM_MIGRATION_FILES/scripts/00-ssh-tunnel.js",
+    "tm:cleanup": "node TM_MIGRATION_FILES/scripts/05-cleanup.js",
+    "tm:upload:remote-images": "node TM_MIGRATION_FILES/scripts/06-upload-remote-images.js"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^3.0.3",
     "concurrently": "^9.2.1",
+    "dotenv": "^17.4.2",
     "esbuild": "^0.27.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.577.0",
@@ -28,6 +45,7 @@
     "pdf-lib": "^1.17.1",
     "react-country-flag": "^3.1.0",
     "react-pdf": "^10.4.1",
+    "ssh2": "^1.17.0",
     "world-countries": "^5.1.0"
   }
 }

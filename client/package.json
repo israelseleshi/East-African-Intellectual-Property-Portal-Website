@@ -14,10 +14,7 @@
     "perf:budget:fail-test": "node ./scripts/check-chunk-budgets.mjs --max-chunk-kb=100 --max-total-js-kb=200",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
-    "lint:encoding": "node ./scripts/check-encoding.mjs",
-    "test": "cypress run",
-    "test:open": "cypress open",
-    "cypress:install": "cypress install"
+    "lint:encoding": "node ./scripts/check-encoding.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -96,7 +93,6 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.20",
-    "cypress": "^15.10.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^5.0.0",

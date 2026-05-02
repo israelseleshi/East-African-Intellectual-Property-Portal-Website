@@ -13,7 +13,8 @@ const OUTPUT_FILE = path.join(__dirname, 'database_content_dump.md');
 async function dumpDatabase() {
   console.log('🚀 Starting Database Content Dump to Markdown...');
   
-  const connection = await mysql.createConnection({
+  const connection = await mysql.
+  createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,

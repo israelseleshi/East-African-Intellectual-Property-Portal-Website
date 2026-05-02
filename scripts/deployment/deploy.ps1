@@ -320,13 +320,14 @@ try {
     $outZip = Join-Path $deployTmp "frontend.zip"
     if (Test-Path $outZip) { Remove-Item $outZip -Force }
     
-    # Use native tar.exe for UNIX-compatible zip files (forward slash separator)
+    # Use Windows tar.exe from System32 for UNIX-compatible zip files
+    $tarExe = Join-Path $env:SystemRoot "System32\tar.exe"
     Push-Location $frontendPkg
-    tar.exe -a -c -f "$outZip" .
+    & $tarExe -a -c -f "$outZip" .
     Pop-Location
   }
 
-  if ($backendChanged) {
+if ($backendChanged) {
     Write-Host "Packaging backend..."
     $backendPkg = Join-Path $deployTmp "backend"
     if ($Incremental) {
@@ -336,9 +337,15 @@ try {
       Copy-Item -Recurse -Path "server/dist/*" -Destination $backendPkg
     }
 
-    Copy-Item -Path "server/package.json" -Destination (Join-Path $backendPkg "package.json") -Force
+Copy-Item -Path "server/package.json" -Destination (Join-Path $backendPkg "package.json") -Force
     if (Test-Path "server.js.temp") {
       Copy-Item -Path "server.js.temp" -Destination (Join-Path $backendPkg "server.js") -Force
+    }
+
+    # Preserve .htaccess with Passenger config (critical for cPanel deployment)
+    $remoteHtaccess = Join-Path $root "scripts/deployment/server.htaccess"
+    if (Test-Path $remoteHtaccess) {
+      Copy-Item -Path $remoteHtaccess -Destination (Join-Path $backendPkg ".htaccess") -Force
     }
 
     if (Test-Path (Join-Path $backendPkg "uploads")) { Remove-Item -Recurse -Force (Join-Path $backendPkg "uploads") }
@@ -347,9 +354,10 @@ try {
     $outZipBackend = Join-Path $deployTmp "backend.zip"
     if (Test-Path $outZipBackend) { Remove-Item $outZipBackend -Force }
 
-    # Use native tar.exe for UNIX-compatible zip files
+    # Use Windows tar.exe from System32 for UNIX-compatible zip files
+    $tarExe = Join-Path $env:SystemRoot "System32\tar.exe"
     Push-Location $backendPkg
-    tar.exe -a -c -f "$outZipBackend" .
+    & $tarExe -a -c -f "$outZipBackend" .
     Pop-Location
   }
 

@@ -1,51 +1,69 @@
-node_modules
-.DS_Store
+# =========================
+# Dependencies & Builds
+# =========================
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+pnpm-lock.yaml
+
+# =========================
+# Environment & Secrets
+# =========================
 .env
 .env.*
-dist
-build
-.vite
-coverage
-forms/forms/node_modules/
-pnpm-lock.yaml
-backups/
-archive/
-reports/*.pdf
+server/.env
+server/.env.production
+server/package.json.production
 
-# Database policy
-tables.md
-database_data.sql
-database_dump.sql
+# =========================
+# OS & IDE Files
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
+# =========================
 # Internal Documentation
+# =========================
 docs/
 *.md
 !README.md
 
-# Deployment and Temporary files
+# =========================
+# Migration & Analysis Data
+# =========================
+TM_MIGRATION_FILES/
+*.graph.json
+*.graph.html
+.graphify*
+
+# =========================
+# Deployment & Temporary
+# =========================
+backups/
+archive/
 deploy_tmp/
 delete-this/
 forms-upload/
 server/uploads/
-memories/
-client/.agents/
-*.zip
-*.log
-*.temp
+reports/*.pdf
 passenger_log_tmp.txt
 api-htaccess.txt
-debug_pdf.js
-npm
-$null
-server/.env
-server/.env.production
-server/package.json.production
 server/.htaccess-domain-api-subfolder
 server/server-dist.js
 server/test-db.js
 server/backend.zip
 
-# IDE and System
-.vscode/
-.idea/
-Thumbs.db
+# =========================
+# Misc & Local Config
+# =========================
+.npmrc
+skills-lock.json
+$null
+.nul
+*.log
+*.temp
+*.zip

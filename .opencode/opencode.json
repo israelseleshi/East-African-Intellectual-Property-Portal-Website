@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
+  "permission": {
+    "read": {
+      "C:/Users/israel/Documents/from_win_11/From the ThinkPad/websites/TPMS/East-African-Intellectual-Property-Portal-Website/.opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "C:/Users/israel/Documents/from_win_11/From the ThinkPad/websites/TPMS/East-African-Intellectual-Property-Portal-Website/.opencode/get-shit-done/*": "allow"
+    }
+  }
+}

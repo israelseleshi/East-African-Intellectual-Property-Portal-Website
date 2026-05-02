@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Proxy /api requests to Node.js server running on port 3001
+RewriteRule ^api/(.*)$ http://127.0.0.1:3001/api/$1 [P,L]
+
+# If Node server isn't running, show error
+ErrorDocument 502 /tmp/tpms-error.html

@@ -17,7 +17,8 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     const cookieToken = req.cookies?.access_token;
     const authHeader = req.headers['authorization'];
     const bearerToken = authHeader && authHeader.split(' ')[1];
-    const token = cookieToken || bearerToken;
+    const customToken = req.headers['x-access-token'] as string;
+    const token = cookieToken || bearerToken || customToken;
 
     if (!token) {
         return sendApiError(req, res, 401, {
@@ -26,7 +27,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         });
     }
 
-    jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, user: string | JwtPayloadBase | undefined) => {
+    jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }, (err: VerifyErrors | null, user: string | JwtPayloadBase | undefined) => {
         if (err) {
             logRouteError(req, 'auth.verify', err);
             return sendApiError(req, res, 403, {

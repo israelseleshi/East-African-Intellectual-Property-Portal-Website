@@ -1,0 +1,294 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "generated": "2026-05-02T11:02:00Z",
+    "project": "East-African-Intellectual-Property-Portal-Website",
+    "description": "TPMS - Trademark Management System for East African IP Offices"
+  },
+  "discovery": {
+    "languages": [
+      {
+        "name": "TypeScript",
+        "extensions": [
+          ".ts",
+          ".tsx"
+        ],
+        "files": 142,
+        "percentage": 78.3
+      },
+      {
+        "name": "JavaScript",
+        "extensions": [
+          ".js",
+          ".jsx"
+        ],
+        "files": 12,
+        "percentage": 6.6
+      },
+      {
+        "name": "JSON",
+        "extensions": [
+          ".json"
+        ],
+        "files": 18,
+        "percentage": 9.9
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "React",
+        "version": "19",
+        "files": 89,
+        "context": "client"
+      },
+      {
+        "name": "Vite",
+        "version": "6",
+        "files": 4,
+        "context": "client"
+      },
+      {
+        "name": "Express.js",
+        "version": "4.x",
+        "files": 43,
+        "context": "server"
+      }
+    ],
+    "structure": {
+      "monorepo": true,
+      "packages": [
+        {
+          "name": "client",
+          "path": "client/",
+          "type": "react-app"
+        },
+        {
+          "name": "server",
+          "path": "server/",
+          "type": "express-api"
+        }
+      ]
+    }
+  },
+  "extraction": {
+    "nodes": [
+      {
+        "id": "server_src_server_ts",
+        "label": "server.ts",
+        "type": "file"
+      },
+      {
+        "id": "client_src_main_tsx",
+        "label": "main.tsx",
+        "type": "file"
+      },
+      {
+        "id": "middleware_auth",
+        "label": "authenticateToken()",
+        "type": "function"
+      },
+      {
+        "id": "routes_cases",
+        "label": "createCase()",
+        "type": "function"
+      },
+      {
+        "id": "services_case",
+        "label": "transitionStage()",
+        "type": "function"
+      },
+      {
+        "id": "repositories_case",
+        "label": "query()",
+        "type": "function"
+      },
+      {
+        "id": "database",
+        "label": "execute()",
+        "type": "function"
+      },
+      {
+        "id": "useSwr",
+        "label": "useSwr()",
+        "type": "hook"
+      },
+      {
+        "id": "useFormAutomation",
+        "label": "useFormAutomation()",
+        "type": "hook"
+      },
+      {
+        "id": "authStore",
+        "label": "authStore",
+        "type": "store"
+      }
+    ],
+    "edges": [
+      {
+        "from": "client_src_main_tsx",
+        "to": "authStore",
+        "type": "imports"
+      },
+      {
+        "from": "authStore",
+        "to": "middleware_auth",
+        "type": "references"
+      },
+      {
+        "from": "routes_cases",
+        "to": "services_case",
+        "type": "calls"
+      },
+      {
+        "from": "services_case",
+        "to": "repositories_case",
+        "type": "uses"
+      },
+      {
+        "from": "repositories_case",
+        "to": "database",
+        "type": "calls"
+      }
+    ]
+  },
+  "layers": [
+    {
+      "name": "Presentation",
+      "color": "#3b82f6",
+      "nodes": [
+        "TrademarksPage",
+        "CaseFlowPage"
+      ]
+    },
+    {
+      "name": "API Client",
+      "color": "#10b981",
+      "nodes": [
+        "useSwr",
+        "useFormAutomation"
+      ]
+    },
+    {
+      "name": "API Server",
+      "color": "#f59e0b",
+      "nodes": [
+        "routes_cases",
+        "routes_clients"
+      ]
+    },
+    {
+      "name": "Business Logic",
+      "color": "#8b5cf6",
+      "nodes": [
+        "services_case",
+        "services_financial"
+      ]
+    },
+    {
+      "name": "Data Access",
+      "color": "#ec4899",
+      "nodes": [
+        "repositories_case",
+        "database"
+      ]
+    },
+    {
+      "name": "Middleware",
+      "color": "#ef4444",
+      "nodes": [
+        "middleware_auth",
+        "middleware_validate"
+      ]
+    }
+  ],
+  "tours": [
+    {
+      "id": "new-endpoint",
+      "title": "Adding a New API Endpoint",
+      "steps": [
+        {
+          "file": "server/src/routes/cases.ts"
+        },
+        {
+          "file": "server/src/services/caseLifecycleService.ts"
+        },
+        {
+          "file": "server/src/repositories/caseRepository.ts"
+        }
+      ]
+    },
+    {
+      "id": "new-ui-page",
+      "title": "Adding a New UI Page",
+      "steps": [
+        {
+          "file": "client/src/api/cases.ts"
+        },
+        {
+          "file": "client/src/pages/TrademarksPage.tsx"
+        },
+        {
+          "file": "client/src/app/router.tsx"
+        }
+      ]
+    },
+    {
+      "id": "auth-flow",
+      "title": "Authentication Flow",
+      "steps": [
+        {
+          "file": "server/src/middleware/auth.ts"
+        },
+        {
+          "file": "server/src/routes/auth.ts"
+        },
+        {
+          "file": "server/src/utils/totp.ts"
+        }
+      ]
+    },
+    {
+      "id": "case-lifecycle",
+      "title": "Case Lifecycle",
+      "steps": [
+        {
+          "file": "server/src/services/caseLifecycleService.ts"
+        },
+        {
+          "file": "client/src/pages/CaseFlowPage.tsx"
+        }
+      ]
+    },
+    {
+      "id": "billing",
+      "title": "Billing & Invoicing",
+      "steps": [
+        {
+          "file": "server/src/services/feeService.ts"
+        },
+        {
+          "file": "client/src/pages/BillingPage.tsx"
+        }
+      ]
+    },
+    {
+      "id": "form-automation",
+      "title": "Form Automation",
+      "steps": [
+        {
+          "file": "client/src/hooks/useFormAutomation.ts"
+        },
+        {
+          "file": "client/src/utils/pdfUtils.ts"
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "totalFiles": 181,
+    "totalNodes": 850,
+    "totalEdges": 120,
+    "totalLayers": 6,
+    "totalTours": 6
+  }
+}

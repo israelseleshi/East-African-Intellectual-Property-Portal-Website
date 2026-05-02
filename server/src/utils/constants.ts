@@ -173,7 +173,11 @@ export const FEE_SCHEDULE: Record<string, any> = {
     }
 };
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-prod';
+export const JWT_SECRET = process.env.JWT_SECRET || '';
+
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
 export const uploadDir = process.env.UPLOAD_DIR 
     ? path.resolve(process.env.UPLOAD_DIR) 
     : path.resolve(process.cwd(), 'uploads');

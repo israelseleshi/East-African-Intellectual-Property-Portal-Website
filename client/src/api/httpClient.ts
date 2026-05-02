@@ -34,6 +34,10 @@ apiClient.interceptors.request.use((config) => {
       config.headers['x-csrf-token'] = csrf;
     }
   }
+  const token = readCookie('access_token');
+  if (token) {
+    config.headers['x-access-token'] = token;
+  }
   return config;
 });
 
