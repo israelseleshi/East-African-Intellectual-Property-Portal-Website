@@ -60,6 +60,8 @@ export default function ProfilePage() {
     fax: ''
   })
   const [agentFormLoading, setAgentFormLoading] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [agentToDelete, setAgentToDelete] = useState<string | null>(null)
 
   // 2FA state
   const [totpEnabled, setTotpEnabled] = useState(false)
@@ -238,11 +240,18 @@ export default function ProfilePage() {
     admin.firm_name?.toLowerCase().includes(pendingSearch.toLowerCase())
   )
 
-  const handleDeleteAgent = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this agent?')) return
+  const handleDeleteAgent = (id: string) => {
+    setAgentToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteAgent = async () => {
+    if (!agentToDelete) return
     try {
-      await agentsApi.delete(id)
+      await agentsApi.delete(agentToDelete)
       toast.success('Agent Deleted', { description: 'Agent has been removed.' })
+      setDeleteDialogOpen(false)
+      setAgentToDelete(null)
       fetchAgents()
     } catch (error: any) {
       toast.error('Error', {
@@ -383,7 +392,7 @@ export default function ProfilePage() {
     : "grid w-full grid-cols-2 max-w-[350px]"
 
   return (
-    <div className="w-full p-4 md:p-8 space-y-6 max-w-4xl mx-auto min-h-screen">
+    <div className="w-full flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto min-h-screen">
       <header className="flex items-center justify-between">
         <div>
           <Typography.h1a>Account Settings</Typography.h1a>
@@ -391,7 +400,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs defaultValue="profile" className="flex flex-col gap-6">
         <TabsList className={tabsClassName}>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
@@ -400,7 +409,7 @@ export default function ProfilePage() {
           {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="profile" className="space-y-6">
+        <TabsContent value="profile" className="flex flex-col gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1">
@@ -418,9 +427,9 @@ export default function ProfilePage() {
               )}
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="fullName" className="text-sm font-medium">Full Name</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -434,7 +443,7 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="email" className="text-sm font-medium">Email Address</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -448,7 +457,7 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -462,7 +471,7 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="firmName" className="text-sm font-medium">Firm Name</label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -506,7 +515,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-            <TabsContent value="security" className="space-y-6">
+            <TabsContent value="security" className="flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -516,8 +525,8 @@ export default function ProfilePage() {
               <CardDescription>Change your password to keep your account secure.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
                   <label htmlFor="currentPassword" className="text-sm font-medium">Current Password</label>
                   <Input 
                     id="currentPassword" 
@@ -529,7 +538,7 @@ export default function ProfilePage() {
                 </div>
                 <Separator />
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="newPassword" className="text-sm font-medium">New Password</label>
                     <Input 
                       id="newPassword" 
@@ -539,7 +548,7 @@ export default function ProfilePage() {
                       autoComplete="new-password"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</label>
                     <Input 
                       id="confirmPassword" 
@@ -562,7 +571,7 @@ export default function ProfilePage() {
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-1">
+<div className="flex flex-col gap-1">
                     <Typography.h3 className="flex items-center gap-2">
                       <Smartphone className="size-5" />
                       Two-Factor Authentication
@@ -603,7 +612,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="company" className="space-y-6">
+        <TabsContent value="company" className="flex flex-col gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1">
@@ -642,7 +651,7 @@ export default function ProfilePage() {
                       placeholder="Your company name" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="companyAddress" className="text-sm font-medium">Address</label>
                     <Input 
                       id="companyAddress" 
@@ -652,7 +661,7 @@ export default function ProfilePage() {
                       placeholder="Street address" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="companyCity" className="text-sm font-medium">City</label>
                     <Input 
                       id="companyCity" 
@@ -662,7 +671,7 @@ export default function ProfilePage() {
                       placeholder="Addis Ababa, Ethiopia" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="companyEmail" className="text-sm font-medium">Email</label>
                     <Input 
                       id="companyEmail" 
@@ -673,7 +682,7 @@ export default function ProfilePage() {
                       placeholder="info@company.com" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="companyPhone" className="text-sm font-medium">Phone</label>
                     <Input 
                       id="companyPhone" 
@@ -683,7 +692,7 @@ export default function ProfilePage() {
                       placeholder="+251 91 123 4567" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="companyWebsite" className="text-sm font-medium">Website</label>
                     <Input 
                       id="companyWebsite" 
@@ -693,7 +702,7 @@ export default function ProfilePage() {
                       placeholder="www.company.com" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <label htmlFor="taxId" className="text-sm font-medium">Tax ID / Registration</label>
                     <Input 
                       id="taxId" 
@@ -988,7 +997,7 @@ export default function ProfilePage() {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label htmlFor="name" className="text-sm font-medium">Name *</label>
               <Input 
                 id="name" 
@@ -998,7 +1007,7 @@ export default function ProfilePage() {
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="country" className="text-sm font-medium">Country</label>
                 <CountrySelector 
                   value={agentFormData.country}
@@ -1007,7 +1016,7 @@ export default function ProfilePage() {
                   id="country"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="city" className="text-sm font-medium">City</label>
                 <Input 
                   id="city" 
@@ -1018,7 +1027,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="subcity" className="text-sm font-medium">Subcity</label>
                 <Input 
                   id="subcity" 
@@ -1027,7 +1036,7 @@ export default function ProfilePage() {
                   placeholder="Subcity"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="woreda" className="text-sm font-medium">Woreda</label>
                 <Input 
                   id="woreda" 
@@ -1038,7 +1047,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="houseNo" className="text-sm font-medium">House No</label>
                 <Input 
                   id="houseNo" 
@@ -1047,7 +1056,7 @@ export default function ProfilePage() {
                   placeholder="House number"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="poBox" className="text-sm font-medium">PO Box</label>
                 <Input 
                   id="poBox" 
@@ -1058,7 +1067,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="telephone" className="text-sm font-medium">Telephone</label>
                 <Input 
                   id="telephone" 
@@ -1067,7 +1076,7 @@ export default function ProfilePage() {
                   placeholder="Telephone"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label htmlFor="fax" className="text-sm font-medium">Fax</label>
                 <Input 
                   id="fax" 
@@ -1077,7 +1086,7 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm font-medium">Email</label>
               <Input 
                 id="email" 
@@ -1097,10 +1106,36 @@ export default function ProfilePage() {
               {editingAgent ? 'Save Changes' : 'Add Agent'}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </DialogContent>
+        </Dialog>
 
-      {/* 2FA Setup Dialog */}
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trash2 className="size-5 text-destructive" />
+                Delete Agent
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this agent? This action cannot be undone.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDeleteAgent}>
+                <Trash2 className="mr-2 size-4" />
+                Delete Agent
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 2FA Setup Dialog */}
       <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1123,7 +1158,7 @@ export default function ProfilePage() {
                 Can't scan? Enter this code manually: <code className="bg-muted px-1 rounded">{totpSecret}</code>
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label className="text-sm font-medium">Enter verification code</label>
               <Input 
                 value={verifyCode}
@@ -1197,7 +1232,7 @@ export default function ProfilePage() {
                 You'll only need your password to log in.
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label className="text-sm font-medium">Enter authenticator code or backup code</label>
               <Input 
                 value={disableCode}
