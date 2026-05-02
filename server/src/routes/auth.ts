@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { pool } from '../database/db.js';
 import { authenticateToken, requireSuperAdmin } from '../middleware/auth.js';
+import { csrfMiddleware } from '../middleware/csrf.js';
 import { JWT_SECRET } from '../utils/constants.js';
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOtp, sendApprovalEmail, sendRejectionEmail } from '../utils/mailer.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
@@ -274,7 +275,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-router.patch('/profile', authenticateToken, async (req, res) => {
+router.patch('/profile', authenticateToken, csrfMiddleware, async (req, res) => {
   try {
     const parsed = updateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -319,7 +320,7 @@ router.patch('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/change-password', authenticateToken, async (req, res) => {
+router.post('/change-password', authenticateToken, csrfMiddleware, async (req, res) => {
   try {
     const parsed = changePasswordSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -355,7 +356,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', authLimiter, csrfMiddleware, async (req, res) => {
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -407,7 +408,7 @@ const userId = crypto.randomUUID();
   }
 });
 
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', csrfMiddleware, async (req, res) => {
   try {
     const parsed = verifyOtpSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -553,7 +554,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/forgot-password', authLimiter, async (req, res) => {
+router.post('/forgot-password', authLimiter, csrfMiddleware, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -586,9 +587,8 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     }
 
     res.json({ message: 'If an account exists with this email, a reset code has been sent.' });
-  } catch (error) {
-    console.error('FORGOT_PASSWORD_ERROR_DEBUG:', error);
-    logRouteError(req, 'auth.forgot-password', error);
+    } catch (error) {
+      logRouteError(req, 'auth.forgot-password', error);
     sendApiError(req, res, 500, { 
       code: 'FORGOT_PASSWORD_FAILED', 
       message: 'Failed to process forgot password request',
@@ -597,7 +597,7 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
   }
 });
 
-router.post('/reset-password', authLimiter, async (req, res) => {
+router.post('/reset-password', authLimiter, csrfMiddleware, async (req, res) => {
   try {
     const { email, otp, password } = req.body;
     if (!email || !otp || !password) {
@@ -645,7 +645,7 @@ router.get('/pending', authenticateToken, requireSuperAdmin, async (req, res) =>
   }
 });
 
-router.patch('/approve/:userId', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.patch('/approve/:userId', authenticateToken, requireSuperAdmin, csrfMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -673,7 +673,7 @@ router.patch('/approve/:userId', authenticateToken, requireSuperAdmin, async (re
   }
 });
 
-router.patch('/reject/:userId', authenticateToken, requireSuperAdmin, async (req, res) => {
+router.patch('/reject/:userId', authenticateToken, requireSuperAdmin, csrfMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -710,7 +710,7 @@ router.patch('/reject/:userId', authenticateToken, requireSuperAdmin, async (req
 });
 
 // TOTP 2FA Routes
-router.post('/2fa/setup', authenticateToken, async (req, res) => {
+router.post('/2fa/setup', authenticateToken, csrfMiddleware, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -747,7 +747,7 @@ router.post('/2fa/setup', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/2fa/verify', authenticateToken, async (req, res) => {
+router.post('/2fa/verify', authenticateToken, csrfMiddleware, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -788,7 +788,7 @@ router.post('/2fa/verify', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/2fa/disable', authenticateToken, async (req, res) => {
+router.post('/2fa/disable', authenticateToken, csrfMiddleware, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
