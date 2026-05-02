@@ -961,19 +961,21 @@ export default function ProfilePage() {
                         ) : admin.rejection_count < 3 ? (
                           <>
                             <Button
-                               onClick={() => handleApproveAdmin(admin.id)}
-                               disabled={pendingProcessing === admin.id}
-                               size="sm"
-                             >
+                                onClick={() => handleApproveAdmin(admin.id)}
+                                disabled={pendingProcessing === admin.id}
+                                size="sm"
+                                className="transition-colors hover:opacity-90"
+                              >
                               <Check size={16} className="mr-1" />
                               Approve
                             </Button>
-                            <Button
-                              onClick={() => handleRejectAdmin(admin.id)}
-                              disabled={pendingProcessing === admin.id}
-                              variant="destructive"
-                              size="sm"
-                            >
+                              <Button
+                                onClick={() => handleRejectAdmin(admin.id)}
+                                disabled={pendingProcessing === admin.id}
+                                variant="destructive"
+                                size="sm"
+                                className="transition-colors"
+                              >
                               <X size={16} className="mr-1" />
                               Reject
                             </Button>
