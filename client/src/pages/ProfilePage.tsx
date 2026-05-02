@@ -1214,8 +1214,8 @@ export default function ProfilePage() {
             setPreviewUrl(null)
           }
         }}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
+          <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-2">
+            <DialogHeader className="pb-2">
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="size-5" />
                 Invoice Preview
@@ -1224,10 +1224,10 @@ export default function ProfilePage() {
                 Live preview of your invoice with current company information
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 min-h-[60vh] overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-auto">
               {previewUrl ? (
                 <iframe
-                  src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                  src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                   className="w-full h-full bg-white"
                   title="Invoice Preview"
                 />
@@ -1237,7 +1237,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <Button onClick={() => {
                 setPreviewOpen(false)
                 if (previewUrl) {
