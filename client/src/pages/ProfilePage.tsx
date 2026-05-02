@@ -931,7 +931,7 @@ export default function ProfilePage() {
                             Permanently Rejected
                           </Badge>
                         ) : admin.is_approved === 1 ? (
-                          <Badge className="bg-green-600 text-xs">
+                          <Badge className="bg-[#0A2533] text-white text-xs">
                             Approved
                           </Badge>
                         ) : admin.rejection_count > 0 ? (
@@ -943,7 +943,11 @@ export default function ProfilePage() {
                             Pending
                           </Badge>
                         )}
-                        {admin.rejection_count < 3 && (
+                        {admin.is_approved === 1 ? (
+                          <span className="text-xs text-muted-foreground italic">
+                            Already approved
+                          </span>
+                        ) : admin.rejection_count < 3 ? (
                           <>
                             <Button
                               onClick={() => handleApproveAdmin(admin.id)}
@@ -964,7 +968,7 @@ export default function ProfilePage() {
                               Reject
                             </Button>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   ))}
