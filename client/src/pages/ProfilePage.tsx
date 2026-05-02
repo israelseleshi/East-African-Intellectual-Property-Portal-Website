@@ -15,7 +15,8 @@ import { authService } from '@/utils/api'
 import { toast } from 'sonner'
 import { agentsApi, Agent } from '@/api/agents'
 import { authApi } from '@/api/auth'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import jsPDF from 'jspdf'
 import { CountrySelector } from '@/components/CountrySelector'
 import {
   Table,
@@ -33,7 +34,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingCompany, setIsEditingCompany] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
   const [formData, setFormData] = useState({
     fullName: user?.full_name || '',
     email: user?.email || '',
@@ -75,6 +75,103 @@ export default function ProfilePage() {
   const [showBackupCodes, setShowBackupCodes] = useState(false)
   const [disableDialogOpen, setDisableDialogOpen] = useState(false)
   const [disableCode, setDisableCode] = useState('')
+
+  const generateInvoicePDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    let y = 20
+
+    // Header
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text(companyInfo.companyName || 'Company Name', 20, y)
+    y += 8
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(companyInfo.companyAddress || '123 Main Street', 20, y)
+    y += 5
+    doc.text(companyInfo.companyCity || 'Addis Ababa, Ethiopia', 20, y)
+    y += 5
+    if (companyInfo.companyEmail) { doc.text(companyInfo.companyEmail, 20, y); y += 5 }
+    if (companyInfo.companyPhone) { doc.text(companyInfo.companyPhone, 20, y); y += 5 }
+    if (companyInfo.companyWebsite) { doc.text(companyInfo.companyWebsite, 20, y); y += 5 }
+    if (companyInfo.taxId) { doc.text(`Tax ID: ${companyInfo.taxId}`, 20, y); y += 5 }
+
+    // Invoice title (right side)
+    doc.setFontSize(28)
+    doc.setFont('helvetica', 'bold')
+    doc.text('INVOICE', pageWidth - 20, 20, { align: 'right' })
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Invoice #: INV-2026-001', pageWidth - 20, 30, { align: 'right' })
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 20, 36, { align: 'right' })
+
+    y = Math.max(y, 50)
+
+    // FROM / TO
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('FROM', 20, y)
+    doc.text('TO', pageWidth / 2 + 10, y)
+    y += 6
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(companyInfo.companyName || 'Your Company Name', 20, y)
+    doc.text('Client Company Ltd.', pageWidth / 2 + 10, y)
+    y += 5
+    doc.text(companyInfo.companyAddress || '123 Main Street', 20, y)
+    doc.text('456 Business Avenue', pageWidth / 2 + 10, y)
+    y += 5
+    doc.text(companyInfo.companyCity || 'Addis Ababa, Ethiopia', 20, y)
+    doc.text('Nairobi, Kenya', pageWidth / 2 + 10, y)
+    y += 10
+
+    // Table header
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Description', 20, y)
+    doc.text('Qty', pageWidth - 80, y, { align: 'right' })
+    doc.text('Rate', pageWidth - 50, y, { align: 'right' })
+    doc.text('Amount', pageWidth - 20, y, { align: 'right' })
+    y += 4
+    doc.line(20, y, pageWidth - 20, y)
+    y += 6
+
+    // Table rows
+    doc.setFont('helvetica', 'normal')
+    const items = [
+      ['Trademark Registration - Class 25', '1', '$1,500.00', '$1,500.00'],
+      ['Patent Filing - Utility Model', '1', '$2,500.00', '$2,500.00'],
+    ]
+    items.forEach(([desc, qty, rate, amount]) => {
+      doc.text(desc, 20, y)
+      doc.text(qty, pageWidth - 80, y, { align: 'right' })
+      doc.text(rate, pageWidth - 50, y, { align: 'right' })
+      doc.text(amount, pageWidth - 20, y, { align: 'right' })
+      y += 8
+    })
+
+    // Total
+    y += 2
+    doc.line(20, y, pageWidth - 20, y)
+    y += 6
+    doc.setFont('helvetica', 'bold')
+    doc.text('Total', pageWidth - 50, y)
+    doc.text('$4,000.00', pageWidth - 20, y, { align: 'right' })
+
+    // Footer
+    y += 20
+    doc.line(20, y, pageWidth - 20, y)
+    y += 6
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `${companyInfo.companyName || 'Your Company'} • ${companyInfo.companyPhone || 'Phone'} • ${companyInfo.companyEmail || 'Email'}`,
+      20, y, { maxWidth: pageWidth - 40, align: 'center' }
+    )
+
+    doc.save(`invoice-preview-${Date.now()}.pdf`)
+  }
 
   // Pending Admins state
   const [pendingAdmins, setPendingAdmins] = useState<any[]>([])
@@ -634,7 +731,7 @@ export default function ProfilePage() {
                   </Button>
                 )}
                 {isEditingCompany && (
-                  <Button onClick={() => setPreviewOpen(true)} variant="outline" size="sm" className="transition-colors hover:bg-muted">
+                  <Button onClick={generateInvoicePDF} variant="outline" size="sm" className="transition-colors hover:bg-muted">
                     <Eye className="mr-2 size-4" />
                     Preview Invoice
                   </Button>
@@ -793,124 +890,6 @@ export default function ProfilePage() {
               </CardContent>
         </Card>
         </TabsContent>
-
-        {/* Preview Invoice Dialog */}
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="size-5" />
-                Invoice Preview
-              </DialogTitle>
-              <DialogDescription>
-                Live preview of your invoice header with current company information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="bg-white p-8 rounded-lg border shadow-sm">
-              {/* Invoice Header */}
-              <div className="flex justify-between items-start pb-6 border-b">
-                <div className="flex-1">
-                  {companyInfo.logoUrl ? (
-                    <img 
-                      src={companyInfo.logoUrl} 
-                      alt="Company logo" 
-                      className="h-16 w-auto object-contain mb-4"
-                    />
-                  ) : (
-                    <div className="h-16 w-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center mb-4">
-                      <Building className="size-8 text-muted-foreground/50" />
-                    </div>
-                  )}
-                  <h2 className="text-2xl font-bold text-gray-900">{companyInfo.companyName || 'Company Name'}</h2>
-                  <p className="text-sm text-gray-600 mt-1">{companyInfo.companyAddress || '123 Main Street'}</p>
-                  <p className="text-sm text-gray-600">{companyInfo.companyCity || 'Addis Ababa, Ethiopia'}</p>
-                </div>
-                <div className="text-right">
-                  <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
-                  <p className="text-sm text-gray-600 mt-2">Invoice #: INV-2026-001</p>
-                  <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
-                </div>
-              </div>
-
-              {/* Company Details */}
-              <div className="grid grid-cols-2 gap-6 py-6 border-b">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">FROM</h3>
-                  <p className="text-sm text-gray-700">{companyInfo.companyName || 'Your Company Name'}</p>
-                  <p className="text-sm text-gray-600">{companyInfo.companyAddress || '123 Main Street'}</p>
-                  <p className="text-sm text-gray-600">{companyInfo.companyCity || 'Addis Ababa, Ethiopia'}</p>
-                  {companyInfo.companyEmail && (
-                    <p className="text-sm text-gray-600">{companyInfo.companyEmail}</p>
-                  )}
-                  {companyInfo.companyPhone && (
-                    <p className="text-sm text-gray-600">{companyInfo.companyPhone}</p>
-                  )}
-                  {companyInfo.companyWebsite && (
-                    <p className="text-sm text-gray-600">{companyInfo.companyWebsite}</p>
-                  )}
-                  {companyInfo.taxId && (
-                    <p className="text-sm text-gray-600">Tax ID: {companyInfo.taxId}</p>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">TO</h3>
-                  <p className="text-sm text-gray-700">Client Company Ltd.</p>
-                  <p className="text-sm text-gray-600">456 Business Avenue</p>
-                  <p className="text-sm text-gray-600">Nairobi, Kenya</p>
-                  <p className="text-sm text-gray-600">client@company.com</p>
-                </div>
-              </div>
-
-               {/* Sample Invoice Items */}
-               <div className="py-6">
-                 <table className="w-full">
-                   <thead>
-                     <tr className="border-b">
-                       <th className="text-left text-sm font-semibold text-gray-900 pb-2">Description</th>
-                       <th className="text-right text-sm font-semibold text-gray-900 pb-2">Qty</th>
-                       <th className="text-right text-sm font-semibold text-gray-900 pb-2">Rate</th>
-                       <th className="text-right text-sm font-semibold text-gray-900 pb-2">Amount</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     <tr className="border-b">
-                       <td className="py-3 text-sm text-gray-700">Trademark Registration - Class 25</td>
-                       <td className="py-3 text-sm text-gray-600 text-right">1</td>
-                       <td className="py-3 text-sm text-gray-600 text-right">$1,500.00</td>
-                       <td className="py-3 text-sm text-gray-900 text-right">$1,500.00</td>
-                     </tr>
-                     <tr className="border-b">
-                       <td className="py-3 text-sm text-gray-700">Patent Filing - Utility Model</td>
-                       <td className="py-3 text-sm text-gray-600 text-right">1</td>
-                       <td className="py-3 text-sm text-gray-600 text-right">$2,500.00</td>
-                       <td className="py-3 text-sm text-gray-900 text-right">$2,500.00</td>
-                     </tr>
-                     <tr>
-                       <td colSpan={3} className="pt-4 text-right text-sm font-semibold">Total</td>
-                       <td className="pt-4 text-right text-sm font-bold">$4,000.00</td>
-                     </tr>
-                   </tbody>
-                 </table>
-               </div>
-
-              {/* Footer */}
-              <div className="pt-6 border-t text-center">
-                <p className="text-xs text-gray-500">
-                  {companyInfo.companyName || 'Your Company'} • {companyInfo.companyPhone || 'Phone'} • {companyInfo.companyEmail || 'Email'}
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setPreviewOpen(false)} variant="outline">
-                Close Preview
-              </Button>
-              <Button onClick={() => { setIsEditingCompany(true); setPreviewOpen(false) }}>
-                <Edit2 className="mr-2 size-4" />
-                Edit Company Info
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <TabsContent value="agents" className="flex flex-col gap-6">
           <Card>
