@@ -379,7 +379,7 @@ export default function ProfilePage() {
   }
 
   const tabsClassName = isUserSuperAdmin 
-    ? "grid w-full grid-cols-4 max-w-[550px]" 
+    ? "grid w-full grid-cols-5 max-w-[650px]" 
     : "grid w-full grid-cols-2 max-w-[350px]"
 
   return (
