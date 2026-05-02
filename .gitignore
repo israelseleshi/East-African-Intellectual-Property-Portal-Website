@@ -60,6 +60,7 @@ server/backend.zip
 # =========================
 # Misc & Local Config
 # =========================
+.worktrees/
 .npmrc
 skills-lock.json
 $null
