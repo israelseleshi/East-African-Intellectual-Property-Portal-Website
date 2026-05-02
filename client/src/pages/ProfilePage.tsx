@@ -241,6 +241,7 @@ export default function ProfilePage() {
       y -= 15
 
       // Total
+      y -= 10
       page.drawRectangle({
         x: marginLeft,
         y: y - 10,
