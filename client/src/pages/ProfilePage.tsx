@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Typography } from '@/components/ui/typography'
-import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase, Key, Smartphone, AlertTriangle, UserPlus, Check, X, Search, Clock, Building } from 'lucide-react'
+import { User, Mail, Shield, Lock, Save, Loader2, Edit2, Phone, Building2, Trash2, Plus, Briefcase, Key, Smartphone, AlertTriangle, UserPlus, Check, X, Search, Clock, Building, Eye, FileText } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingCompany, setIsEditingCompany] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [formData, setFormData] = useState({
     fullName: user?.full_name || '',
     email: user?.email || '',
@@ -625,12 +626,20 @@ export default function ProfilePage() {
                 </CardTitle>
                 <CardDescription>Update your company details for invoice headers and documents.</CardDescription>
               </div>
-              {!isEditingCompany && (
-                <Button onClick={() => setIsEditingCompany(true)} variant="outline" size="sm">
-                  <Edit2 className="mr-2 size-4" />
-                  Edit Company
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {!isEditingCompany && (
+                  <Button onClick={() => setIsEditingCompany(true)} variant="outline" size="sm">
+                    <Edit2 className="mr-2 size-4" />
+                    Edit Company
+                  </Button>
+                )}
+                {isEditingCompany && (
+                  <Button onClick={() => setPreviewOpen(true)} variant="outline" size="sm" className="transition-colors hover:bg-muted">
+                    <Eye className="mr-2 size-4" />
+                    Preview Invoice
+                  </Button>
+                )}
+              </div>}
             </CardHeader>
             <CardContent>
               <form onSubmit={async (e) => { 
@@ -781,11 +790,131 @@ export default function ProfilePage() {
                   </div>
                 )}
               </form>
-            </CardContent>
-          </Card>
+              </CardContent>
+        </Card>
         </TabsContent>
 
-            <TabsContent value="agents" className="flex flex-col gap-6">
+        {/* Preview Invoice Dialog */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="size-5" />
+                Invoice Preview
+              </DialogTitle>
+              <DialogDescription>
+                Live preview of your invoice header with current company information
+              </DialogDescription>
+            </DialogHeader>
+            <div className="bg-white p-8 rounded-lg border shadow-sm">
+              {/* Invoice Header */}
+              <div className="flex justify-between items-start pb-6 border-b">
+                <div className="flex-1">
+                  {companyInfo.logoUrl ? (
+                    <img 
+                      src={companyInfo.logoUrl} 
+                      alt="Company logo" 
+                      className="h-16 w-auto object-contain mb-4"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center mb-4">
+                      <Building className="size-8 text-muted-foreground/50" />
+                    </div>
+                  )}
+                  <h2 className="text-2xl font-bold text-gray-900">{companyInfo.companyName || 'Company Name'}</h2>
+                  <p className="text-sm text-gray-600 mt-1">{companyInfo.companyAddress || '123 Main Street'}</p>
+                  <p className="text-sm text-gray-600">{companyInfo.companyCity || 'Addis Ababa, Ethiopia'}</p>
+                </div>
+                <div className="text-right">
+                  <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
+                  <p className="text-sm text-gray-600 mt-2">Invoice #: INV-2026-001</p>
+                  <p className="text-sm text-gray-600">Date: {new Date().toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {/* Company Details */}
+              <div className="grid grid-cols-2 gap-6 py-6 border-b">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">FROM</h3>
+                  <p className="text-sm text-gray-700">{companyInfo.companyName || 'Your Company Name'}</p>
+                  <p className="text-sm text-gray-600">{companyInfo.companyAddress || '123 Main Street'}</p>
+                  <p className="text-sm text-gray-600">{companyInfo.companyCity || 'Addis Ababa, Ethiopia'}</p>
+                  {companyInfo.companyEmail && (
+                    <p className="text-sm text-gray-600">{companyInfo.companyEmail}</p>
+                  )}
+                  {companyInfo.companyPhone && (
+                    <p className="text-sm text-gray-600">{companyInfo.companyPhone}</p>
+                  )}
+                  {companyInfo.companyWebsite && (
+                    <p className="text-sm text-gray-600">{companyInfo.companyWebsite}</p>
+                  )}
+                  {companyInfo.taxId && (
+                    <p className="text-sm text-gray-600">Tax ID: {companyInfo.taxId}</p>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">TO</h3>
+                  <p className="text-sm text-gray-700">Client Company Ltd.</p>
+                  <p className="text-sm text-gray-600">456 Business Avenue</p>
+                  <p className="text-sm text-gray-600">Nairobi, Kenya</p>
+                  <p className="text-sm text-gray-600">client@company.com</p>
+                </div>
+              </div>
+
+              {/* Sample Invoice Items */}
+              <div className="py-6">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left text-sm font-semibold text-gray-900 pb-2">Description</th>
+                      <th className="text-right text-sm font-semibold text-gray-900 pb-2">Qty</th>
+                      <th className="text-right text-sm font-semibold text-gray-900 pb-2">Rate</th>
+                      <th className="text-right text-sm font-semibold text-gray-900 pb-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="py-3 text-sm text-gray-700">Trademark Registration - Class 25</td>
+                      <td className="py-3 text-sm text-gray-600 text-right">1</td>
+                      <td className="py-3 text-sm text-gray-600 text-right">$1,500.00</td>
+                      <td className="py-3 text-sm text-gray-900 text-right">$1,500.00</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-3 text-sm text-gray-700">Patent Filing - Utility Model</td>
+                      <td className="py-3 text-sm text-gray-600 text-right">1</td>
+                      <td className="py-3 text-sm text-gray-600 text-right">$2,500.00</td>
+                      <td className="py-3 text-sm text-gray-900 text-right">$2,500.00</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3} className="pt-4 text-right text-sm font-semibold">Total</td>
+                      <td className="pt-4 text-right text-sm font-bold">$4,000.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Footer */}
+              <div className="pt-6 border-t text-center">
+                <p className="text-xs text-gray-500">
+                  {companyInfo.companyName || 'Your Company'} • {companyInfo.companyPhone || 'Phone'} • {companyInfo.companyEmail || 'Email'}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setPreviewOpen(false)} variant="outline">
+                Close Preview
+              </Button>
+              <Button onClick={() => { setIsEditingCompany(true); setPreviewOpen(false) }}>
+                <Edit2 className="mr-2 size-4" />
+                Edit Company Info
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <TabsContent value="agents" className="flex flex-col gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex flex-col gap-1">
