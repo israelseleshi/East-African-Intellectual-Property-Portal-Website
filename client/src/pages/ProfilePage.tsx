@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { cn } from '@/lib/utils'
@@ -233,11 +233,14 @@ export default function ProfilePage() {
     }
   }, [isUserSuperAdmin])
 
-  const filteredPendingAdmins = pendingAdmins.filter(admin => 
-    !pendingSearch || 
-    admin.full_name?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    admin.email?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
-    admin.firm_name?.toLowerCase().includes(pendingSearch.toLowerCase())
+  const filteredPendingAdmins = useMemo(() => 
+    pendingAdmins.filter(admin => 
+      !pendingSearch || 
+      admin.full_name?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+      admin.email?.toLowerCase().includes(pendingSearch.toLowerCase()) ||
+      admin.firm_name?.toLowerCase().includes(pendingSearch.toLowerCase())
+    ),
+    [pendingAdmins, pendingSearch]
   )
 
   const handleDeleteAgent = (id: string) => {
@@ -411,8 +414,8 @@ export default function ProfilePage() {
 
         <TabsContent value="profile" className="flex flex-col gap-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex flex-col gap-1">
                 <CardTitle className="flex items-center gap-2">
                   <User className="size-5" />
                   Profile Information
@@ -505,7 +508,7 @@ export default function ProfilePage() {
           <Card className="bg-muted/30">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
+                <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium leading-none">Account Role</p>
                   <p className="text-sm text-muted-foreground uppercase">{user?.role || 'User'}</p>
                 </div>
@@ -569,7 +572,7 @@ export default function ProfilePage() {
               
               <Separator className="my-6" />
               
-              <div className="space-y-4">
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
 <div className="flex flex-col gap-1">
                     <Typography.h3 className="flex items-center gap-2">
@@ -614,8 +617,8 @@ export default function ProfilePage() {
 
         <TabsContent value="company" className="flex flex-col gap-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex flex-col gap-1">
                 <CardTitle className="flex items-center gap-2">
                   <Building className="size-5" />
                   Company Information
@@ -782,10 +785,10 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-            <TabsContent value="agents" className="space-y-6">
+            <TabsContent value="agents" className="flex flex-col gap-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex flex-col gap-1">
                 <CardTitle className="flex items-center gap-2">
                   <Briefcase className="size-5" />
                   Agents
@@ -854,11 +857,11 @@ export default function ProfilePage() {
         </TabsContent>
 
         {/* Pending Admins Tab */}
-        <TabsContent value="pending" className="space-y-6">
+        <TabsContent value="pending" className="flex flex-col gap-6">
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
+                <div className="flex flex-col gap-1">
                   <CardTitle className="flex items-center gap-2">
                     <UserPlus className="size-5" />
                     Pending Administrators
@@ -878,7 +881,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               {pendingLoading ? (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                   {[1, 2, 3].map(i => (
                     <Skeleton key={i} className="h-20 w-full" />
                   ))}
@@ -892,7 +895,7 @@ export default function ProfilePage() {
                   </Typography.muted>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                   {filteredPendingAdmins.map((admin) => (
                     <div
                       key={admin.id}
@@ -1144,7 +1147,7 @@ export default function ProfilePage() {
               Setup Two-Factor Authentication
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div className="text-sm text-muted-foreground">
               <p className="mb-4">Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)</p>
               <div className="flex justify-center p-4 bg-white rounded-lg">
@@ -1190,7 +1193,7 @@ export default function ProfilePage() {
               Backup Codes
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
                 <strong>Important:</strong> Save these backup codes in a secure location. 
@@ -1225,7 +1228,7 @@ export default function ProfilePage() {
               Disable Two-Factor Authentication
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
               <p className="text-sm text-destructive">
                 <strong>Warning:</strong> Disabling 2FA will make your account less secure. 
