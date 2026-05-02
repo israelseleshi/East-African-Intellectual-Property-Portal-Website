@@ -85,11 +85,30 @@ export default function ProfilePage() {
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
       const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
+      // Color palette (60-30-10)
+      const navy = rgb(0.059, 0.102, 0.18) // #0F1A2E
+      const cream = rgb(0.973, 0.976, 0.98) // #F8F9FA
+      const white = rgb(1, 1, 1)
+      const lightGray = rgb(0.9, 0.9, 0.9)
+      const terracotta = rgb(0.769, 0.584, 0.416) // #C4956A
+
       const marginLeft = 50
       const marginRight = 545
-      let y = 800
+      const pageWidth = 595.28
+      const headerHeight = 140
 
-      // Logo
+      // --- BLUE HEADER ---
+      page.drawRectangle({
+        x: 0,
+        y: 841.89 - headerHeight,
+        width: pageWidth,
+        height: headerHeight,
+        color: navy
+      })
+
+      let headerY = 841.89 - 30
+
+      // Logo (left side of header)
       try {
         const logoSrc = companyInfo.logoUrl || '/eaip-logo.png'
         let logoImageBytes: Uint8Array
@@ -110,127 +129,124 @@ export default function ProfilePage() {
         } else {
           logoImage = await pdfDoc.embedJpg(logoImageBytes)
         }
-        const logoDims = logoImage.scale(0.125)
+        const logoDims = logoImage.scale(0.15)
+        const logoX = 50
+        const logoY = 841.89 - headerHeight + (headerHeight - logoDims.height) / 2
         page.drawImage(logoImage, {
-          x: (595.28 - logoDims.width) / 2,
-          y: y - logoDims.height,
+          x: logoX,
+          y: logoY,
           width: logoDims.width,
           height: logoDims.height,
         })
-        y -= (logoDims.height + 15)
       } catch (e) {
         console.warn('Could not load logo for PDF', e)
-        y -= 40
       }
 
-      // Company info (centered)
-      const companyInfoLines = [
-        companyInfo.companyName || 'East African Intellectual Property',
-        companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || ''}` : 'Addis Ababa, Ethiopia',
-        companyInfo.companyEmail && companyInfo.companyWebsite
-          ? `Email: ${companyInfo.companyEmail} | Web: ${companyInfo.companyWebsite}`
-          : `Email: ${companyInfo.companyEmail || 'info@eastafricanip.com'} | Web: ${companyInfo.companyWebsite || 'www.eastafricanip.com'}`,
+      // Company info (right side of header, white/light gray text)
+      const companyLines = [
+        { text: companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY', size: 16, font: boldFont, color: white },
+        { text: companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || 'Addis Ababa'}` : 'Addis Ababa, Ethiopia', size: 9, font: regularFont, color: lightGray },
       ]
-      if (companyInfo.companyPhone) {
-        companyInfoLines.push(`Phone: ${companyInfo.companyPhone}`)
-      }
-      if (companyInfo.taxId) {
-        companyInfoLines.push(`Tax ID: ${companyInfo.taxId}`)
-      }
-      companyInfoLines.forEach((line, i) => {
-        const fontSize = i === 0 ? 14 : 9
-        const font = i === 0 ? boldFont : regularFont
-        const textWidth = font.widthOfTextAtSize(line, fontSize)
-        page.drawText(line, {
-          x: (595.28 - textWidth) / 2,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0.1, 0.1, 0.1)
+      if (companyInfo.companyEmail) companyLines.push({ text: `Email: ${companyInfo.companyEmail}`, size: 9, font: regularFont, color: lightGray })
+      if (companyInfo.companyWebsite) companyLines.push({ text: `Web: ${companyInfo.companyWebsite}`, size: 9, font: regularFont, color: lightGray })
+      if (companyInfo.companyPhone) companyLines.push({ text: `Phone: ${companyInfo.companyPhone}`, size: 9, font: regularFont, color: lightGray })
+      if (companyInfo.taxId) companyLines.push({ text: `Tax ID: ${companyInfo.taxId}`, size: 9, font: regularFont, color: lightGray })
+
+      let companyY = headerY
+      companyLines.forEach(line => {
+        const textWidth = line.font.widthOfTextAtSize(line.text, line.size)
+        page.drawText(line.text, {
+          x: pageWidth - textWidth - 50,
+          y: companyY,
+          size: line.size,
+          font: line.font,
+          color: line.color
         })
-        y -= (fontSize + 5)
+        companyY -= (line.size + 6)
       })
 
-      y -= 30
-      page.drawLine({
-        start: { x: marginLeft, y },
-        end: { x: marginRight, y },
-        thickness: 1,
-        color: rgb(0.8, 0.8, 0.8)
-      })
-      y -= 40
-
-      // INVOICE title
-      page.drawText('Invoice', {
-        x: marginLeft,
-        y,
-        size: 24,
+      // Invoice title (right side of header)
+      const invoiceTitle = 'Invoice'
+      page.drawText(invoiceTitle, {
+        x: pageWidth - boldFont.widthOfTextAtSize(invoiceTitle, 28) - 50,
+        y: 841.89 - headerHeight + 40,
+        size: 28,
         font: boldFont,
-        color: rgb(0.08, 0.16, 0.32)
+        color: white
       })
 
+      // Invoice # and date (header area)
       const invoiceNo = 'No: INV-2026-001'
-      const invNoWidth = boldFont.widthOfTextAtSize(invoiceNo, 12)
       page.drawText(invoiceNo, {
-        x: marginRight - invNoWidth,
-        y: y + 5,
-        size: 12,
-        font: boldFont
+        x: pageWidth - boldFont.widthOfTextAtSize(invoiceNo, 10) - 50,
+        y: 841.89 - headerHeight + 20,
+        size: 10,
+        font: boldFont,
+        color: lightGray
       })
-      y -= 50
+      const today = new Date().toLocaleDateString()
+      page.drawText(`Date: ${today}`, {
+        x: pageWidth - regularFont.widthOfTextAtSize(`Date: ${today}`, 10) - 50,
+        y: 841.89 - headerHeight + 8,
+        size: 10,
+        font: regularFont,
+        color: lightGray
+      })
 
-      // Client & Trademark Details
-      const drawSectionTitle = (title: string, yPos: number) => {
-        page.drawText(title, {
-          x: marginLeft,
-          y: yPos,
-          size: 10,
-          font: boldFont,
-          color: rgb(0.4, 0.4, 0.4)
-        })
-        return yPos - 20
-      }
+      // --- BODY (White background) ---
+      let y = 841.89 - headerHeight - 40
 
-      y = drawSectionTitle('Client & Trademark Details', y)
+      // Two-column layout: Client Details (left) + Billing Schedule (right)
+      const colWidth = 220
+      const leftColX = marginLeft
+      const rightColX = marginLeft + colWidth + 40
 
-      const detailRows: Array<[string, string]> = [
+      // Left column: Client & Trademark Details
+      page.drawText('Client & Trademark Details', { x: leftColX, y, size: 11, font: boldFont, color: navy })
+      y -= 25
+      const clientRows: Array<[string, string]> = [
         ['Client Name', 'Client Company Ltd.'],
         ['Trademark', 'Sample Trademark Registration']
       ]
-      detailRows.forEach(([label, value]) => {
-        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
-        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
+      clientRows.forEach(([label, value]) => {
+        page.drawText(label, { x: leftColX, y, size: 10, font: boldFont, color: rgb(0.2, 0.2, 0.2) })
+        page.drawText(value, { x: leftColX + 110, y, size: 10, font: regularFont, color: rgb(0.3, 0.3, 0.3) })
         y -= 18
       })
 
-      y -= 20
-      y = drawSectionTitle('Billing Schedule', y)
+      // Right column: Billing Schedule (reset y)
+      let yRight = 841.89 - headerHeight - 40
+      page.drawText('Billing Schedule', { x: rightColX, y: yRight, size: 11, font: boldFont, color: navy })
+      yRight -= 25
       const billingRows: Array<[string, string]> = [
-        ['Issue Date', new Date().toLocaleDateString()],
+        ['Issue Date', today],
         ['Due Date', '—'],
         ['Payment Method', 'Bank Transfer']
       ]
       billingRows.forEach(([label, value]) => {
-        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
-        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
-        y -= 18
+        page.drawText(label, { x: rightColX, y: yRight, size: 10, font: boldFont, color: rgb(0.2, 0.2, 0.2) })
+        page.drawText(value, { x: rightColX + 110, y: yRight, size: 10, font: regularFont, color: rgb(0.3, 0.3, 0.3) })
+        yRight -= 18
       })
 
-      y -= 30
-      y = drawSectionTitle('Fee Details', y)
+      y = Math.min(y, yRight) - 30
 
-      // Table header
+      // --- FEE DETAILS TABLE ---
+      page.drawText('Fee Details', { x: marginLeft, y, size: 11, font: boldFont, color: navy })
+      y -= 25
+
+      // Table header (cream background)
       page.drawRectangle({
         x: marginLeft,
         y: y - 5,
         width: marginRight - marginLeft,
-        height: 20,
-        color: rgb(0.96, 0.97, 0.98)
+        height: 22,
+        color: cream
       })
-      page.drawText('#', { x: marginLeft + 5, y, size: 9, font: boldFont })
-      page.drawText('Description', { x: marginLeft + 30, y, size: 9, font: boldFont })
-      page.drawText('Amount', { x: marginRight - 80, y, size: 9, font: boldFont })
-      y -= 22
+      page.drawText('#', { x: marginLeft + 5, y, size: 10, font: boldFont, color: navy })
+      page.drawText('Description', { x: marginLeft + 30, y, size: 10, font: boldFont, color: navy })
+      page.drawText('Amount', { x: marginRight - 80, y, size: 10, font: boldFont, color: navy })
+      y -= 24
 
       // Table rows
       const items = [
@@ -238,47 +254,55 @@ export default function ProfilePage() {
         { desc: 'Patent Filing - Utility Model', amount: 2500 },
       ]
       items.forEach((item, index) => {
+        if (index % 2 === 0) {
+          page.drawRectangle({
+            x: marginLeft,
+            y: y - 4,
+            width: marginRight - marginLeft,
+            height: 18,
+            color: rgb(0.99, 0.99, 0.99)
+          })
+        }
         page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
         page.drawText(item.desc, { x: marginLeft + 30, y, size: 9, font: regularFont })
         const amountText = `ETB ${item.amount.toLocaleString()}`
         page.drawText(amountText, { x: marginRight - 80, y, size: 9, font: regularFont })
-        y -= 16
+        y -= 18
       })
 
       y -= 15
 
-      // Total
+      // --- TOTAL AMOUNT DUE (10px gap above as requested) ---
       y -= 10
       page.drawRectangle({
-        x: marginLeft,
-        y: y - 10,
-        width: marginRight - marginLeft,
-        height: 40,
-        color: rgb(0.96, 0.97, 0.98)
+        x: marginRight - 200,
+        y: y - 15,
+        width: 200,
+        height: 45,
+        color: cream
       })
 
       page.drawText('Total Amount Due', {
-        x: marginLeft + 15,
-        y: y + 5,
+        x: marginRight - 190,
+        y: y + 10,
         size: 12,
         font: boldFont,
-        color: rgb(0.08, 0.16, 0.32)
+        color: navy
       })
-
-      y -= 10
 
       const totalAmount = 'ETB 4,000'
       const totalWidth = boldFont.widthOfTextAtSize(totalAmount, 16)
       page.drawText(totalAmount, {
-        x: marginRight - totalWidth - 15,
-        y: y + 3,
+        x: marginRight - totalWidth - 10,
+        y: y + 10,
         size: 16,
         font: boldFont,
-        color: rgb(0.08, 0.16, 0.32)
+        color: navy
       })
 
       y -= 60
-      y -= 40
+
+      // --- SIGNATURE & FOOTER ---
       page.drawLine({
         start: { x: marginRight - 180, y },
         end: { x: marginRight, y },
@@ -287,20 +311,38 @@ export default function ProfilePage() {
       })
       y -= 12
       page.drawText('Authorized Signature', {
-        x: marginRight - 145,
+        x: marginRight - 175,
         y,
         size: 10,
-        font: boldFont,
-        color: rgb(0.1, 0.1, 0.1)
+        font: regularFont,
+        color: rgb(0.3, 0.3, 0.3)
+      })
+
+      // Footer bar (navy)
+      page.drawRectangle({
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        height: 40,
+        color: navy
+      })
+      const footerText = `${companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY'} | ${companyInfo.companyEmail || 'info@eastafricanip.com'} | ${companyInfo.companyWebsite || 'www.eastafricanip.com'}`
+      const footerWidth = regularFont.widthOfTextAtSize(footerText, 8)
+      page.drawText(footerText, {
+        x: (pageWidth - footerWidth) / 2,
+        y: 15,
+        size: 8,
+        font: regularFont,
+        color: white
       })
 
       const pdfBytes = await pdfDoc.save()
-      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(pdfBlob)
+      const blob = new Blob([pdfBytes as unknown as ArrayBuffer], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
       setPreviewUrl(url)
       setPreviewOpen(true)
     } catch (error) {
-      console.error('Failed to generate invoice PDF:', error)
+      console.error('Error generating invoice PDF:', error)
     }
   }
 
