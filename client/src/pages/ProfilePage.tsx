@@ -898,10 +898,8 @@ export default function ProfilePage() {
               ) : (
                 <div className="flex flex-col gap-4">
                   {filteredPendingAdmins.map((admin) => (
-                    <div
-                      key={admin.id}
-                      className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background rounded-lg border"
-                    >
+                    <Card key={admin.id} className="p-4">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -944,7 +942,7 @@ export default function ProfilePage() {
                             Permanently Rejected
                           </Badge>
                         ) : admin.is_approved === 1 ? (
-                          <Badge className="bg-[#0A2533] text-white text-xs">
+                           <Badge variant="default" className="text-xs">
                             Approved
                           </Badge>
                         ) : admin.rejection_count > 0 ? (
@@ -963,11 +961,10 @@ export default function ProfilePage() {
                         ) : admin.rejection_count < 3 ? (
                           <>
                             <Button
-                              onClick={() => handleApproveAdmin(admin.id)}
-                              disabled={pendingProcessing === admin.id}
-                              className="bg-green-600 hover:bg-green-700"
-                              size="sm"
-                            >
+                               onClick={() => handleApproveAdmin(admin.id)}
+                               disabled={pendingProcessing === admin.id}
+                               size="sm"
+                             >
                               <Check size={16} className="mr-1" />
                               Approve
                             </Button>
@@ -981,8 +978,11 @@ export default function ProfilePage() {
                               Reject
                             </Button>
                           </>
-                        ) : null}
+                        )}
                       </div>
+                    </Card>
+                  ))}
+                </div>
                     </div>
                   ))}
                 </div>
