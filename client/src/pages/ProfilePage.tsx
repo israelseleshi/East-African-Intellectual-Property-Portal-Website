@@ -91,9 +91,18 @@ export default function ProfilePage() {
 
       // Logo
       try {
-        const logoUrl = companyInfo.logoUrl || '/eaip-logo.png'
-        const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer())
-        const logoImage = await pdfDoc.embedPng(logoImageBytes)
+        const logoSrc = companyInfo.logoUrl || '/eaip-logo.png'
+        let logoImageBytes: ArrayBuffer
+        if (logoSrc.startsWith('data:')) {
+          const base64 = logoSrc.split(',')[1]
+          const binary = atob(base64)
+          const bytes = new Uint8Array(binary.length)
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+          logoImageBytes = bytes.buffer
+        } else {
+          logoImageBytes = await fetch(logoSrc).then(res => res.arrayBuffer())
+        }
+        const logoImage = await pdfDoc.embedPng(new Uint8Array(logoImageBytes))
         const logoDims = logoImage.scale(0.125)
         page.drawImage(logoImage, {
           x: (595.28 - logoDims.width) / 2,
@@ -247,6 +256,8 @@ export default function ProfilePage() {
         font: boldFont,
         color: rgb(0.08, 0.16, 0.32)
       })
+
+      y -= 10
 
       const totalAmount = 'ETB 4,000'
       const totalWidth = boldFont.widthOfTextAtSize(totalAmount, 16)
