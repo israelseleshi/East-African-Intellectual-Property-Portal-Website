@@ -92,17 +92,24 @@ export default function ProfilePage() {
       // Logo
       try {
         const logoSrc = companyInfo.logoUrl || '/eaip-logo.png'
-        let logoImageBytes: ArrayBuffer
+        let logoImageBytes: Uint8Array
         if (logoSrc.startsWith('data:')) {
           const base64 = logoSrc.split(',')[1]
           const binary = atob(base64)
           const bytes = new Uint8Array(binary.length)
           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-          logoImageBytes = bytes.buffer
+          logoImageBytes = bytes
         } else {
-          logoImageBytes = await fetch(logoSrc).then(res => res.arrayBuffer())
+          const res = await fetch(logoSrc)
+          const arrayBuffer = await res.arrayBuffer()
+          logoImageBytes = new Uint8Array(arrayBuffer)
         }
-        const logoImage = await pdfDoc.embedPng(new Uint8Array(logoImageBytes))
+        let logoImage
+        if (logoSrc.includes('.png') || (logoSrc.startsWith('data:image/png'))) {
+          logoImage = await pdfDoc.embedPng(logoImageBytes)
+        } else {
+          logoImage = await pdfDoc.embedJpg(logoImageBytes)
+        }
         const logoDims = logoImage.scale(0.125)
         page.drawImage(logoImage, {
           x: (595.28 - logoDims.width) / 2,
@@ -118,7 +125,7 @@ export default function ProfilePage() {
 
       // Company info (centered)
       const companyInfoLines = [
-        companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY',
+        companyInfo.companyName || 'East African Intellectual Property',
         companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || ''}` : 'Addis Ababa, Ethiopia',
         companyInfo.companyEmail && companyInfo.companyWebsite
           ? `Email: ${companyInfo.companyEmail} | Web: ${companyInfo.companyWebsite}`
@@ -154,7 +161,7 @@ export default function ProfilePage() {
       y -= 40
 
       // INVOICE title
-      page.drawText('INVOICE', {
+      page.drawText('Invoice', {
         x: marginLeft,
         y,
         size: 24,
@@ -174,7 +181,7 @@ export default function ProfilePage() {
 
       // Client & Trademark Details
       const drawSectionTitle = (title: string, yPos: number) => {
-        page.drawText(title.toUpperCase(), {
+        page.drawText(title, {
           x: marginLeft,
           y: yPos,
           size: 10,
@@ -250,7 +257,7 @@ export default function ProfilePage() {
         color: rgb(0.96, 0.97, 0.98)
       })
 
-      page.drawText('TOTAL AMOUNT DUE', {
+      page.drawText('Total Amount Due', {
         x: marginLeft + 15,
         y: y + 5,
         size: 12,
@@ -878,7 +885,7 @@ export default function ProfilePage() {
                     <label htmlFor="companyName" className="text-sm font-medium">Company Name</label>
                     <Input 
                       id="companyName" 
-                      value={companyInfo.companyName} 
+                      value={companyInfo.companyName ?? ''} 
                       onChange={(e) => setCompanyInfo({ companyName: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Your company name" 
@@ -888,7 +895,7 @@ export default function ProfilePage() {
                     <label htmlFor="companyAddress" className="text-sm font-medium">Address</label>
                     <Input 
                       id="companyAddress" 
-                      value={companyInfo.companyAddress} 
+                      value={companyInfo.companyAddress ?? ''} 
                       onChange={(e) => setCompanyInfo({ companyAddress: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Street address" 
@@ -898,7 +905,7 @@ export default function ProfilePage() {
                     <label htmlFor="companyCity" className="text-sm font-medium">City</label>
                     <Input 
                       id="companyCity" 
-                      value={companyInfo.companyCity} 
+                      value={companyInfo.companyCity ?? ''} 
                       onChange={(e) => setCompanyInfo({ companyCity: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Addis Ababa, Ethiopia" 
@@ -909,7 +916,7 @@ export default function ProfilePage() {
                     <Input 
                       id="companyEmail" 
                       type="email"
-                      value={companyInfo.companyEmail} 
+                      value={companyInfo.companyEmail ?? ''} 
                       onChange={(e) => setCompanyInfo({ companyEmail: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="info@company.com" 
@@ -919,7 +926,7 @@ export default function ProfilePage() {
                     <label htmlFor="companyPhone" className="text-sm font-medium">Phone</label>
                     <Input 
                       id="companyPhone" 
-                      value={companyInfo.companyPhone} 
+                      value={companyInfo.companyPhone ?? ''} 
                       onChange={(e) => setCompanyInfo({ companyPhone: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="+251 91 123 4567" 
@@ -929,7 +936,7 @@ export default function ProfilePage() {
                     <label htmlFor="companyWebsite" className="text-sm font-medium">Website</label>
                     <Input 
                       id="companyWebsite" 
-                      value={companyInfo.companyWebsite} 
+                      value={companyInfo.companyWebsite ?? ''} 
                       onChange={(e) => setCompanyInfo({ companyWebsite: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="www.company.com" 
@@ -939,7 +946,7 @@ export default function ProfilePage() {
                     <label htmlFor="taxId" className="text-sm font-medium">Tax ID / Registration</label>
                     <Input 
                       id="taxId" 
-                      value={companyInfo.taxId} 
+                      value={companyInfo.taxId ?? ''} 
                       onChange={(e) => setCompanyInfo({ taxId: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Tax identification number" 
