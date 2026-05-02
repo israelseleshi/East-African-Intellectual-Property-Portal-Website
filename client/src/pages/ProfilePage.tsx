@@ -861,39 +861,37 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Sample Invoice Items */}
-              <div className="py-6">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left text-sm font-semibold text-gray-900 pb-2">Description</th>
-                      <th className="text-right text-sm font-semibold text-gray-900 pb-2">Qty</th>
-                      <th className="text-right text-sm font-semibold text-gray-900 pb-2">Rate</th>
-                      <th className="text-right text-sm font-semibold text-gray-900 pb-2">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="py-3 text-sm text-gray-700">Trademark Registration - Class 25</td>
-                      <td className="py-3 text-sm text-gray-600 text-right">1</td>
-                      <td className="py-3 text-sm text-gray-600 text-right">$1,500.00</td>
-                      <td className="py-3 text-sm text-gray-900 text-right">$1,500.00</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3 text-sm text-gray-700">Patent Filing - Utility Model</td>
-                      <td className="py-3 text-sm text-gray-600 text-right">1</td>
-                      <td className="py-3 text-sm text-gray-600 text-right">$2,500.00</td>
-                      <td className="py-3 text-sm text-gray-900 text-right">$2,500.00</td>
-                    </tr>
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={3} className="pt-4 text-right text-sm font-semibold">Total</td>
-                      <td className="pt-4 text-right text-sm font-bold">$4,000.00</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+               {/* Sample Invoice Items */}
+               <div className="py-6">
+                 <table className="w-full">
+                   <thead>
+                     <tr className="border-b">
+                       <th className="text-left text-sm font-semibold text-gray-900 pb-2">Description</th>
+                       <th className="text-right text-sm font-semibold text-gray-900 pb-2">Qty</th>
+                       <th className="text-right text-sm font-semibold text-gray-900 pb-2">Rate</th>
+                       <th className="text-right text-sm font-semibold text-gray-900 pb-2">Amount</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     <tr className="border-b">
+                       <td className="py-3 text-sm text-gray-700">Trademark Registration - Class 25</td>
+                       <td className="py-3 text-sm text-gray-600 text-right">1</td>
+                       <td className="py-3 text-sm text-gray-600 text-right">$1,500.00</td>
+                       <td className="py-3 text-sm text-gray-900 text-right">$1,500.00</td>
+                     </tr>
+                     <tr className="border-b">
+                       <td className="py-3 text-sm text-gray-700">Patent Filing - Utility Model</td>
+                       <td className="py-3 text-sm text-gray-600 text-right">1</td>
+                       <td className="py-3 text-sm text-gray-600 text-right">$2,500.00</td>
+                       <td className="py-3 text-sm text-gray-900 text-right">$2,500.00</td>
+                     </tr>
+                     <tr>
+                       <td colSpan={3} className="pt-4 text-right text-sm font-semibold">Total</td>
+                       <td className="pt-4 text-right text-sm font-bold">$4,000.00</td>
+                     </tr>
+                   </tbody>
+                 </table>
+               </div>
 
               {/* Footer */}
               <div className="pt-6 border-t text-center">
