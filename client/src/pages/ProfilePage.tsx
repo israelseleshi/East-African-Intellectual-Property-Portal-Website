@@ -85,23 +85,24 @@ export default function ProfilePage() {
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
       const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
-      // Color palette (60-30-10 Premium)
-      const navy = rgb(0.059, 0.102, 0.18) // #0F1A2E - 10% accent
-      const cream = rgb(0.973, 0.976, 0.98) // #F8F9FA - 30% secondary
-      const white = rgb(1, 1, 1) // 60% primary
-      const lightGray = rgb(0.9, 0.9, 0.9)
-      const terracotta = rgb(0.769, 0.584, 0.416) // #C4956A - accent
+      // Color palette (60-30-10) - Clean & Minimal
+      const navy = rgb(0.059, 0.102, 0.18) // #0F1A2E - Primary
+      const navyLight = rgb(0.12, 0.2, 0.35) // Lighter navy for subtle accents
+      const white = rgb(1, 1, 1)
+      const lightGray = rgb(0.95, 0.95, 0.95)
       const darkGray = rgb(0.2, 0.2, 0.2)
-      const mediumGray = rgb(0.3, 0.3, 0.3)
+      const mediumGray = rgb(0.4, 0.4, 0.4)
+      const subtleLine = rgb(0.85, 0.85, 0.85)
 
-      const marginLeft = 50
-      const marginRight = 545
+      const marginLeft = 60
+      const marginRight = 535
       const pageWidth = 595.28
-      const headerHeight = 160
-      const sectionGap = 45
-      const rowPadding = 22
+      const contentWidth = marginRight - marginLeft
+      const headerHeight = 150
+      const sectionGap = 55
+      const tableRowHeight = 28
 
-      // --- PREMIUM BLUE HEADER ---
+      // --- CLEAN BLUE HEADER ---
       page.drawRectangle({
         x: 0,
         y: 841.89 - headerHeight,
@@ -110,13 +111,12 @@ export default function ProfilePage() {
         color: navy
       })
 
-      // Subtle bottom border accent (terracotta)
-      page.drawRectangle({
-        x: 0,
-        y: 841.89 - headerHeight,
-        width: pageWidth,
-        height: 3,
-        color: terracotta
+      // Thin white line at bottom of header for elegance
+      page.drawLine({
+        start: { x: 0, y: 841.89 - headerHeight },
+        end: { x: pageWidth, y: 841.89 - headerHeight },
+        thickness: 0.5,
+        color: white
       })
 
       // Logo (left side, vertically centered)
@@ -140,8 +140,8 @@ export default function ProfilePage() {
         } else {
           logoImage = await pdfDoc.embedJpg(logoImageBytes)
         }
-        const logoDims = logoImage.scale(0.18)
-        const logoX = 50
+        const logoDims = logoImage.scale(0.16)
+        const logoX = marginLeft
         const logoY = 841.89 - headerHeight + (headerHeight - logoDims.height) / 2
         page.drawImage(logoImage, {
           x: logoX,
@@ -153,85 +153,72 @@ export default function ProfilePage() {
         console.warn('Could not load logo for PDF', e)
       }
 
-      // Company info block (right side, top-aligned)
+      // Company info (right side)
       const companyLines = [
-        { text: companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY', size: 18, font: boldFont, color: white },
-        { text: '', size: 6, font: regularFont, color: white }, // spacer
-        { text: companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || 'Addis Ababa'}` : 'Addis Ababa, Ethiopia', size: 10, font: regularFont, color: lightGray },
+        { text: companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY', size: 16, font: boldFont, color: white },
+        { text: companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || 'Addis Ababa'}` : 'Addis Ababa, Ethiopia', size: 9.5, font: regularFont, color: lightGray },
       ]
-      if (companyInfo.companyEmail) companyLines.push({ text: `Email: ${companyInfo.companyEmail}`, size: 10, font: regularFont, color: lightGray })
-      if (companyInfo.companyWebsite) companyLines.push({ text: `Web: ${companyInfo.companyWebsite}`, size: 10, font: regularFont, color: lightGray })
-      if (companyInfo.companyPhone) companyLines.push({ text: `Phone: ${companyInfo.companyPhone}`, size: 10, font: regularFont, color: lightGray })
-      if (companyInfo.taxId) companyLines.push({ text: `Tax ID: ${companyInfo.taxId}`, size: 10, font: regularFont, color: lightGray })
+      if (companyInfo.companyEmail) companyLines.push({ text: companyInfo.companyEmail, size: 9.5, font: regularFont, color: lightGray })
+      if (companyInfo.companyWebsite) companyLines.push({ text: companyInfo.companyWebsite, size: 9.5, font: regularFont, color: lightGray })
+      if (companyInfo.companyPhone) companyLines.push({ text: companyInfo.companyPhone, size: 9.5, font: regularFont, color: lightGray })
 
-      let companyY = 841.89 - 35
+      let companyY = 841.89 - 40
       companyLines.forEach(line => {
-        if (line.text === '') {
-          companyY -= line.size
-          return
-        }
         const textWidth = line.font.widthOfTextAtSize(line.text, line.size)
         page.drawText(line.text, {
-          x: pageWidth - textWidth - 50,
+          x: pageWidth - textWidth - marginLeft,
           y: companyY,
           size: line.size,
           font: line.font,
           color: line.color
         })
-        companyY -= (line.size + 8)
+        companyY -= (line.size + 7)
       })
 
-      // Invoice title (large, right side, middle of header)
+      // Invoice title (large, right side)
       const invoiceTitle = 'INVOICE'
+      const titleSize = 32
       page.drawText(invoiceTitle, {
-        x: pageWidth - boldFont.widthOfTextAtSize(invoiceTitle, 36) - 50,
-        y: 841.89 - headerHeight + 65,
-        size: 36,
+        x: pageWidth - boldFont.widthOfTextAtSize(invoiceTitle, titleSize) - marginLeft,
+        y: 841.89 - headerHeight + 55,
+        size: titleSize,
         font: boldFont,
         color: white
       })
 
-      // Invoice meta (bottom right of header)
+      // Invoice meta (bottom of header, right-aligned)
       const invoiceNo = 'No: INV-2026-001'
       const today = new Date().toLocaleDateString()
       page.drawText(invoiceNo, {
-        x: pageWidth - boldFont.widthOfTextAtSize(invoiceNo, 11) - 50,
-        y: 841.89 - headerHeight + 20,
-        size: 11,
+        x: pageWidth - boldFont.widthOfTextAtSize(invoiceNo, 10) - marginLeft,
+        y: 841.89 - headerHeight + 18,
+        size: 10,
         font: boldFont,
-        color: terracotta
+        color: rgb(0.75, 0.75, 0.75)
       })
       page.drawText(`Date: ${today}`, {
-        x: pageWidth - regularFont.widthOfTextAtSize(`Date: ${today}`, 11) - 50,
-        y: 841.89 - headerHeight + 8,
-        size: 11,
+        x: pageWidth - regularFont.widthOfTextAtSize(`Date: ${today}`, 10) - marginLeft,
+        y: 841.89 - headerHeight + 6,
+        size: 10,
         font: regularFont,
-        color: lightGray
+        color: rgb(0.75, 0.75, 0.75)
       })
 
-      // --- BODY (White background with generous whitespace) ---
+      // --- BODY ---
       let y = 841.89 - headerHeight - sectionGap
 
-      // Two-column layout
-      const colWidth = 220
+      // Two-column layout (better alignment)
+      const colWidth = (contentWidth - 40) / 2
       const leftColX = marginLeft
-      const rightColX = marginLeft + colWidth + 60
+      const rightColX = marginLeft + colWidth + 40
 
       // LEFT COLUMN: Client & Trademark Details
-      const sectionTitleSize = 13
-      const labelSize = 11
-      const valueSize = 11
+      const sectionTitleSize = 12
+      const labelSize = 10
+      const valueSize = 10
 
-      // Section title with left accent border
-      page.drawRectangle({
-        x: leftColX,
-        y: y - 2,
-        width: 4,
-        height: 18,
-        color: terracotta
-      })
-      page.drawText('Client & Trademark Details', { x: leftColX + 12, y, size: sectionTitleSize, font: boldFont, color: navy })
-      y -= 30
+      page.drawText('Client & Trademark Details', { x: leftColX, y, size: sectionTitleSize, font: boldFont, color: navy })
+      y -= 25
 
       const clientRows: Array<[string, string]> = [
         ['Client Name', 'Client Company Ltd.'],
@@ -239,21 +226,14 @@ export default function ProfilePage() {
       ]
       clientRows.forEach(([label, value]) => {
         page.drawText(label, { x: leftColX, y, size: labelSize, font: boldFont, color: darkGray })
-        page.drawText(value, { x: leftColX + 120, y, size: valueSize, font: regularFont, color: mediumGray })
-        y -= rowPadding
+        page.drawText(value, { x: leftColX + 110, y, size: valueSize, font: regularFont, color: mediumGray })
+        y -= 20
       })
 
-      // RIGHT COLUMN: Billing Schedule (reset y)
+      // RIGHT COLUMN: Billing Schedule
       let yRight = 841.89 - headerHeight - sectionGap
-      page.drawRectangle({
-        x: rightColX,
-        y: yRight - 2,
-        width: 4,
-        height: 18,
-        color: terracotta
-      })
-      page.drawText('Billing Schedule', { x: rightColX + 12, y: yRight, size: sectionTitleSize, font: boldFont, color: navy })
-      yRight -= 30
+      page.drawText('Billing Schedule', { x: rightColX, y: yRight, size: sectionTitleSize, font: boldFont, color: navy })
+      yRight -= 25
 
       const billingRows: Array<[string, string]> = [
         ['Issue Date', today],
@@ -262,145 +242,132 @@ export default function ProfilePage() {
       ]
       billingRows.forEach(([label, value]) => {
         page.drawText(label, { x: rightColX, y: yRight, size: labelSize, font: boldFont, color: darkGray })
-        page.drawText(value, { x: rightColX + 120, y: yRight, size: valueSize, font: regularFont, color: mediumGray })
-        yRight -= rowPadding
+        page.drawText(value, { x: rightColX + 110, y: yRight, size: valueSize, font: regularFont, color: mediumGray })
+        yRight -= 20
       })
 
       y = Math.min(y, yRight) - sectionGap
 
       // --- FEE DETAILS TABLE ---
-      page.drawRectangle({
-        x: marginLeft,
-        y: y - 2,
-        width: 4,
-        height: 18,
-        color: terracotta
-      })
-      page.drawText('Fee Details', { x: marginLeft + 12, y, size: sectionTitleSize, font: boldFont, color: navy })
-      y -= 32
+      page.drawText('Fee Details', { x: marginLeft, y, size: sectionTitleSize, font: boldFont, color: navy })
+      y -= 28
 
-      // Table header (cream background with navy bottom border)
+      // Table header (subtle background)
       page.drawRectangle({
         x: marginLeft,
-        y: y - 6,
-        width: marginRight - marginLeft,
-        height: 28,
-        color: cream
+        y: y - 7,
+        width: contentWidth,
+        height: 26,
+        color: rgb(0.98, 0.98, 0.98)
       })
-      page.drawRectangle({
-        x: marginLeft,
-        y: y - 6,
-        width: marginRight - marginLeft,
-        height: 2,
-        color: navy
+      page.drawLine({
+        start: { x: marginLeft, y },
+        end: { x: marginRight, y },
+        thickness: 0.5,
+        color: subtleLine
       })
-      page.drawText('#', { x: marginLeft + 8, y, size: 11, font: boldFont, color: navy })
-      page.drawText('Description', { x: marginLeft + 35, y, size: 11, font: boldFont, color: navy })
-      page.drawText('Amount', { x: marginRight - 85, y, size: 11, font: boldFont, color: navy })
+      page.drawText('#', { x: marginLeft + 10, y, size: 10, font: boldFont, color: navy })
+      page.drawText('Description', { x: marginLeft + 40, y, size: 10, font: boldFont, color: navy })
+      page.drawText('Amount', { x: marginRight - 80, y, size: 10, font: boldFont, color: navy })
       y -= 30
 
-      // Table rows with better padding
+      // Table rows
       const items = [
         { desc: 'Trademark Registration - Class 25', amount: 1500 },
         { desc: 'Patent Filing - Utility Model', amount: 2500 },
       ]
       items.forEach((item, index) => {
-        const rowBg = index % 2 === 0 ? rgb(0.995, 0.995, 0.995) : white
-        page.drawRectangle({
-          x: marginLeft,
-          y: y - 6,
-          width: marginRight - marginLeft,
-          height: 24,
-          color: rowBg
-        })
-        page.drawText(String(index + 1), { x: marginLeft + 8, y, size: 10, font: regularFont, color: darkGray })
-        page.drawText(item.desc, { x: marginLeft + 35, y, size: 10, font: regularFont, color: darkGray })
+        if (index % 2 === 0) {
+          page.drawRectangle({
+            x: marginLeft,
+            y: y - 7,
+            width: contentWidth,
+            height: tableRowHeight,
+            color: rgb(0.99, 0.99, 0.99)
+          })
+        }
+        page.drawText(String(index + 1), { x: marginLeft + 10, y, size: 9.5, font: regularFont, color: darkGray })
+        page.drawText(item.desc, { x: marginLeft + 40, y, size: 9.5, font: regularFont, color: darkGray })
         const amountText = `ETB ${item.amount.toLocaleString()}`
-        page.drawText(amountText, { x: marginRight - 85, y, size: 10, font: regularFont, color: darkGray })
-        y -= 26
+        page.drawText(amountText, { x: marginRight - 80, y, size: 9.5, font: regularFont, color: darkGray })
+        y -= tableRowHeight
       })
 
-      y -= 20
-
-      // --- TOTAL AMOUNT DUE (Premium Box) ---
-      y -= 10 // 10px gap as requested
-
-      // Elegant total box with terracotta left border
-      page.drawRectangle({
-        x: marginRight - 240,
-        y: y - 20,
-        width: 240,
-        height: 60,
-        color: cream
-      })
-      page.drawRectangle({
-        x: marginRight - 240,
-        y: y - 20,
-        width: 5,
-        height: 60,
-        color: terracotta
-      })
-
-      page.drawText('Total Amount Due', {
-        x: marginRight - 225,
-        y: y + 18,
-        size: 13,
-        font: boldFont,
-        color: navy
-      })
-
-      const totalAmount = 'ETB 4,000'
-      const totalWidth = boldFont.widthOfTextAtSize(totalAmount, 20)
-      page.drawText(totalAmount, {
-        x: marginRight - totalWidth - 15,
-        y: y + 18,
-        size: 20,
-        font: boldFont,
-        color: navy
-      })
-
-      y -= 75
-
-      // --- SIGNATURE & FOOTER ---
-      y -= 20
+      // Bottom table border
       page.drawLine({
-        start: { x: marginRight - 200, y },
+        start: { x: marginLeft, y },
+        end: { x: marginRight, y },
+        thickness: 0.5,
+        color: subtleLine
+      })
+
+      y -= 25
+
+      // --- TOTAL AMOUNT DUE (Elegant, minimal) ---
+      y -= 10 // 10px gap
+
+      // Subtle top border
+      page.drawLine({
+        start: { x: marginRight - 220, y },
         end: { x: marginRight, y },
         thickness: 1.5,
         color: navy
       })
-      y -= 15
-      page.drawText('Authorized Signature', {
-        x: marginRight - 190,
+      y -= 20
+
+      page.drawText('Total Amount Due', {
+        x: marginRight - 210,
         y,
         size: 11,
+        font: boldFont,
+        color: mediumGray
+      })
+
+      const totalAmount = 'ETB 4,000'
+      const totalWidth = boldFont.widthOfTextAtSize(totalAmount, 18)
+      page.drawText(totalAmount, {
+        x: marginRight - totalWidth,
+        y: y - 18,
+        size: 18,
+        font: boldFont,
+        color: navy
+      })
+
+      y -= 50
+
+      // --- SIGNATURE ---
+      y -= 30
+      page.drawLine({
+        start: { x: marginRight - 180, y },
+        end: { x: marginRight, y },
+        thickness: 0.75,
+        color: subtleLine
+      })
+      y -= 14
+      page.drawText('Authorized Signature', {
+        x: marginRight - 175,
+        y,
+        size: 10,
         font: regularFont,
         color: mediumGray
       })
 
-      // Footer bar (navy with terracotta accent)
+      // --- FOOTER (minimal navy bar) ---
       page.drawRectangle({
         x: 0,
-        y: 40,
+        y: 0,
         width: pageWidth,
-        height: 40,
+        height: 35,
         color: navy
       })
-      page.drawRectangle({
-        x: 0,
-        y: 40,
-        width: pageWidth,
-        height: 3,
-        color: terracotta
-      })
-      const footerText = `${companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY'} | ${companyInfo.companyEmail || 'info@eastafricanip.com'} | ${companyInfo.companyWebsite || 'www.eastafricanip.com'}`
-      const footerWidth = regularFont.widthOfTextAtSize(footerText, 9)
+      const footerText = `${companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY'} | ${companyInfo.companyEmail || 'info@eastafricanip.com'}`
+      const footerWidth = regularFont.widthOfTextAtSize(footerText, 8.5)
       page.drawText(footerText, {
         x: (pageWidth - footerWidth) / 2,
-        y: 55,
-        size: 9,
+        y: 13,
+        size: 8.5,
         font: regularFont,
-        color: white
+        color: rgb(0.8, 0.8, 0.8)
       })
 
       const pdfBytes = await pdfDoc.save()
@@ -728,9 +695,9 @@ export default function ProfilePage() {
     }
   }
 
-  const tabsClassName = isUserSuperAdmin 
-    ? "grid w-full grid-cols-5 max-w-[650px]" 
-    : "grid w-full grid-cols-2 max-w-[350px]"
+  const tabsClassName = isUserSuperAdmin
+    ? "grid w-full grid-cols-5 max-w-[650px] mb-6"
+    : "grid w-full grid-cols-2 max-w-[350px] mb-6"
 
   return (
     <div className="w-full flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto min-h-screen">
