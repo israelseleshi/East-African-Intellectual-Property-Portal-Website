@@ -638,8 +638,8 @@ export default function ProfilePage() {
                     <Eye className="mr-2 size-4" />
                     Preview Invoice
                   </Button>
-                )}
-              </div>}
+                 )}
+              </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={async (e) => { 
@@ -1063,62 +1063,61 @@ export default function ProfilePage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {admin.rejection_count >= 3 ? (
-                          <Badge variant="destructive" className="text-xs">
-                            Permanently Rejected
-                          </Badge>
-                        ) : admin.is_approved === 1 ? (
-                           <Badge variant="default" className="text-xs">
-                            Approved
-                          </Badge>
-                        ) : admin.rejection_count > 0 ? (
-                          <Badge variant="destructive" className="text-xs">
-                            Rejected ({admin.rejection_count})
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">
-                            Pending
-                          </Badge>
-                        )}
-                        {admin.is_approved === 1 ? (
-                          <span className="text-xs text-muted-foreground italic">
-                            Already approved
-                          </span>
-                        ) : admin.rejection_count < 3 ? (
-                          <>
-                            <Button
-                                onClick={() => handleApproveAdmin(admin.id)}
-                                disabled={pendingProcessing === admin.id}
-                                size="sm"
-                                className="transition-colors hover:opacity-90"
-                              >
-                              <Check size={16} className="mr-1" />
-                              Approve
-                            </Button>
-                              <Button
-                                onClick={() => handleRejectAdmin(admin.id)}
-                                disabled={pendingProcessing === admin.id}
-                                variant="destructive"
-                                size="sm"
-                                className="transition-colors"
-                              >
-                              <X size={16} className="mr-1" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                        <div className="flex items-center gap-2">
+                         {admin.rejection_count >= 3 ? (
+                           <Badge variant="destructive" className="text-xs">
+                             Permanently Rejected
+                           </Badge>
+                         ) : admin.is_approved === 1 ? (
+                            <Badge variant="default" className="text-xs">
+                             Approved
+                           </Badge>
+                         ) : admin.rejection_count > 0 ? (
+                           <Badge variant="destructive" className="text-xs">
+                             Rejected ({admin.rejection_count})
+                           </Badge>
+                         ) : (
+                           <Badge variant="outline" className="text-xs">
+                             Pending
+                           </Badge>
+                         )}
+                         {admin.is_approved !== 1 && admin.rejection_count < 3 && (
+                           <>
+                             <Button
+                                 onClick={() => handleApproveAdmin(admin.id)}
+                                 disabled={pendingProcessing === admin.id}
+                                 size="sm"
+                                 className="transition-colors hover:opacity-90"
+                               >
+                               <Check size={16} className="mr-1" />
+                               Approve
+                             </Button>
+                             <Button
+                                 onClick={() => handleRejectAdmin(admin.id)}
+                                 disabled={pendingProcessing === admin.id}
+                                 variant="destructive"
+                                 size="sm"
+                                 className="transition-colors"
+                               >
+                               <X size={16} className="mr-1" />
+                               Reject
+                             </Button>
+                           </>
+                         )}
+                          {admin.is_approved === 1 && admin.rejection_count < 3 && (
+                            <span className="text-xs text-muted-foreground italic">
+                              Already approved
+                            </span>
+                          )}
+                         </div>
+                        </div>
+                       </Card>
+                     ))}
+                  </div>
+               )}
+             </CardContent>
+           </Card>
+         </TabsContent>
 
       </Tabs>
 
