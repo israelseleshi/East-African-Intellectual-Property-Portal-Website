@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../database/db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { csrfMiddleware } from '../middleware/csrf.js';
 
 const router = Router();
 
@@ -41,13 +42,13 @@ router.get('/', authenticateToken, async (req, res) => {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
-  } catch (error) {
-    console.error('Error fetching company settings:', error);
-    res.status(500).json({ error: 'Failed to fetch company settings' });
-  }
+    } catch (error) {
+      console.error('[settings.get]', error);
+      res.status(500).json({ error: 'Failed to fetch company settings' });
+    }
 });
 
-router.put('/', authenticateToken, async (req, res) => {
+router.put('/', authenticateToken, csrfMiddleware, async (req, res) => {
   try {
     const { 
       companyName, 
@@ -79,10 +80,10 @@ router.put('/', authenticateToken, async (req, res) => {
     );
 
     res.json({ success: true, message: 'Company settings updated' });
-  } catch (error) {
-    console.error('Error updating company settings:', error);
-    res.status(500).json({ error: 'Failed to update company settings' });
-  }
+    } catch (error) {
+      console.error('[settings.update]', error);
+      res.status(500).json({ error: 'Failed to update company settings' });
+    }
 });
 
 export default router;

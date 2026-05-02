@@ -65,7 +65,7 @@ export const useSettingsStore = create<SettingsState>()(
           const res = await settingsApi.getSettings()
           set({ companyInfo: res.data, settingsLoading: false })
         } catch (error) {
-          console.error('Failed to fetch company settings:', error)
+          console.error('[settingsStore.fetch]', error)
           set({ settingsLoading: false })
         }
       },
@@ -77,7 +77,7 @@ export const useSettingsStore = create<SettingsState>()(
           set({ settingsSaving: false })
           return true
         } catch (error) {
-          console.error('Failed to save company settings:', error)
+          console.error('[settingsStore.save]', error)
           set({ settingsSaving: false })
           return false
         }
