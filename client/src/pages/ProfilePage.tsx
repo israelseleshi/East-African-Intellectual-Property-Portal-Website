@@ -34,6 +34,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingCompany, setIsEditingCompany] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [formData, setFormData] = useState({
     fullName: user?.full_name || '',
     email: user?.email || '',
@@ -170,7 +172,10 @@ export default function ProfilePage() {
       20, y, { maxWidth: pageWidth - 40, align: 'center' }
     )
 
-    doc.save(`invoice-preview-${Date.now()}.pdf`)
+    const pdfBlob = doc.output('blob')
+    const url = URL.createObjectURL(pdfBlob)
+    setPreviewUrl(url)
+    setPreviewOpen(true)
   }
 
   // Pending Admins state
@@ -1098,9 +1103,65 @@ export default function ProfilePage() {
            </Card>
          </TabsContent>
 
-      </Tabs>
+       </Tabs>
 
-      <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
+        {/* Preview Invoice Dialog */}
+        <Dialog open={previewOpen} onOpenChange={(open) => {
+          setPreviewOpen(open)
+          if (!open && previewUrl) {
+            URL.revokeObjectURL(previewUrl)
+            setPreviewUrl(null)
+          }
+        }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="size-5" />
+                Invoice Preview
+              </DialogTitle>
+              <DialogDescription>
+                Live preview of your invoice with current company information
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 min-h-[60vh] overflow-hidden">
+              {previewUrl ? (
+                <iframe
+                  src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                  className="w-full h-full bg-white"
+                  title="Invoice Preview"
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => {
+                setPreviewOpen(false)
+                if (previewUrl) {
+                  URL.revokeObjectURL(previewUrl)
+                  setPreviewUrl(null)
+                }
+              }} variant="outline">
+                Close
+              </Button>
+              <Button onClick={() => {
+                setIsEditingCompany(true)
+                setPreviewOpen(false)
+                if (previewUrl) {
+                  URL.revokeObjectURL(previewUrl)
+                  setPreviewUrl(null)
+                }
+              }}>
+                <Edit2 className="mr-2 size-4" />
+                Edit Company Info
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
