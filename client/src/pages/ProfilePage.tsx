@@ -91,7 +91,7 @@ export default function ProfilePage() {
 
       // Logo
       try {
-        const logoUrl = '/eaip-logo.png'
+        const logoUrl = companyInfo.logoUrl || '/eaip-logo.png'
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer())
         const logoImage = await pdfDoc.embedPng(logoImageBytes)
         const logoDims = logoImage.scale(0.125)
@@ -113,8 +113,14 @@ export default function ProfilePage() {
         companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || ''}` : 'Addis Ababa, Ethiopia',
         companyInfo.companyEmail && companyInfo.companyWebsite
           ? `Email: ${companyInfo.companyEmail} | Web: ${companyInfo.companyWebsite}`
-          : `Email: ${companyInfo.companyEmail || 'info@eastafricanip.com'} | Web: ${companyInfo.companyWebsite || 'www.eastafricanip.com'}`
+          : `Email: ${companyInfo.companyEmail || 'info@eastafricanip.com'} | Web: ${companyInfo.companyWebsite || 'www.eastafricanip.com'}`,
       ]
+      if (companyInfo.companyPhone) {
+        companyInfoLines.push(`Phone: ${companyInfo.companyPhone}`)
+      }
+      if (companyInfo.taxId) {
+        companyInfoLines.push(`Tax ID: ${companyInfo.taxId}`)
+      }
       companyInfoLines.forEach((line, i) => {
         const fontSize = i === 0 ? 14 : 9
         const font = i === 0 ? boldFont : regularFont
