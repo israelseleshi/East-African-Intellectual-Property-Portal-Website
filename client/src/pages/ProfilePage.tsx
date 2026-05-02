@@ -15,7 +15,7 @@ import { authService } from '@/utils/api'
 import { toast } from 'sonner'
 import { agentsApi, Agent } from '@/api/agents'
 import { authApi } from '@/api/auth'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import jsPDF from 'jspdf'
 import { CountrySelector } from '@/components/CountrySelector'
 import {
