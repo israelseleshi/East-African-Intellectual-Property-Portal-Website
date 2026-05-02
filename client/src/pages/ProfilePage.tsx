@@ -875,6 +875,7 @@ export default function ProfilePage() {
                     className="pl-9 bg-muted/50"
                     value={pendingSearch}
                     onChange={(e) => setPendingSearch(e.target.value)}
+                    aria-label="Search administrators"
                   />
                 </div>
               </div>
