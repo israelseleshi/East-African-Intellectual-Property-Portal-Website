@@ -16,7 +16,6 @@ import { toast } from 'sonner'
 import { agentsApi, Agent } from '@/api/agents'
 import { authApi } from '@/api/auth'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import jsPDF from 'jspdf'
 import { CountrySelector } from '@/components/CountrySelector'
 import {
   Table,
@@ -78,104 +77,206 @@ export default function ProfilePage() {
   const [disableDialogOpen, setDisableDialogOpen] = useState(false)
   const [disableCode, setDisableCode] = useState('')
 
-  const generateInvoicePDF = () => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    let y = 20
+  const generateInvoicePDF = async () => {
+    try {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+      const pdfDoc = await PDFDocument.create()
+      const page = pdfDoc.addPage([595.28, 841.89])
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+      const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
-    // Header
-    doc.setFontSize(24)
-    doc.setFont('helvetica', 'bold')
-    doc.text(companyInfo.companyName || 'Company Name', 20, y)
-    y += 8
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(companyInfo.companyAddress || '123 Main Street', 20, y)
-    y += 5
-    doc.text(companyInfo.companyCity || 'Addis Ababa, Ethiopia', 20, y)
-    y += 5
-    if (companyInfo.companyEmail) { doc.text(companyInfo.companyEmail, 20, y); y += 5 }
-    if (companyInfo.companyPhone) { doc.text(companyInfo.companyPhone, 20, y); y += 5 }
-    if (companyInfo.companyWebsite) { doc.text(companyInfo.companyWebsite, 20, y); y += 5 }
-    if (companyInfo.taxId) { doc.text(`Tax ID: ${companyInfo.taxId}`, 20, y); y += 5 }
+      const marginLeft = 50
+      const marginRight = 545
+      let y = 800
 
-    // Invoice title (right side)
-    doc.setFontSize(28)
-    doc.setFont('helvetica', 'bold')
-    doc.text('INVOICE', pageWidth - 20, 20, { align: 'right' })
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text('Invoice #: INV-2026-001', pageWidth - 20, 30, { align: 'right' })
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 20, 36, { align: 'right' })
+      // Logo
+      try {
+        const logoUrl = '/eaip-logo.png'
+        const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer())
+        const logoImage = await pdfDoc.embedPng(logoImageBytes)
+        const logoDims = logoImage.scale(0.125)
+        page.drawImage(logoImage, {
+          x: (595.28 - logoDims.width) / 2,
+          y: y - logoDims.height,
+          width: logoDims.width,
+          height: logoDims.height,
+        })
+        y -= (logoDims.height + 15)
+      } catch (e) {
+        console.warn('Could not load logo for PDF', e)
+        y -= 40
+      }
 
-    y = Math.max(y, 50)
+      // Company info (centered)
+      const companyInfoLines = [
+        companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY',
+        companyInfo.companyAddress ? `${companyInfo.companyAddress}, ${companyInfo.companyCity || ''}` : 'Addis Ababa, Ethiopia',
+        companyInfo.companyEmail && companyInfo.companyWebsite
+          ? `Email: ${companyInfo.companyEmail} | Web: ${companyInfo.companyWebsite}`
+          : `Email: ${companyInfo.companyEmail || 'info@eastafricanip.com'} | Web: ${companyInfo.companyWebsite || 'www.eastafricanip.com'}`
+      ]
+      companyInfoLines.forEach((line, i) => {
+        const fontSize = i === 0 ? 14 : 9
+        const font = i === 0 ? boldFont : regularFont
+        const textWidth = font.widthOfTextAtSize(line, fontSize)
+        page.drawText(line, {
+          x: (595.28 - textWidth) / 2,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0.1, 0.1, 0.1)
+        })
+        y -= (fontSize + 5)
+      })
 
-    // FROM / TO
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'bold')
-    doc.text('FROM', 20, y)
-    doc.text('TO', pageWidth / 2 + 10, y)
-    y += 6
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(companyInfo.companyName || 'Your Company Name', 20, y)
-    doc.text('Client Company Ltd.', pageWidth / 2 + 10, y)
-    y += 5
-    doc.text(companyInfo.companyAddress || '123 Main Street', 20, y)
-    doc.text('456 Business Avenue', pageWidth / 2 + 10, y)
-    y += 5
-    doc.text(companyInfo.companyCity || 'Addis Ababa, Ethiopia', 20, y)
-    doc.text('Nairobi, Kenya', pageWidth / 2 + 10, y)
-    y += 10
+      y -= 30
+      page.drawLine({
+        start: { x: marginLeft, y },
+        end: { x: marginRight, y },
+        thickness: 1,
+        color: rgb(0.8, 0.8, 0.8)
+      })
+      y -= 40
 
-    // Table header
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Description', 20, y)
-    doc.text('Qty', pageWidth - 80, y, { align: 'right' })
-    doc.text('Rate', pageWidth - 50, y, { align: 'right' })
-    doc.text('Amount', pageWidth - 20, y, { align: 'right' })
-    y += 4
-    doc.line(20, y, pageWidth - 20, y)
-    y += 6
+      // INVOICE title
+      page.drawText('INVOICE', {
+        x: marginLeft,
+        y,
+        size: 24,
+        font: boldFont,
+        color: rgb(0.08, 0.16, 0.32)
+      })
 
-    // Table rows
-    doc.setFont('helvetica', 'normal')
-    const items = [
-      ['Trademark Registration - Class 25', '1', '$1,500.00', '$1,500.00'],
-      ['Patent Filing - Utility Model', '1', '$2,500.00', '$2,500.00'],
-    ]
-    items.forEach(([desc, qty, rate, amount]) => {
-      doc.text(desc, 20, y)
-      doc.text(qty, pageWidth - 80, y, { align: 'right' })
-      doc.text(rate, pageWidth - 50, y, { align: 'right' })
-      doc.text(amount, pageWidth - 20, y, { align: 'right' })
-      y += 8
-    })
+      const invoiceNo = 'No: INV-2026-001'
+      const invNoWidth = boldFont.widthOfTextAtSize(invoiceNo, 12)
+      page.drawText(invoiceNo, {
+        x: marginRight - invNoWidth,
+        y: y + 5,
+        size: 12,
+        font: boldFont
+      })
+      y -= 50
 
-    // Total
-    y += 2
-    doc.line(20, y, pageWidth - 20, y)
-    y += 6
-    doc.setFont('helvetica', 'bold')
-    doc.text('Total', pageWidth - 50, y)
-    doc.text('$4,000.00', pageWidth - 20, y, { align: 'right' })
+      // Client & Trademark Details
+      const drawSectionTitle = (title: string, yPos: number) => {
+        page.drawText(title.toUpperCase(), {
+          x: marginLeft,
+          y: yPos,
+          size: 10,
+          font: boldFont,
+          color: rgb(0.4, 0.4, 0.4)
+        })
+        return yPos - 20
+      }
 
-    // Footer
-    y += 20
-    doc.line(20, y, pageWidth - 20, y)
-    y += 6
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.text(
-      `${companyInfo.companyName || 'Your Company'} • ${companyInfo.companyPhone || 'Phone'} • ${companyInfo.companyEmail || 'Email'}`,
-      20, y, { maxWidth: pageWidth - 40, align: 'center' }
-    )
+      y = drawSectionTitle('Client & Trademark Details', y)
 
-    const pdfBlob = doc.output('blob')
-    const url = URL.createObjectURL(pdfBlob)
-    setPreviewUrl(url)
-    setPreviewOpen(true)
+      const detailRows: Array<[string, string]> = [
+        ['Client Name', 'Client Company Ltd.'],
+        ['Trademark', 'Sample Trademark Registration']
+      ]
+      detailRows.forEach(([label, value]) => {
+        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
+        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
+        y -= 18
+      })
+
+      y -= 20
+      y = drawSectionTitle('Billing Schedule', y)
+      const billingRows: Array<[string, string]> = [
+        ['Issue Date', new Date().toLocaleDateString()],
+        ['Due Date', '—'],
+        ['Payment Method', 'Bank Transfer']
+      ]
+      billingRows.forEach(([label, value]) => {
+        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
+        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
+        y -= 18
+      })
+
+      y -= 30
+      y = drawSectionTitle('Fee Details', y)
+
+      // Table header
+      page.drawRectangle({
+        x: marginLeft,
+        y: y - 5,
+        width: marginRight - marginLeft,
+        height: 20,
+        color: rgb(0.96, 0.97, 0.98)
+      })
+      page.drawText('#', { x: marginLeft + 5, y, size: 9, font: boldFont })
+      page.drawText('Description', { x: marginLeft + 30, y, size: 9, font: boldFont })
+      page.drawText('Amount', { x: marginRight - 80, y, size: 9, font: boldFont })
+      y -= 22
+
+      // Table rows
+      const items = [
+        { desc: 'Trademark Registration - Class 25', amount: 1500 },
+        { desc: 'Patent Filing - Utility Model', amount: 2500 },
+      ]
+      items.forEach((item, index) => {
+        page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
+        page.drawText(item.desc, { x: marginLeft + 30, y, size: 9, font: regularFont })
+        const amountText = `ETB ${item.amount.toLocaleString()}`
+        page.drawText(amountText, { x: marginRight - 80, y, size: 9, font: regularFont })
+        y -= 16
+      })
+
+      y -= 15
+
+      // Total
+      page.drawRectangle({
+        x: marginLeft,
+        y: y - 10,
+        width: marginRight - marginLeft,
+        height: 40,
+        color: rgb(0.96, 0.97, 0.98)
+      })
+
+      page.drawText('TOTAL AMOUNT DUE', {
+        x: marginLeft + 15,
+        y: y + 5,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.08, 0.16, 0.32)
+      })
+
+      const totalAmount = 'ETB 4,000'
+      const totalWidth = boldFont.widthOfTextAtSize(totalAmount, 16)
+      page.drawText(totalAmount, {
+        x: marginRight - totalWidth - 15,
+        y: y + 3,
+        size: 16,
+        font: boldFont,
+        color: rgb(0.08, 0.16, 0.32)
+      })
+
+      y -= 60
+      y -= 40
+      page.drawLine({
+        start: { x: marginRight - 180, y },
+        end: { x: marginRight, y },
+        thickness: 1,
+        color: rgb(0.1, 0.1, 0.1)
+      })
+      y -= 12
+      page.drawText('Authorized Signature', {
+        x: marginRight - 145,
+        y,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.1, 0.1, 0.1)
+      })
+
+      const pdfBytes = await pdfDoc.save()
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(pdfBlob)
+      setPreviewUrl(url)
+      setPreviewOpen(true)
+    } catch (error) {
+      console.error('Failed to generate invoice PDF:', error)
+    }
   }
 
   // Pending Admins state
