@@ -20,62 +20,33 @@ jobs:
         run: |
           cd server && npm ci && npm run build && cd ..
 
-      - name: Package frontend
+      - name: Prepare backend folder
         run: |
-          cd client/dist
-          zip -r ../../frontend.zip . -x "uploads/*" "forms-upload/*"
-          cd ../..
-          if [ -f client/public/.htaccess ]; then
-            cd client/dist && zip -u ../../frontend.zip .htaccess && cd ../..
-          fi
+          mkdir -p deploy_backend
+          cp -r server/dist/* deploy_backend/
+          cp server/package.json deploy_backend/
+          if [ -f server.js.temp ]; then cp server.js.temp deploy_backend/server.js; fi
+          if [ -f scripts/deployment/server.htaccess ]; then cp scripts/deployment/server.htaccess deploy_backend/.htaccess; fi
+          mkdir -p deploy_backend/tmp && touch deploy_backend/tmp/restart.txt
 
-      - name: Package backend
-        run: |
-          cp server/package.json server/dist/package.json
-          if [ -f server.js.temp ]; then cp server.js.temp server/dist/server.js; fi
-          if [ -f scripts/deployment/server.htaccess ]; then
-            cp scripts/deployment/server.htaccess server/dist/.htaccess
-          fi
-          cd server/dist
-          zip -r ../../backend.zip . -x "uploads/*" "forms-upload/*"
-          cd ../..
-
-      - name: Upload frontend
-        uses: appleboy/scp-action@v0.1.7
+      - name: FTP Upload frontend
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: eastafricanip.com
-          port: 7822
-          username: ${{ secrets.A2_USER }}
-          key: ${{ secrets.A2_SSH_KEY }}
-          source: "frontend.zip"
-          target: ${{ secrets.A2_FRONTEND_DEPLOY_PATH }}
-          strip_components: 0
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          local-dir: client/dist/
+          server-dir: /eastafricanip.com/
+          dangerous-cleanup: false
 
-      - name: Upload backend
-        uses: appleboy/scp-action@v0.1.7
+      - name: FTP Upload backend
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: eastafricanip.com
-          port: 7822
-          username: ${{ secrets.A2_USER }}
-          key: ${{ secrets.A2_SSH_KEY }}
-          source: "backend.zip"
-          target: ${{ secrets.A2_BACKEND_DEPLOY_PATH }}
-          strip_components: 0
-
-      - name: Apply remote changes
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: eastafricanip.com
-          port: 7822
-          username: ${{ secrets.A2_USER }}
-          key: ${{ secrets.A2_SSH_KEY }}
-          script: |
-            cd ${{ secrets.A2_FRONTEND_DEPLOY_PATH }} && unzip -o frontend.zip && rm -f frontend.zip &&
-            cd ${{ secrets.A2_BACKEND_DEPLOY_PATH }} &&
-            if [ -d uploads ]; then mv uploads ../uploads_backup; fi &&
-            if [ -d forms-upload ]; then mv forms-upload ../forms-upload_backup; fi &&
-            unzip -o backend.zip &&
-            if [ -d ../uploads_backup ]; then mv ../uploads_backup uploads; fi &&
-            if [ -d ../forms-upload_backup ]; then mv ../forms-upload_backup forms-upload; fi &&
-            mkdir -p uploads/marks forms-upload && rm -f backend.zip &&
-            mkdir -p tmp && touch tmp/restart.txt
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          local-dir: deploy_backend/
+          server-dir: /eastafricanip.com/api/
+          dangerous-cleanup: false
