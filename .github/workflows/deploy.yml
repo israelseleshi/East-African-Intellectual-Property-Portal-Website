@@ -40,30 +40,36 @@ jobs:
           zip -r ../../backend.zip . -x "uploads/*" "forms-upload/*"
           cd ../..
 
-      - name: Setup SSH key
-        run: |
-          printf '%s\n' "${{ secrets.A2_SSH_KEY }}" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          # Remove Windows CRLF line endings that break SSH
-          sed -i 's/\r$//' /tmp/deploy_key
-          # Verify key format
-          head -1 /tmp/deploy_key
-          tail -1 /tmp/deploy_key
-
-      - name: Test SSH connection
-        run: |
-          echo "Testing connection to eastafricanip.com on port 7822"
-          ssh -i /tmp/deploy_key -p 7822 -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval=10 ${{ secrets.A2_USER }}@eastafricanip.com "pwd && whoami && echo SSH connection successful"
-
       - name: Upload frontend
-        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no frontend.zip ${{ secrets.A2_USER }}@eastafricanip.com:${{ secrets.A2_FRONTEND_DEPLOY_PATH }}/
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: eastafricanip.com
+          port: 7822
+          username: ${{ secrets.A2_USER }}
+          key: ${{ secrets.A2_SSH_KEY }}
+          source: "frontend.zip"
+          target: ${{ secrets.A2_FRONTEND_DEPLOY_PATH }}
+          strip_components: 0
 
       - name: Upload backend
-        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no backend.zip ${{ secrets.A2_USER }}@eastafricanip.com:${{ secrets.A2_BACKEND_DEPLOY_PATH }}/
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: eastafricanip.com
+          port: 7822
+          username: ${{ secrets.A2_USER }}
+          key: ${{ secrets.A2_SSH_KEY }}
+          source: "backend.zip"
+          target: ${{ secrets.A2_BACKEND_DEPLOY_PATH }}
+          strip_components: 0
 
       - name: Apply remote changes
-        run: |
-          ssh -i /tmp/deploy_key -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no ${{ secrets.A2_USER }}@eastafricanip.com "
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: eastafricanip.com
+          port: 7822
+          username: ${{ secrets.A2_USER }}
+          key: ${{ secrets.A2_SSH_KEY }}
+          script: |
             cd ${{ secrets.A2_FRONTEND_DEPLOY_PATH }} && unzip -o frontend.zip && rm -f frontend.zip &&
             cd ${{ secrets.A2_BACKEND_DEPLOY_PATH }} &&
             if [ -d uploads ]; then mv uploads ../uploads_backup; fi &&
@@ -73,4 +79,3 @@ jobs:
             if [ -d ../forms-upload_backup ]; then mv ../forms-upload_backup forms-upload; fi &&
             mkdir -p uploads/marks forms-upload && rm -f backend.zip &&
             mkdir -p tmp && touch tmp/restart.txt
-          "
