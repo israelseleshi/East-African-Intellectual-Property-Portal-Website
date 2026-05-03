@@ -42,8 +42,17 @@ jobs:
 
       - name: Setup SSH key
         run: |
-          echo "${{ secrets.A2_SSH_KEY }}" > /tmp/deploy_key
+          printf '%s\n' "${{ secrets.A2_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
+          # Remove Windows CRLF line endings that break SSH
+          sed -i 's/\r$//' /tmp/deploy_key
+          # Verify key format
+          head -1 /tmp/deploy_key
+          tail -1 /tmp/deploy_key
+
+      - name: Test SSH connection
+        run: |
+          ssh -i /tmp/deploy_key -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }} "echo SSH connection successful"
 
       - name: Upload frontend
         run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no frontend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_FRONTEND_DEPLOY_PATH }}/
