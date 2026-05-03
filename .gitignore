@@ -39,6 +39,8 @@ TM_MIGRATION_FILES/
 *.graph.json
 *.graph.html
 graphify-out/
+database_data.sql
+database_dump.sql
 
 # =========================
 # Deployment & Temporary

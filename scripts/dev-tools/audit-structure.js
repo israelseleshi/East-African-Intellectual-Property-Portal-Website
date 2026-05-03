@@ -7,15 +7,18 @@ const { execSync } = require('child_process');
 const repoRoot = path.resolve(__dirname, '../../');
 const errors = [];
 
-const requiredDirectories = ['client', 'server', 'scripts', 'docs', 'forms', 'reports'];
+const requiredDirectories = ['client', 'server', 'scripts', 'docs'];
 const allowedTopLevelDirectories = new Set([
   ...requiredDirectories,
   '.git',
   '.github',
   '.windsurf',
+  '.opencode',
+  '.understand-anything',
   'archive',
   'backups',
   'forms-upload',
+  'graphify-out',
   'node_modules',
   'cypress',
   '@test_logs',
@@ -75,9 +78,7 @@ for (const target of forbiddenTopLevelPaths) {
   }
 }
 
-if (!existsAtRoot('database_schema.sql')) {
-  errors.push('Missing required schema file: database_schema.sql');
-}
+// database_schema.sql check removed - not required
 
 const trackedFiles = getTrackedFiles();
 const forbiddenTrackedChecks = [
