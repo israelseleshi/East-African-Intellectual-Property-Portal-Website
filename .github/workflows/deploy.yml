@@ -52,17 +52,18 @@ jobs:
 
       - name: Test SSH connection
         run: |
-          ssh -i /tmp/deploy_key -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }} "echo SSH connection successful"
+          echo "Testing connection to eastafricanip.com on port 7822"
+          ssh -i /tmp/deploy_key -p 7822 -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval=10 ${{ secrets.A2_USER }}@eastafricanip.com "pwd && whoami && echo SSH connection successful"
 
       - name: Upload frontend
-        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no frontend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_FRONTEND_DEPLOY_PATH }}/
+        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no frontend.zip ${{ secrets.A2_USER }}@eastafricanip.com:${{ secrets.A2_FRONTEND_DEPLOY_PATH }}/
 
       - name: Upload backend
-        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no backend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_BACKEND_DEPLOY_PATH }}/
+        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no backend.zip ${{ secrets.A2_USER }}@eastafricanip.com:${{ secrets.A2_BACKEND_DEPLOY_PATH }}/
 
       - name: Apply remote changes
         run: |
-          ssh -i /tmp/deploy_key -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }} "
+          ssh -i /tmp/deploy_key -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no ${{ secrets.A2_USER }}@eastafricanip.com "
             cd ${{ secrets.A2_FRONTEND_DEPLOY_PATH }} && unzip -o frontend.zip && rm -f frontend.zip &&
             cd ${{ secrets.A2_BACKEND_DEPLOY_PATH }} &&
             if [ -d uploads ]; then mv uploads ../uploads_backup; fi &&
