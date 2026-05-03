@@ -418,210 +418,42 @@ export default function BillingPage() {
 
   const handleDownload = async (tx: any) => {
     try {
-      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
-      const pdfDoc = await PDFDocument.create()
-      const page = pdfDoc.addPage([595.28, 841.89])
-      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-      const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const { generateProfessionalInvoice } = await import('@/utils/generateProfessionalInvoice')
+      
+      const items = (tx.items || []).map((item: any) => ({
+        name: item.description || item.category || 'Service',
+        description: item.category || '',
+        quantity: 1,
+        price: Number(item.amount || 0),
+        tax: 0
+      }))
 
-      const marginLeft = 50
-      const marginRight = 545
-      let y = 800
-
-      try {
-        const logoUrl = '/eaip-logo.png'
-        const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer())
-        const logoImage = await pdfDoc.embedPng(logoImageBytes)
-        const logoDims = logoImage.scale(0.125)
-        page.drawImage(logoImage, {
-          x: (595.28 - logoDims.width) / 2,
-          y: y - logoDims.height,
-          width: logoDims.width,
-          height: logoDims.height,
+      // Add fee description if no items
+      if (items.length === 0 && tx.feeDescription) {
+        items.push({
+          name: tx.feeDescription,
+          description: '',
+          quantity: 1,
+          price: Number(tx.amount || 0),
+          tax: 0
         })
-        y -= (logoDims.height + 15)
-      } catch (e) {
-        console.warn('Could not load logo for PDF', e)
-        y -= 40
       }
 
-      const companyInfoLines = [
-        companyInfo.companyName || 'EAST AFRICAN INTELLECTUAL PROPERTY',
-        companyInfo.companyCity || 'Addis Ababa, Ethiopia',
-        companyInfo.companyEmail && companyInfo.companyWebsite 
-          ? `Email: ${companyInfo.companyEmail} | Web: ${companyInfo.companyWebsite}`
-          : 'Email: info@eastafricanip.com | Web: www.eastafricanip.com'
-      ]
-      companyInfoLines.forEach((line, i) => {
-        const fontSize = i === 0 ? 14 : 9
-        const font = i === 0 ? boldFont : regularFont
-        const textWidth = font.widthOfTextAtSize(line, fontSize)
-        page.drawText(line, {
-          x: (595.28 - textWidth) / 2,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0.1, 0.1, 0.1)
-        })
-        y -= (fontSize + 5)
+      const pdfBytesResult = await generateProfessionalInvoice({
+        invoiceNumber: tx.invoiceNumber || tx.id,
+        issueDate: tx.issueDate || tx.date || new Date().toISOString(),
+        dueDate: tx.dueDate,
+        clientName: tx.clientName || 'Client',
+        items: items,
+        currency: tx.currency || 'USD',
+        notes: tx.notes,
+        status: tx.status
       })
 
-      y -= 30
-      page.drawLine({
-        start: { x: marginLeft, y },
-        end: { x: marginRight, y },
-        thickness: 1,
-        color: rgb(0.8, 0.8, 0.8)
-      })
-      y -= 40
-
-      page.drawText('INVOICE', {
-        x: marginLeft,
-        y,
-        size: 24,
-        font: boldFont,
-        color: rgb(0.08, 0.16, 0.32)
-      })
-      
-      const invoiceNo = `No: ${tx.invoiceNumber || tx.id}`
-      const invNoWidth = boldFont.widthOfTextAtSize(invoiceNo, 12)
-      page.drawText(invoiceNo, {
-        x: marginRight - invNoWidth,
-        y: y + 5,
-        size: 12,
-        font: boldFont
-      })
-      y -= 50
-
-      const drawSectionTitle = (title: string, yPos: number) => {
-        page.drawText(title.toUpperCase(), {
-          x: marginLeft,
-          y: yPos,
-          size: 10,
-          font: boldFont,
-          color: rgb(0.4, 0.4, 0.4)
-        })
-        return yPos - 20
-      }
-
-      y = drawSectionTitle('Client & Trademark Details', y)
-      
-      const trademarkDisplay = (tx.notes && tx.notes.includes('Auto-generated for')) 
-        ? (tx.markName !== tx.clientName ? tx.markName : 'New Trademark') 
-        : (tx.markName || 'Trademark');
-
-      const detailRows: Array<[string, string]> = [
-        ['Client Name', tx.clientName || 'Client'],
-        ['Trademark', trademarkDisplay]
-      ]
-      detailRows.forEach(([label, value]) => {
-        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
-        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
-        y -= 18
-      })
-
-      y -= 20
-      y = drawSectionTitle('Billing Schedule', y)
-      const billingRows: Array<[string, string]> = [
-        ['Issue Date', tx.issueDate ? new Date(tx.issueDate).toLocaleDateString() : tx.date],
-        ['Due Date', tx.dueDate ? new Date(tx.dueDate).toLocaleDateString() : '—'],
-        ['Payment Method', tx.method || 'Bank Transfer']
-      ]
-      billingRows.forEach(([label, value]) => {
-        page.drawText(label, { x: marginLeft, y, size: 10, font: boldFont })
-        page.drawText(value, { x: marginLeft + 120, y, size: 10, font: regularFont })
-        y -= 18
-      })
-
-      y -= 30
-      
-      const hasItems = tx.items && tx.items.length > 0
-      const hasFeeDesc = tx.feeDescription || (tx.notes && tx.notes.includes('Auto-generated for'))
-      
-      if (hasItems || hasFeeDesc) {
-        y = drawSectionTitle('Fee Details', y)
-        
-        if (hasItems) {
-          page.drawRectangle({
-            x: marginLeft,
-            y: y - 5,
-            width: marginRight - marginLeft,
-            height: 20,
-            color: rgb(0.96, 0.97, 0.98)
-          })
-          page.drawText('#', { x: marginLeft + 5, y, size: 9, font: boldFont })
-          page.drawText('Description', { x: marginLeft + 30, y, size: 9, font: boldFont })
-          page.drawText('Amount', { x: marginRight - 80, y, size: 9, font: boldFont })
-          y -= 22
-          
-          tx.items.forEach((item: any, index: number) => {
-            const desc = item.description || item.category || 'Fee'
-            page.drawText(String(index + 1), { x: marginLeft + 5, y, size: 9, font: regularFont })
-            page.drawText(desc, { x: marginLeft + 30, y, size: 9, font: regularFont })
-            const itemAmount = `${tx.currency || 'ETB'} ${Number(item.amount || 0).toLocaleString()}`
-            page.drawText(itemAmount, { x: marginRight - 80, y, size: 9, font: regularFont })
-            y -= 16
-          })
-        } else if (tx.feeDescription) {
-          page.drawText(tx.feeDescription, { x: marginLeft, y, size: 10, font: regularFont })
-          y -= 20
-        }
-        
-        y -= 15
-      }
-
-      page.drawRectangle({
-        x: marginLeft,
-        y: y - 10,
-        width: marginRight - marginLeft,
-        height: 40,
-        color: rgb(0.96, 0.97, 0.98)
-      })
-      
-      page.drawText('TOTAL AMOUNT DUE', {
-        x: marginLeft + 15,
-        y: y + 5,
-        size: 12,
-        font: boldFont,
-        color: rgb(0.08, 0.16, 0.32)
-      })
-
-      const amountText = `${tx.currency || 'ETB'} ${Number(tx.amount || 0).toLocaleString()}`
-      const amountWidth = boldFont.widthOfTextAtSize(amountText, 16)
-      page.drawText(amountText, {
-        x: marginRight - amountWidth - 15,
-        y: y + 3,
-        size: 16,
-        font: boldFont,
-        color: rgb(0.08, 0.16, 0.32)
-      })
-      
-      y -= 60
-      y -= 40
-      page.drawLine({
-        start: { x: marginRight - 180, y },
-        end: { x: marginRight, y },
-        thickness: 1,
-        color: rgb(0.1, 0.1, 0.1)
-      })
-      y -= 12
-      page.drawText('Authorized Signature', {
-        x: marginRight - 145,
-        y,
-        size: 10,
-        font: boldFont,
-        color: rgb(0.1, 0.1, 0.1)
-      })
-
-      const pdfBytes = await pdfDoc.save()
-      const stableBytes = new Uint8Array(pdfBytes.length)
-      stableBytes.set(pdfBytes)
       const filenameSafe = (tx.invoiceNumber || tx.id || 'invoice').replace(/[^a-z0-9-_]/gi, '_')
-      downloadBlob(new Blob([stableBytes], { type: 'application/pdf' }), `${filenameSafe}.pdf`)
-
-      toast.success(`PDF generated for ${tx.markName || 'invoice'}.`);
+      downloadBlob(new Blob([pdfBytesResult], { type: 'application/pdf' }), `${filenameSafe}.pdf`)
     } catch (error) {
-      console.error('Failed to generate invoice PDF:', error)
+      console.error('Failed to generate professional invoice:', error)
       toast.error('Could not generate invoice PDF.');
     }
   }

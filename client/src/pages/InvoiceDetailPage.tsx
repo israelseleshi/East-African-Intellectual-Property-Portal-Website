@@ -19,9 +19,11 @@ import {
   Wallet,
   ClockCounterClockwise,
   CreditCard,
-  FileText
+  FileText,
+  Eye
 } from '@phosphor-icons/react'
 import { financialsApi } from '@/api/financials'
+import { useSettingsStore } from '@/store/settingsStore'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -110,6 +112,8 @@ export default function InvoiceDetailPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
   const [editData, setEditData] = useState({
     due_date: '',
@@ -166,6 +170,91 @@ export default function InvoiceDetailPage() {
 
   const removeItem = (index: number) => {
     setEditItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const { companyInfo, fetchCompanySettings } = useSettingsStore()
+  
+  const handlePreview = async () => {
+    if (!invoice) return
+    try {
+      setLoading(true)
+      await fetchCompanySettings()
+      
+      const { generateProfessionalInvoice } = await import('@/utils/generateProfessionalInvoice')
+      
+      const items = (invoice.items || []).map(item => ({
+        description: item.description || 'Service',
+        quantity: 1,
+        price: Number(item.amount || 0),
+      }))
+
+      const pdfBytesResult = await generateProfessionalInvoice({
+        invoiceNumber: invoice.invoice_number || invoice.id,
+        issueDate: invoice.issue_date || new Date().toISOString(),
+        dueDate: invoice.due_date,
+        clientName: invoice.client_name,
+        clientAddress: invoice.notes || undefined, // Using notes as address for now if client address is missing
+        items: items,
+        currency: invoice.currency || 'USD',
+        notes: invoice.notes || undefined,
+        status: invoice.status,
+        logoUrl: companyInfo.logoUrl
+      })
+
+      const blob = new Blob([pdfBytesResult], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      setPdfUrl(url)
+      setIsPreviewOpen(true)
+    } catch (error) {
+      console.error('Failed to generate preview:', error)
+      toast.error('Could not generate invoice preview.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownload = async () => {
+    if (!invoice) return
+    try {
+      setLoading(true)
+      await fetchCompanySettings()
+      
+      const { generateProfessionalInvoice } = await import('@/utils/generateProfessionalInvoice')
+      
+      const items = (invoice.items || []).map(item => ({
+        description: item.description || 'Service',
+        quantity: 1,
+        price: Number(item.amount || 0),
+      }))
+
+      const pdfBytesResult = await generateProfessionalInvoice({
+        invoiceNumber: invoice.invoice_number || invoice.id,
+        issueDate: invoice.issue_date || new Date().toISOString(),
+        dueDate: invoice.due_date,
+        clientName: invoice.client_name,
+        clientAddress: invoice.notes || undefined,
+        items: items,
+        currency: invoice.currency || 'USD',
+        notes: invoice.notes || undefined,
+        status: invoice.status,
+        logoUrl: companyInfo.logoUrl
+      })
+
+      const blob = new Blob([pdfBytesResult], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice_${invoice.invoice_number || invoice.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+
+      toast.success('PDF downloaded successfully!')
+    } catch (error) {
+      console.error('Failed to generate professional invoice:', error)
+      toast.error('Could not generate invoice PDF.')
+    }
   }
 
   const handleSave = async () => {
@@ -363,8 +452,13 @@ export default function InvoiceDetailPage() {
           <Button variant="outline" size="sm" onClick={() => setIsDeleteOpen(true)} className="text-destructive hover:text-destructive" disabled={fromTrash}>
             <Trash size={16} className="mr-2" /> Delete
           </Button>
-          <Button variant="outline" size="sm">
-            <DownloadSimple size={16} className="mr-2" /> PDF Export
+          <Button variant="outline" size="sm" className="gap-2" onClick={handlePreview}>
+            <Eye size={16} />
+            Preview
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleDownload}>
+            <DownloadSimple size={16} />
+            Download PDF
           </Button>
         </>
       ) : (
@@ -511,7 +605,7 @@ export default function InvoiceDetailPage() {
           <CardContent className="p-0">
             <div className="divide-y divide-border">
               {SummaryFields.filter(f => !f.label.includes('Amount')).map((f, i) => (
-                <div key={i} className="flex px-4 py-4 justify-between items-center text-sm group hover:bg-muted/5 transition-colors">
+                <div key={i} className="flex justify-between items-center text-xs">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-muted/30 rounded-lg text-primary group-hover:bg-primary/10 transition-colors"><f.icon size={18} /></div>
                     <span className="font-semibold text-muted-foreground">{f.label}</span>
@@ -680,13 +774,13 @@ export default function InvoiceDetailPage() {
   return (
     <div className="w-full p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen" style={{ fontFamily: 'DM Sans, sans-serif' }}>
       <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
-        <div className="space-y-4">
-          <Button variant="outline" onClick={() => navigate('/billing')} className="pl-0 h-4 group bg-white">
+        <div className="flex flex-col gap-6">
+          <Button variant="outline" onClick={() => navigate('/billing')} className="w-fit h-9 px-4 group bg-white">
             <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Ledger
           </Button>
           <div>
             <div className="mb-1">
-               <Badge className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-2 py-0 h-5 mb-3 inline-flex items-center border-none">Invoice Doc</Badge>
+               <Badge className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-3 py-1 mb-3 inline-flex items-center border-none">Invoice Doc</Badge>
             </div>
 <Typography.h1>{invoice.invoice_number}</Typography.h1>
             <Typography.lead className="flex items-center gap-2">
@@ -697,7 +791,7 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
-        <div className="bg-card/50 backdrop-blur-sm p-2 rounded-2xl border border-border/40 shadow-xl self-end md:self-start">
+        <div className="flex items-center gap-3 self-end md:self-start">
            {Actions}
         </div>
       </header>
@@ -711,20 +805,49 @@ export default function InvoiceDetailPage() {
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Permanent Deletion</DialogTitle>
+            <DialogTitle>Delete Invoice</DialogTitle>
           </DialogHeader>
-          <div className="py-6 space-y-4">
-            <div className="p-4 bg-destructive/10 rounded-xl border border-destructive/20 flex gap-4 items-start">
-               <Trash size={24} className="text-destructive mt-1 shrink-0" />
-               <p className="text-sm text-foreground leading-relaxed">
-                  Are you absolutely certain you want to purge invoice <span className="font-black underline">{invoice.invoice_number}</span>? This will permanently erase all associated line item data and ledger records.
-               </p>
-            </div>
+          <Typography.p className="py-4">
+            Are you sure you want to delete this invoice? This action cannot be undone.
+          </Typography.p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete Invoice'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={(open) => {
+        setIsPreviewOpen(open)
+        if (!open && pdfUrl) {
+          URL.revokeObjectURL(pdfUrl)
+          setPdfUrl(null)
+        }
+      }}>
+        <DialogContent className="max-w-fit h-[95vh] p-0 overflow-hidden flex flex-col border-none bg-transparent shadow-none">
+          <DialogHeader className="p-4 border-b bg-background rounded-t-lg">
+            <DialogTitle>Invoice Preview</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-[#525659] overflow-auto flex justify-center p-4">
+            {pdfUrl ? (
+              <iframe
+                src={`${pdfUrl}#toolbar=0&view=FitH`}
+                className="w-[850px] h-full shadow-2xl bg-white"
+                title="Invoice Preview"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Typography.p>Loading preview...</Typography.p>
+              </div>
+            )}
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="rounded-xl">Cancel Proceeding</Button>
-            <Button variant="destructive" disabled={deleting} onClick={handleDelete} className="rounded-xl font-bold shadow-lg shadow-destructive/20">
-              {deleting ? 'Purging...' : 'Confirm Destruction'}
+          <DialogFooter className="p-4 border-t bg-background rounded-b-lg">
+            <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>Close</Button>
+            <Button onClick={handleDownload}>
+              <DownloadSimple className="mr-2" size={16} />
+              Download
             </Button>
           </DialogFooter>
         </DialogContent>

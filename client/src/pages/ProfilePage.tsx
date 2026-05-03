@@ -1055,11 +1055,17 @@ export default function ProfilePage() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0]
                             if (file) {
-                              const reader = new FileReader()
-                              reader.onload = (event) => {
-                                setCompanyInfo({ logoUrl: event.target?.result as string })
+                              try {
+                                const { settingsApi } = await import('@/api/settings')
+                                const response = await settingsApi.uploadLogo(file)
+                                if (response.data && response.data.logoUrl) {
+                                  setCompanyInfo({ logoUrl: response.data.logoUrl })
+                                  toast.success('Logo uploaded successfully')
+                                }
+                              } catch (error) {
+                                console.error('Logo upload failed:', error)
+                                toast.error('Failed to upload logo')
                               }
-                              reader.readAsDataURL(file)
                             }
                           }}
                         />

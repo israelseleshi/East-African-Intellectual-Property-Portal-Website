@@ -16,5 +16,15 @@ export const settingsApi = {
     logoUrl?: string;
   }) => {
     return apiClient.put('/settings', data);
+  },
+
+  uploadLogo: async (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    return apiClient.post('/settings/logo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
   }
 };
