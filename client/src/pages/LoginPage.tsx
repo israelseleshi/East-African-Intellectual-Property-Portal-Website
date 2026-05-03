@@ -282,16 +282,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                   </div>
                 </div>
               )}
-              {!requires2FA && (
-                <>
-                  <motion.div variants={itemVariants}>
-                    <Typography.h1a>Welcome back</Typography.h1a>
-                  </motion.div>
-                  <motion.div variants={itemVariants}>
-                    <Typography.lead>Enter your credentials to access your account</Typography.lead>
-                  </motion.div>
-                </>
-              )}
+               {!requires2FA && (
+                 <div className="text-center">
+                   <motion.div variants={itemVariants}>
+                     <Typography.h1>Welcome back</Typography.h1>
+                   </motion.div>
+                   <motion.div variants={itemVariants}>
+                     <Typography.lead>Enter your credentials to access your account</Typography.lead>
+                   </motion.div>
+                 </div>
+               )}
             </CardHeader>
             <CardContent>
               {requires2FA ? (
