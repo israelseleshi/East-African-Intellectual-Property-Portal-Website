@@ -40,19 +40,20 @@ jobs:
           zip -r ../../backend.zip . -x "uploads/*" "forms-upload/*"
           cd ../..
 
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.A2_SSH_KEY }}
+      - name: Setup SSH key
+        run: |
+          echo "${{ secrets.A2_SSH_KEY }}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
 
       - name: Upload frontend
-        run: scp -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no frontend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_FRONTEND_DEPLOY_PATH }}/
+        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no frontend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_FRONTEND_DEPLOY_PATH }}/
 
       - name: Upload backend
-        run: scp -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no backend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_BACKEND_DEPLOY_PATH }}/
+        run: scp -i /tmp/deploy_key -P ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no backend.zip ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }}:${{ secrets.A2_BACKEND_DEPLOY_PATH }}/
 
       - name: Apply remote changes
         run: |
-          ssh -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }} "
+          ssh -i /tmp/deploy_key -p ${{ secrets.A2_PORT }} -o StrictHostKeyChecking=no ${{ secrets.A2_USER }}@${{ secrets.A2_HOST }} "
             cd ${{ secrets.A2_FRONTEND_DEPLOY_PATH }} && unzip -o frontend.zip && rm -f frontend.zip &&
             cd ${{ secrets.A2_BACKEND_DEPLOY_PATH }} &&
             if [ -d uploads ]; then mv uploads ../uploads_backup; fi &&
