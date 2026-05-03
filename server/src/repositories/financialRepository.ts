@@ -88,10 +88,17 @@ export const financialRepository = {
     return rows as RowDataPacket[];
   },
 
-  async getInvoiceCount(connection: PoolConnection): Promise<number> {
-    const [rows] = await connection.execute('SELECT COUNT(*) as c FROM invoices');
-    const countRows = rows as Array<RowDataPacket & { c: unknown }>;
-    return toNumber(countRows[0]?.c);
+  async getNextInvoiceNumber(connection: PoolConnection): Promise<string> {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const prefix = today;
+    
+    const [rows] = await connection.execute(
+      'SELECT COUNT(*) as count FROM invoices WHERE DATE(issue_date) = CURDATE()'
+    );
+    const count = (rows as any)[0]?.count || 0;
+    const sequence = String(count + 1).padStart(3, '0');
+    
+    return `${prefix}-${sequence}`;
   },
 
   async insertInvoice(connection: PoolConnection, invoice: InvoiceInsert): Promise<void> {

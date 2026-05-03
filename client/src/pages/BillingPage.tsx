@@ -450,8 +450,8 @@ export default function BillingPage() {
         status: tx.status
       })
 
-      const filenameSafe = (tx.invoiceNumber || tx.id || 'invoice').replace(/[^a-z0-9-_]/gi, '_')
-      downloadBlob(new Blob([pdfBytesResult], { type: 'application/pdf' }), `${filenameSafe}.pdf`)
+      const fileName = (tx.invoiceNumber || tx.id).replace(/[^a-z0-9]/gi, '_').toUpperCase();
+      downloadBlob(new Blob([pdfBytesResult], { type: 'application/pdf' }), `INVOICE_${fileName}.pdf`)
     } catch (error) {
       console.error('Failed to generate professional invoice:', error)
       toast.error('Could not generate invoice PDF.');

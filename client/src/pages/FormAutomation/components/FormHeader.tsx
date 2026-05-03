@@ -38,16 +38,6 @@ export function FormHeader({
         <Button
           variant="outline"
           size="sm"
-          id="inspect-tags-button"
-          onClick={onToggleFields}
-          className={showFields ? 'bg-muted' : ''}
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          {showFields ? 'Hide Tags' : 'Inspect Tags'}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
           id="download-pdf-button"
           onClick={onDownload}
         >

@@ -2,8 +2,9 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import type { CaseFlowStage, CaseRow } from '../database/types.js';
-import { getConnection } from '../database/db.js';
+import { pool, getConnection } from '../database/db.js';
 import { caseRepository } from '../repositories/caseRepository.js';
+import { financialRepository } from '../repositories/financialRepository.js';
 import { FEE_SCHEDULE, JURISDICTION_CONFIG, uploadDir } from '../utils/constants.js';
 import { addDays, recalculateDeadlines } from '../utils/deadlines.js';
 import { sanitizeFilename } from '../utils/filing.js';
@@ -141,7 +142,7 @@ export const caseLifecycleService = {
         const classCount = await caseRepository.countNiceClasses(connection, input.caseId);
         const totalAmount = fee.amount + (fee.per_extra_class_amount * Math.max(0, classCount - 1));
         const invoiceId = crypto.randomUUID();
-        const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+        const invoiceNumber = await financialRepository.getNextInvoiceNumber(connection);
 
         await caseRepository.insertInvoice(connection, {
           id: invoiceId,
@@ -328,7 +329,7 @@ export const caseLifecycleService = {
       if (fees && fees[input.stage]) {
         const fee = fees[input.stage];
         const invoiceId = getSafeId();
-        const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+        const invoiceNumber = await financialRepository.getNextInvoiceNumber(connection);
         const classCount = await caseRepository.countNiceClasses(connection, input.caseId);
         const totalAmount = fee.amount + (fee.per_extra_class_amount * Math.max(0, classCount - 1));
 

@@ -81,8 +81,7 @@ export const financialService = {
     try {
       await connection.beginTransaction();
 
-      const currentCount = await financialRepository.getInvoiceCount(connection);
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(currentCount + 1).padStart(3, '0')}`;
+      const invoiceNumber = await financialRepository.getNextInvoiceNumber(connection);
       const totalAmount = input.items.reduce((sum, item) => sum + Number(item.amount), 0);
       const invoiceId = crypto.randomUUID();
 

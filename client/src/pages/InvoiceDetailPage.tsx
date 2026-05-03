@@ -193,7 +193,7 @@ export default function InvoiceDetailPage() {
         issueDate: invoice.issue_date || new Date().toISOString(),
         dueDate: invoice.due_date,
         clientName: invoice.client_name,
-        clientAddress: invoice.notes || undefined, // Using notes as address for now if client address is missing
+        clientAddress: undefined, 
         items: items,
         currency: invoice.currency || 'USD',
         notes: invoice.notes || undefined,
@@ -232,7 +232,7 @@ export default function InvoiceDetailPage() {
         issueDate: invoice.issue_date || new Date().toISOString(),
         dueDate: invoice.due_date,
         clientName: invoice.client_name,
-        clientAddress: invoice.notes || undefined,
+        clientAddress: undefined,
         items: items,
         currency: invoice.currency || 'USD',
         notes: invoice.notes || undefined,
@@ -244,7 +244,8 @@ export default function InvoiceDetailPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `invoice_${invoice.invoice_number || invoice.id}.pdf`
+      const fileName = (invoice.invoice_number || invoice.id).replace(/[^a-z0-9]/gi, '_').toUpperCase();
+      link.download = `INVOICE_${fileName}.pdf`
       document.body.appendChild(link)
       link.click()
       link.remove()

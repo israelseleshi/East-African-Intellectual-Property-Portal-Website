@@ -1,6 +1,15 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/jetbrains-mono";
+
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,7 +23,7 @@
 }
 
 :root {
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'SF Pro Display', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* 60-30-10 Professional Palette */
   /* 60% Navy - Authority, trust, professionalism */
@@ -209,7 +218,7 @@ html.dark {
     --sidebar-background: var(--eai-bg);
   }
   html {
-    @apply font-mono;
+    font-family: 'SF Pro Display', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 }
 

@@ -190,7 +190,7 @@ export default function TrademarksPage() {
   const [status, setStatus] = useState<string | 'ALL'>('ALL')
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
-  const pageSize = 10
+  const pageSize = viewMode === 'grid' ? 6 : 5
 
   // Selection state for bulk actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -666,22 +666,61 @@ export default function TrademarksPage() {
           <Typography.muted>Try adjusting your search or filters.</Typography.muted>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginatedRows.map(t => (
-            <Card key={t.id} className="p-4 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/trademarks/${t.id}`)}>
-              <div className="flex items-start gap-3">
-                <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
-                <div className="flex-1 min-w-0">
-                    <Typography.h4a className="truncate">{markLabel(t)}</Typography.h4a>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">{t.jurisdiction || 'ET'}</Badge>
-                    <Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginatedRows.map(t => (
+              <Card key={t.id} className="p-4 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/trademarks/${t.id}`)}>
+                <div className="flex items-start gap-3">
+                  <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
+                  <div className="flex-1 min-w-0">
+                      <Typography.h4a className="truncate">{markLabel(t)}</Typography.h4a>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline">{t.jurisdiction || 'ET'}</Badge>
+                      <Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge>
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">{t.client_name || t.client?.name || '—'}</div>
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">{t.client_name || t.client?.name || '—'}</div>
                 </div>
+              </Card>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex flex-col items-center justify-center gap-4 py-6">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={16} /></Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                    if (
+                      page === 1 || 
+                      page === totalPages || 
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Button 
+                          key={page} 
+                          variant={currentPage === page ? 'default' : 'ghost'} 
+                          size="sm" 
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    } else if (
+                      page === currentPage - 2 || 
+                      page === currentPage + 2
+                    ) {
+                      return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><CaretRight size={16} /></Button>
               </div>
-            </Card>
-          ))}
+              <span className="text-sm text-muted-foreground font-medium">
+                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} records
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <Card className="overflow-hidden">
@@ -738,17 +777,41 @@ export default function TrademarksPage() {
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <span className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
-              </span>
-              <div className="flex items-center gap-1">
+            <div className="flex flex-col items-center justify-center gap-4 border-t px-4 py-6">
+              <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={16} /></Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(page => (
-                  <Button key={page} variant={currentPage === page ? 'default' : 'ghost'} size="sm" onClick={() => setCurrentPage(page)}>{page}</Button>
-                ))}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                    // Show first page, last page, and pages around current page
+                    if (
+                      page === 1 || 
+                      page === totalPages || 
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Button 
+                          key={page} 
+                          variant={currentPage === page ? 'default' : 'ghost'} 
+                          size="sm" 
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    } else if (
+                      page === currentPage - 2 || 
+                      page === currentPage + 2
+                    ) {
+                      return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
                 <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><CaretRight size={16} /></Button>
               </div>
+              <span className="text-sm text-muted-foreground font-medium">
+                Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} records
+              </span>
             </div>
           )}
         </Card>
