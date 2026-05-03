@@ -708,7 +708,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <Tabs defaultValue="profile" className="flex flex-col gap-6">
+      <Tabs defaultValue="profile" className="flex flex-col gap-0 items-start w-full max-w-[650px]">
         <TabsList className={tabsClassName}>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
@@ -717,7 +717,7 @@ export default function ProfilePage() {
           {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="profile" className="flex flex-col gap-6">
+        <TabsContent value="profile" className="w-full">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex flex-col gap-1">
@@ -823,7 +823,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-            <TabsContent value="security" className="flex flex-col gap-6">
+            <TabsContent value="security" className="w-full">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -920,7 +920,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="company" className="flex flex-col gap-6">
+        <TabsContent value="company" className="w-full">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex flex-col gap-1">
@@ -1098,7 +1098,7 @@ export default function ProfilePage() {
         </Card>
         </TabsContent>
 
-        <TabsContent value="agents" className="flex flex-col gap-6">
+        <TabsContent value="agents" className="w-full">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex flex-col gap-1">
@@ -1170,7 +1170,7 @@ export default function ProfilePage() {
         </TabsContent>
 
         {/* Pending Admins Tab */}
-        <TabsContent value="pending" className="flex flex-col gap-6">
+        <TabsContent value="pending" className="w-full">
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -38,7 +38,7 @@ docs/
 TM_MIGRATION_FILES/
 *.graph.json
 *.graph.html
-.graphify*
+graphify-out/
 
 # =========================
 # Deployment & Temporary
@@ -68,3 +68,19 @@ $null
 *.log
 *.temp
 *.zip
+
+# =========================
+# Agent & Analysis Tools
+# =========================
+.claude/
+.opencode/
+.understand-anything/
+.graphify*/
+*.graphify*
+
+# =========================
+# Skills & Local AI
+# =========================
+skills/
+.claude/
+.opencode/

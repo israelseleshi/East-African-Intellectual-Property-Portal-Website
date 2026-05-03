@@ -1,3 +1,4 @@
+clear
 -- Migration: Add is_approved and rejection_count columns to users table
 -- Run this on your MySQL server
 
