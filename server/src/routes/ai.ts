@@ -81,7 +81,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-flash-latest",
+      model: "gemini-flash-lite-latest",
       tools: tools
     });
 
