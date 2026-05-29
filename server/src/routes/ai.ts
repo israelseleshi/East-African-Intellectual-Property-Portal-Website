@@ -127,13 +127,15 @@ router.post('/chat', authenticateToken, async (req, res) => {
       history: await chat.getHistory()
     });
 
-  } catch (error) {
-    logRouteError(req, 'ai.chat', error);
-    sendApiError(req, res, 500, {
-      code: 'AI_CHAT_FAILED',
-      message: 'Failed to process AI chat'
-    });
-  }
+    } catch (error) {
+      console.error('AI Chat Error Details:', error);
+      logRouteError(req, 'ai.chat', error);
+      sendApiError(req, res, 500, {
+        code: 'AI_CHAT_FAILED',
+        message: error instanceof Error ? error.message : 'Failed to process AI chat'
+      });
+    }
+
 });
 
 export default router;
