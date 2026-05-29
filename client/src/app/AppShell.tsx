@@ -5,6 +5,7 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import CommandPalette from '../components/CommandPalette'
 import AppTour from '../components/AppTour'
 import AppSidebar from '../components/NewSidebar'
+import AIChatBot from '../components/AIChatBot'
 import TopBar from '../components/TopBars'
 import { Toaster } from '@/components/ui/sonner'
 import { usePageTitleStore } from '../store/pageTitleStore'
@@ -215,6 +216,7 @@ export default function AppShell() {
         </div>
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
         <AppTour />
+        <AIChatBot />
         <Toaster 
           position="top-right"
           closeButton={false}

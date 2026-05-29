@@ -24,6 +24,7 @@ import oppositionsRoutes from './routes/oppositions.js';
 import feesRoutes from './routes/fees.js';
 import formsRoutes from './routes/forms.js';
 import agentsRoutes from './routes/agents.js';
+import aiRoutes from './routes/ai.js';
 import settingsRoutes from './routes/settings.js';
 import { ensureAuthTables, pool } from './database/db.js';
 import { attachRequestContext } from './middleware/requestContext.js';
@@ -180,6 +181,7 @@ const registerRoutes = (prefix: string = '') => {
   app.use(`${prefix}/fees`, feesRoutes);
   app.use(`${prefix}/forms`, formsRoutes);
   app.use(`${prefix}/agents`, agentsRoutes);
+  app.use(`${prefix}/ai`, aiRoutes);
   app.use(`${prefix}/settings`, settingsRoutes);
 };
 

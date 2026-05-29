@@ -150,6 +150,8 @@ export const caseRepository = {
         tc.next_action_date,
         tc.certificate_number,
         tc.priority,
+        tc.priority_country,
+        tc.priority_filing_date,
         tc.color_indication,
         tc.mark_image,
         tc.created_at,
