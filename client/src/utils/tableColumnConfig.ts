@@ -70,38 +70,38 @@ export const ALL_COLUMNS: ColumnDef[] = [
   // Mark Info
   { id: 'markName', label: 'Mark Name', group: 'markInfo', defaultVisible: true, fieldKey: 'markName_render', render: 'mark' },
   { id: 'markType', label: 'Mark Type', group: 'markInfo', defaultVisible: false, fieldKey: 'mark_type' },
-  { id: 'filingNumber', label: 'Filing Number', group: 'markInfo', defaultVisible: true, fieldKey: 'filingNumber', render: 'filingBadge' },
+  { id: 'filingNumber', label: 'Filing Number', group: 'markInfo', defaultVisible: true, fieldKey: 'filing_number', render: 'filingBadge' },
   { id: 'registrationNumber', label: 'Reg. Number', group: 'markInfo', defaultVisible: false, fieldKey: 'registration_number' },
-  { id: 'certificateNumber', label: 'Certificate No.', group: 'markInfo', defaultVisible: false, fieldKey: 'certificateNumber' },
-  { id: 'colorIndication', label: 'Color Indication', group: 'markInfo', defaultVisible: false, fieldKey: 'colorIndication' },
+  { id: 'certificateNumber', label: 'Certificate No.', group: 'markInfo', defaultVisible: false, fieldKey: 'certificate_number' },
+  { id: 'colorIndication', label: 'Color Indication', group: 'markInfo', defaultVisible: false, fieldKey: 'color_indication' },
 
   // Dates
-  { id: 'filingDate', label: 'Filing Date', group: 'dates', defaultVisible: false, fieldKey: 'filingDate' },
-  { id: 'publicationDate', label: 'Pub. Date', group: 'dates', defaultVisible: false, fieldKey: 'publicationDate' },
-  { id: 'registrationDate', label: 'Reg. Date', group: 'dates', defaultVisible: false, fieldKey: 'registrationDate' },
+  { id: 'filingDate', label: 'Filing Date', group: 'dates', defaultVisible: false, fieldKey: 'filing_date' },
+  { id: 'publicationDate', label: 'Pub. Date', group: 'dates', defaultVisible: false, fieldKey: 'publication_date' },
+  { id: 'registrationDate', label: 'Reg. Date', group: 'dates', defaultVisible: false, fieldKey: 'registration_dt' },
   { id: 'expiryDate', label: 'Expiry Date', group: 'dates', defaultVisible: false, fieldKey: 'expiry_date' },
   { id: 'nextRenewalDate', label: 'Next Renewal', group: 'dates', defaultVisible: false, fieldKey: 'next_renewal_date' },
-  { id: 'nextActionDate', label: 'Next Action', group: 'dates', defaultVisible: false, fieldKey: 'nextActionDate' },
+  { id: 'nextActionDate', label: 'Next Action', group: 'dates', defaultVisible: false, fieldKey: 'next_action_date' },
 
   // Status
   { id: 'status', label: 'Status', group: 'status', defaultVisible: true, fieldKey: 'status', render: 'statusBadge' },
-  { id: 'flowStage', label: 'Flow Stage', group: 'status', defaultVisible: false, fieldKey: 'flowStage' },
+  { id: 'flowStage', label: 'Flow Stage', group: 'status', defaultVisible: false, fieldKey: 'flow_stage' },
   { id: 'jurisdiction', label: 'Region', group: 'status', defaultVisible: true, fieldKey: 'jurisdiction', render: 'jurisdictionBadge' },
 
   // Client
-  { id: 'clientName', label: 'Client', group: 'client', defaultVisible: true, fieldKey: 'clientName' },
-  { id: 'clientType', label: 'Client Type', group: 'client', defaultVisible: false, fieldKey: 'clientType' },
+  { id: 'clientName', label: 'Client', group: 'client', defaultVisible: true, fieldKey: 'client_name' },
+  { id: 'clientType', label: 'Client Type', group: 'client', defaultVisible: false, fieldKey: 'client_type' },
 
   // Priority
   { id: 'priority', label: 'Priority', group: 'priority', defaultVisible: false, fieldKey: 'priority' },
-  { id: 'priorityCountry', label: 'Priority Country', group: 'priority', defaultVisible: false, fieldKey: 'priorityCountry' },
-  { id: 'priorityFilingDate', label: 'Priority Filing Date', group: 'priority', defaultVisible: false, fieldKey: 'priorityFilingDate' },
+  { id: 'priorityCountry', label: 'Priority Country', group: 'priority', defaultVisible: false, fieldKey: 'priority_country' },
+  { id: 'priorityFilingDate', label: 'Priority Filing Date', group: 'priority', defaultVisible: false, fieldKey: 'priority_filing_date' },
 
   // Lifecycle
-  { id: 'createdAt', label: 'Created At', group: 'lifecycle', defaultVisible: false, fieldKey: 'createdAt' },
-  { id: 'updatedAt', label: 'Updated At', group: 'lifecycle', defaultVisible: false, fieldKey: 'updatedAt' },
-  { id: 'deadlineType', label: 'Deadline Type', group: 'lifecycle', defaultVisible: false, fieldKey: 'deadlineType' },
-  { id: 'deadlineDue', label: 'Deadline Due', group: 'lifecycle', defaultVisible: false, fieldKey: 'deadlineDue' },
+  { id: 'createdAt', label: 'Created At', group: 'lifecycle', defaultVisible: false, fieldKey: 'created_at' },
+  { id: 'updatedAt', label: 'Updated At', group: 'lifecycle', defaultVisible: false, fieldKey: 'updated_at' },
+  { id: 'deadlineType', label: 'Deadline Type', group: 'lifecycle', defaultVisible: false, fieldKey: 'deadline_type' },
+  { id: 'deadlineDue', label: 'Deadline Due', group: 'lifecycle', defaultVisible: false, fieldKey: 'deadline_due' },
 
   // Actions (always appended)
   { id: 'actions', label: 'Actions', group: 'lifecycle', defaultVisible: true, fieldKey: 'actions', render: 'actions' },
