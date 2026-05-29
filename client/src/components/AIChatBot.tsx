@@ -33,7 +33,51 @@ export default function AIChatBot() {
   }, [messages, isLoading]);
 
   const handleSend = async () => {
-...
+    if (!message.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      parts: [{ text: message }]
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          history: messages.slice(1) // Exclude initial greeting for Gemini history
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch response');
+      }
+
+      const aiMessage: Message = {
+        role: 'model',
+        parts: [{ text: data.text }]
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        role: 'model',
+        parts: [{ text: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again later.` }]
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
               <CardContent className="flex-1 p-0 overflow-hidden bg-muted/30">
                 <ScrollArea className="h-full p-4">
                   <div className="flex flex-col gap-4">
