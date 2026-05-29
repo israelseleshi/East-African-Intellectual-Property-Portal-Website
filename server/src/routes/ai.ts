@@ -1,5 +1,5 @@
 import express from 'express';
-import { GoogleGenerativeAI, Tool, GenerateContentRequest } from '@google/generative-ai';
+import { GoogleGenerativeAI, Tool, SchemaType } from '@google/generative-ai';
 import { authenticateToken } from '../middleware/auth.js';
 import { pool } from '../database/db.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
@@ -16,10 +16,10 @@ const tools: Tool[] = [
         name: "get_deadlines",
         description: "Fetch upcoming intellectual property deadlines for the user's cases.",
         parameters: {
-          type: "object",
+          type: SchemaType.OBJECT,
           properties: {
             days: {
-              type: "number",
+              type: SchemaType.NUMBER,
               description: "Number of days from now to search for deadlines (e.g., 30 for this month)."
             }
           },
@@ -30,10 +30,10 @@ const tools: Tool[] = [
         name: "get_recent_cases",
         description: "Fetch a list of recent trademark cases.",
         parameters: {
-          type: "object",
+          type: SchemaType.OBJECT,
           properties: {
             limit: {
-              type: "number",
+              type: SchemaType.NUMBER,
               description: "Maximum number of cases to return."
             }
           }
