@@ -92,8 +92,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
         parts: [{ 
           text: `You are the EAIP Assistant. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. 
           Respond in plain text or simple, clean formatting. Do NOT use markdown bolding (**) or headers. Use bullet points (-) for lists. 
-          When listing deadlines, present them clearly like:
-          - Mark: [Name] | Task: [Type] | Due: [Date]` 
+          When listing deadlines or cases, present them clearly like:
+          - Mark: [Name] | Task: [Type] | Due: [Date] | ID: [UUID]
+          
+          If a specific case ID is available in the data, ALWAYS include it at the end of the line like "[ID: case-uuid]". This allows the UI to generate navigation links.` 
         }]
       }
     });

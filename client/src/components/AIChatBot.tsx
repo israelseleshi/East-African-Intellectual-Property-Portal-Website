@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/api/httpClient';
@@ -14,7 +15,17 @@ interface Message {
   parts: { text: string }[];
 }
 
+const QUICK_QUESTIONS = [
+  "Do I have any deadlines this week?",
+  "List all deadlines falling in the next 30 days.",
+  "What are my most urgent deadlines?",
+  "Show me all overdue tasks for this month.",
+  "Show me the 5 most recent trademark cases.",
+  "Which of my cases are currently Published?"
+];
+
 export default function AIChatBot() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -71,6 +82,39 @@ export default function AIChatBot() {
     }
   };
 
+  const renderMessageText = (text: string) => {
+    // Look for patterns like [ID: 123-456]
+    const idRegex = /\[ID:\s*([a-f0-9-]{36})\]/gi;
+    const parts = text.split(idRegex);
+    
+    if (parts.length === 1) return text;
+
+    return (
+      <div className="flex flex-col gap-2">
+        {parts.map((part, i) => {
+          // If the part matches a UUID (every second part because of the capture group)
+          if (i % 2 === 1) {
+            return (
+              <Button
+                key={i}
+                variant="outline"
+                size="sm"
+                className="w-fit h-7 text-[10px] bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all gap-1"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate(`/cases/${part}/edit`);
+                }}
+              >
+                View Case Details
+              </Button>
+            );
+          }
+          return <span key={i}>{part.replace(/\[ID:.*\]/gi, '')}</span>;
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
       <AnimatePresence>
@@ -116,16 +160,16 @@ export default function AIChatBot() {
                           msg.role === 'user' ? "ml-auto items-end" : "items-start"
                         )}
                       >
-                        <div 
-                          className={cn(
-                            "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
-                            msg.role === 'user' 
-                              ? "bg-primary text-primary-foreground rounded-tr-none" 
-                              : "bg-white text-foreground shadow-sm rounded-tl-none border border-border/40"
-                          )}
-                        >
-                          {msg.parts[0].text}
-                        </div>
+                          <div 
+                            className={cn(
+                              "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                              msg.role === 'user' 
+                                ? "bg-primary text-primary-foreground rounded-tr-none" 
+                                : "bg-white text-foreground shadow-sm rounded-tl-none border border-border/40"
+                            )}
+                          >
+                            {msg.role === 'model' ? renderMessageText(msg.parts[0].text) : msg.parts[0].text}
+                          </div>
                         <span className="text-[10px] text-muted-foreground px-1 font-medium uppercase tracking-wider">
                           {msg.role === 'user' ? 'You' : 'Assistant'}
                         </span>
@@ -140,6 +184,22 @@ export default function AIChatBot() {
                             <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
                           </div>
                         </div>
+                      </div>
+                    )}
+                    {messages.length <= 1 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {QUICK_QUESTIONS.map((q) => (
+                          <button
+                            key={q}
+                            onClick={() => {
+                              setMessage(q);
+                              // Auto-trigger send if you want, or just set it
+                            }}
+                            className="text-xs bg-white border border-primary/20 hover:bg-primary/5 text-primary px-3 py-1.5 rounded-full transition-colors shadow-sm"
+                          >
+                            {q}
+                          </button>
+                        ))}
                       </div>
                     )}
                     <div ref={scrollRef} />
