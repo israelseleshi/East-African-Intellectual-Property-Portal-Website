@@ -47,11 +47,12 @@ const tools: Tool[] = [
 const toolImplementations = {
   get_deadlines: async ({ days }: { days: number }) => {
     const [rows] = await pool.execute(
-      `SELECT d.id, d.due_date, d.type as description, tc.mark_name, tc.jurisdiction, c.name as client_name
+      `SELECT d.id, d.due_date, d.type as description, tc.id as case_id, tc.mark_name, tc.jurisdiction, c.name as client_name
        FROM deadlines d
        JOIN trademark_cases tc ON d.case_id = tc.id
        LEFT JOIN clients c ON tc.client_id = c.id
        WHERE (d.is_completed = FALSE OR d.status = 'PENDING')
+       AND d.due_date >= CURRENT_DATE()
        AND d.due_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
        ORDER BY d.due_date ASC`,
       [days || 30]

@@ -83,34 +83,45 @@ export default function AIChatBot() {
   };
 
   const renderMessageText = (text: string) => {
-    // Look for patterns like [ID: 123-456]
+    // Improved regex to better handle the surrounding text
     const idRegex = /\[ID:\s*([a-f0-9-]{36})\]/gi;
     const parts = text.split(idRegex);
     
-    if (parts.length === 1) return text;
+    if (parts.length === 1) return <span>{text}</span>;
+
+    const elements: React.ReactNode[] = [];
+    
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 1) {
+        // This is a UUID
+        const uuid = parts[i];
+        elements.push(
+          <div key={`btn-${i}`} className="my-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[10px] bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all gap-1"
+              onClick={() => {
+                setIsOpen(false);
+                navigate(`/cases/${uuid}/edit`);
+              }}
+            >
+              View Case Details
+            </Button>
+          </div>
+        );
+      } else {
+        // This is regular text
+        const content = parts[i].trim();
+        if (content) {
+          elements.push(<span key={`text-${i}`}>{content}</span>);
+        }
+      }
+    }
 
     return (
-      <div className="flex flex-col gap-2">
-        {parts.map((part, i) => {
-          // If the part matches a UUID (every second part because of the capture group)
-          if (i % 2 === 1) {
-            return (
-              <Button
-                key={i}
-                variant="outline"
-                size="sm"
-                className="w-fit h-7 text-[10px] bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all gap-1"
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate(`/cases/${part}/edit`);
-                }}
-              >
-                View Case Details
-              </Button>
-            );
-          }
-          return <span key={i}>{part.replace(/\[ID:.*\]/gi, '')}</span>;
-        })}
+      <div className="flex flex-col gap-1">
+        {elements}
       </div>
     );
   };
