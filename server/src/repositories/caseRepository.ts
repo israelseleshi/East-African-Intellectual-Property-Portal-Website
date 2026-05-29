@@ -284,7 +284,7 @@ export const caseRepository = {
 
   async updateCaseStatus(
     connection: PoolConnection,
-    payload: { caseId: string; status: string; hadFilingDate: boolean; hadRegistrationDate: boolean; publicationDate?: string }
+    payload: { caseId: string; status: string; hadFilingDate: boolean; hadRegistrationDate: boolean }
   ): Promise<void> {
     let updateSql = 'UPDATE trademark_cases SET status = ?';
     const params: Array<string | null> = [payload.status];
@@ -294,10 +294,6 @@ export const caseRepository = {
     }
     if (payload.status === 'REGISTERED' && !payload.hadRegistrationDate) {
       updateSql += ', registration_dt = NOW()';
-    }
-    if (payload.status === 'PUBLISHED' && payload.publicationDate) {
-      updateSql += ', publication_date = ?';
-      params.push(payload.publicationDate);
     }
 
     updateSql += ' WHERE id = ?';

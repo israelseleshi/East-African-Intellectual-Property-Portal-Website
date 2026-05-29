@@ -7,6 +7,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { apiClient } from '@/api/httpClient';
 
 interface Message {
   role: 'user' | 'model';
@@ -45,39 +46,65 @@ export default function AIChatBot() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          history: messages.slice(1) // Exclude initial greeting for Gemini history
-        }),
+      const response = await apiClient.post('/ai/chat', {
+        message: message,
+        history: messages.slice(1) // Exclude initial greeting for Gemini history
       });
 
-      const data = await response.json();
+      const data = response.data;
       
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch response');
-      }
-
       const aiMessage: Message = {
         role: 'model',
         parts: [{ text: data.text }]
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
       setMessages(prev => [...prev, {
         role: 'model',
-        parts: [{ text: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again later.` }]
+        parts: [{ text: `Sorry, I encountered an error: ${errorMessage}. Please try again later.` }]
       }]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="mb-4 w-[350px] sm:w-[400px] h-[500px] shadow-2xl overflow-hidden flex flex-col"
+          >
+            <Card className="flex flex-col h-full border-none shadow-none rounded-2xl overflow-hidden">
+              <CardHeader className="bg-primary py-4 px-6 flex flex-row items-center justify-between text-primary-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/20 p-1.5 rounded-lg">
+                    <Bot size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold">EAIP Assistant</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-[10px] text-primary-foreground/70 font-medium">Online</span>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsOpen(false)}
+                  className="text-primary-foreground hover:bg-white/10 -mr-2"
+                >
+                  <X size={20} />
+                </Button>
+              </CardHeader>
+
               <CardContent className="flex-1 p-0 overflow-hidden bg-muted/30">
                 <ScrollArea className="h-full p-4">
                   <div className="flex flex-col gap-4">
@@ -119,7 +146,6 @@ export default function AIChatBot() {
                   </div>
                 </ScrollArea>
               </CardContent>
-
 
               <CardFooter className="p-4 bg-white border-t">
                 <form 
