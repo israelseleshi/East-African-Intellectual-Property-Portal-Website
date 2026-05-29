@@ -10,6 +10,7 @@ import { Field, FieldGroup, FieldLegend, FieldError } from "@/components/ui/fiel
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Typography } from "@/components/ui/typography"
+import { TypingAnimation } from "@/components/ui/typing-animation"
 import { toast } from "@/components/ui/sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import AuthLayout from "@/components/AuthLayout"
@@ -285,7 +286,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                {!requires2FA && (
                  <div className="text-center">
                    <motion.div variants={itemVariants}>
-                     <Typography.h1>Welcome back</Typography.h1>
+                      <TypingAnimation
+                        className="text-3xl font-bold tracking-tight"
+                        duration={50}
+                      >
+                        Welcome back
+                      </TypingAnimation>
                    </motion.div>
                    <motion.div variants={itemVariants}>
                      <Typography.lead>Enter your credentials to access your account</Typography.lead>

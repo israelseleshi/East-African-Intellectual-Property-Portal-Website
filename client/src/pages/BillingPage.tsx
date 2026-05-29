@@ -24,7 +24,8 @@ import {
   SquaresFour,
   List,
   CheckSquare,
-  Square
+  Square,
+  ShareFat
 } from '@phosphor-icons/react'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -49,6 +50,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Typography } from '@/components/ui/typography'
+import { InvoiceSharePopover } from '@/components/InvoiceSharePopover'
 
 const EIPO_FEES = [
   { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
@@ -793,15 +795,20 @@ export default function BillingPage() {
                   return (
                     <Card 
                       key={tx.id} 
-                      className={`cursor-pointer transition-all hover:shadow-md ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
+                      className={`cursor-pointer transition-all hover:shadow-md group ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
                       onClick={() => navigate(`/billing/${tx.id}`)}
                     >
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}
-                        className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-[#E8E8ED]/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
-                      >
-                        {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
-                      </button>
+                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          <InvoiceSharePopover row={tx} />
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}
+                          className={`p-1 rounded-md bg-[#E8E8ED]/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
+                        >
+                          {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
+                        </button>
+                      </div>
                       <CardContent className="p-4 pt-6">
                         <div className="flex items-start gap-3 mb-3">
                           <div className={`p-2 rounded-lg ${tx.status === 'PAID' ? 'bg-green-100 text-green-700' : tx.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -917,6 +924,9 @@ export default function BillingPage() {
                                 <CheckCircle size={16} />
                               </Button>
                             )}
+                            <div onClick={e => e.stopPropagation()}>
+                              <InvoiceSharePopover row={tx} />
+                            </div>
                             <Button
                               size="icon"
                               variant="ghost"

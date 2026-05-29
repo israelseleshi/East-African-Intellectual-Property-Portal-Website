@@ -29,35 +29,35 @@
   /* 60% Navy - Authority, trust, professionalism */
   --eai-navy: #0A2533;
   --eai-navy-light: #143649;
-  
+
   /* 30% Cream - Warmth, sophistication */
   --eai-cream: #F5F0E8;
   --eai-cream-dark: #EDE8DD;
-  
+
   /* 10% Terracotta - Accent for CTAs/highlights only */
   --eai-terracotta: #C25B2E;
   --eai-terracotta-light: #D46B3E;
-  
+
   /* Backgrounds */
   --eai-bg: var(--eai-cream);
   --eai-surface: #FFFFFF;
   --eai-surface-glass: rgba(255, 255, 255, 0.85);
-  
+
   /* Text */
   --eai-text: var(--eai-navy);
   --eai-text-secondary: #5A6670;
   --eai-muted: rgba(10, 37, 51, 0.5);
-  
+
   /* Borders */
   --eai-border: rgba(10, 37, 51, 0.08);
   --eai-border-strong: rgba(10, 37, 51, 0.15);
-  
+
   /* Brand Colors */
   --eai-primary: var(--eai-navy);
   --eai-primary-hover: var(--eai-navy-light);
   --eai-accent: var(--eai-terracotta);
   --eai-accent-hover: var(--eai-terracotta-light);
-  
+
   /* Semantic */
   --eai-success: #2E7D4A;
   --eai-warning: #D97706;
@@ -127,6 +127,9 @@ html.dark {
     font-weight: normal;
     font-style: normal;
     font-display: swap;
+  }
+  .theme {
+    --animate-blink-cursor: blink-cursor 1.2s step-end infinite;
   }
 }
 
@@ -398,7 +401,6 @@ html, body {
   height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden; /* Prevent body scroll, let main container handle it */
 }
 
 body {
@@ -641,9 +643,6 @@ div[data-collapsible="icon"] .sidebar-collapsed-btn {
 }
 
 /* Ensure main content area is scrollable */
-main {
-  contain: layout style paint;
-}
 
 html {
   scroll-behavior: smooth;
@@ -765,4 +764,15 @@ html {
 * {
   scrollbar-width: thick;
   scrollbar-color: #0A2533 #EDE8DD;
+}
+
+@theme inline {
+  @keyframes blink-cursor {
+  0%, 49% {
+    opacity: 1;
+    }
+  50%, 100% {
+    opacity: 0;
+    }
+  }
 }

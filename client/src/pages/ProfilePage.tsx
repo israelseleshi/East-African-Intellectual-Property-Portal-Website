@@ -393,40 +393,38 @@ export default function ProfilePage() {
     }
   }
 
-  const tabsClassName = isUserSuperAdmin
-    ? "grid w-full grid-cols-5 max-w-[650px] mb-6"
-    : "grid w-full grid-cols-2 max-w-[350px] mb-6"
+  const tabsClassName = "w-full h-auto mb-4 sm:mb-6 inline-flex overflow-x-auto scrollbar-hide gap-1 flex-wrap"
 
   return (
-    <div className="w-full flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto min-h-screen">
-      <header className="flex items-center justify-between">
+    <div className="w-full flex flex-col gap-4 sm:gap-6 p-3 sm:p-4 md:p-8 pb-8 md:pb-12 max-w-4xl mx-auto">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <Typography.h1a>Account Settings</Typography.h1a>
-          <Typography.muted>Manage your profile information and security preferences.</Typography.muted>
+          <Typography.h1a className="text-2xl sm:text-3xl">Account Settings</Typography.h1a>
+          <Typography.muted className="text-sm sm:text-base">Manage your profile information and security preferences.</Typography.muted>
         </div>
       </header>
 
-      <Tabs defaultValue="profile" className="flex flex-col gap-0 items-start w-full max-w-[650px]">
+      <Tabs defaultValue="profile" className="flex flex-col gap-0 items-start w-full">
         <TabsList className={tabsClassName}>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="company">Company</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          {isUserSuperAdmin && <TabsTrigger value="agents">Agents</TabsTrigger>}
-          {isUserSuperAdmin && <TabsTrigger value="pending">Pending Admins</TabsTrigger>}
+          <TabsTrigger value="profile" className="text-xs sm:text-sm">Profile</TabsTrigger>
+          <TabsTrigger value="company" className="text-xs sm:text-sm">Company</TabsTrigger>
+          <TabsTrigger value="security" className="text-xs sm:text-sm">Security</TabsTrigger>
+          {isUserSuperAdmin && <TabsTrigger value="agents" className="text-xs sm:text-sm">Agents</TabsTrigger>}
+          {isUserSuperAdmin && <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending Admins</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="profile" className="w-full">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="size-5" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5" />
                   Profile Information
                 </CardTitle>
-                <CardDescription>Update your account details and contact information.</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Update your account details and contact information.</CardDescription>
               </div>
               {!isEditing && (
-                <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="w-full sm:w-auto">
                   <Edit2 className="mr-2 size-4" />
                   Edit Profile
                 </Button>
@@ -434,7 +432,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label htmlFor="fullName" className="text-sm font-medium">Full Name</label>
                     <div className="relative">
@@ -444,7 +442,7 @@ export default function ProfilePage() {
                         value={formData.fullName} 
                         onChange={handleChange}
                         disabled={!isEditing}
-                        className="pl-9"
+                        className="pl-9 text-sm"
                         placeholder="Enter full name" 
                       />
                     </div>
@@ -458,7 +456,7 @@ export default function ProfilePage() {
                         type="email" 
                         value={formData.email} 
                         disabled={true}
-                        className="pl-9 bg-muted"
+                        className="pl-9 bg-muted text-sm"
                         placeholder="Enter email" 
                       />
                     </div>
@@ -472,7 +470,7 @@ export default function ProfilePage() {
                         value={formData.phone} 
                         onChange={handleChange}
                         disabled={!isEditing}
-                        className="pl-9"
+                        className="pl-9 text-sm"
                         placeholder="Enter phone number" 
                       />
                     </div>
@@ -486,19 +484,19 @@ export default function ProfilePage() {
                         value={formData.firmName} 
                         onChange={handleChange}
                         disabled={!isEditing}
-                        className="pl-9"
+                        className="pl-9 text-sm"
                         placeholder="Enter firm name" 
                       />
                     </div>
                   </div>
                 </div>
-                
+
                 {isEditing && (
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="ghost" onClick={() => setIsEditing(false)}>
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+                    <Button type="button" variant="ghost" onClick={() => setIsEditing(false)} className="w-full sm:w-auto">
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading} className="w-full sm:w-auto">
                       {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Save className="mr-2 size-4" />}
                       Save Changes
                     </Button>
@@ -509,13 +507,13 @@ export default function ProfilePage() {
           </Card>
 
           <Card className="bg-muted/30">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium leading-none">Account Role</p>
-                  <p className="text-sm text-muted-foreground uppercase">{user?.role || 'User'}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground uppercase">{user?.role || 'User'}</p>
                 </div>
-                <Badge variant="outline" className="bg-background">Active</Badge>
+                <Badge variant="outline" className="bg-background w-fit">Active</Badge>
               </div>
             </CardContent>
           </Card>
@@ -523,12 +521,12 @@ export default function ProfilePage() {
 
             <TabsContent value="security" className="w-full">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="size-5" />
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                 Security
               </CardTitle>
-              <CardDescription>Change your password to keep your account secure.</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Change your password to keep your account secure.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
@@ -540,10 +538,11 @@ export default function ProfilePage() {
                     value={formData.currentPassword} 
                     onChange={handleChange}
                     autoComplete="current-password"
+                    className="text-sm"
                   />
                 </div>
                 <Separator />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label htmlFor="newPassword" className="text-sm font-medium">New Password</label>
                     <Input 
@@ -552,6 +551,7 @@ export default function ProfilePage() {
                       value={formData.newPassword} 
                       onChange={handleChange}
                       autoComplete="new-password"
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -562,27 +562,28 @@ export default function ProfilePage() {
                       value={formData.confirmPassword} 
                       onChange={handleChange}
                       autoComplete="new-password"
+                      className="text-sm"
                     />
                   </div>
                 </div>
                 <div className="flex justify-end pt-4">
-                  <Button type="submit" variant="outline" disabled={loading}>
+                  <Button type="submit" variant="outline" disabled={loading} className="w-full sm:w-auto">
                     {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Shield className="mr-2 size-4" />}
                     Update Password
                   </Button>
                 </div>
               </form>
               
-              <Separator className="my-6" />
+              <Separator className="my-4 sm:my-6" />
               
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-<div className="flex flex-col gap-1">
-                    <Typography.h3 className="flex items-center gap-2">
-                      <Smartphone className="size-5" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-col gap-1">
+                    <Typography.h3 className="flex items-center gap-2 text-base sm:text-lg">
+                      <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
                       Two-Factor Authentication
                     </Typography.h3>
-                    <Typography.muted>
+                    <Typography.muted className="text-xs sm:text-sm">
                       {totpEnabled 
                         ? 'Your account is protected with 2FA' 
                         : 'Add an extra layer of security to your account'}
@@ -593,14 +594,14 @@ export default function ProfilePage() {
                   </Badge>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   {!totpEnabled ? (
-                    <Button onClick={handleStart2FASetup} disabled={totpLoading} variant="outline">
+                    <Button onClick={handleStart2FASetup} disabled={totpLoading} variant="outline" className="w-full sm:w-auto">
                       {totpLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Key className="mr-2 size-4" />}
                       Enable 2FA
                     </Button>
                   ) : (
-                    <Button onClick={handleDisable2FA} disabled={totpLoading} variant="destructive" size="sm">
+                    <Button onClick={handleDisable2FA} disabled={totpLoading} variant="destructive" size="sm" className="w-full sm:w-auto">
                       {totpLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                       Disable 2FA
                     </Button>
@@ -609,7 +610,7 @@ export default function ProfilePage() {
                 
                 {totpEnabled && (
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
-                    <AlertTriangle className="size-3" />
+                    <AlertTriangle className="size-3 shrink-0" />
                     Don't lose access! Save backup codes when enabling 2FA.
                   </div>
                 )}
@@ -620,17 +621,17 @@ export default function ProfilePage() {
 
         <TabsContent value="company" className="w-full">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="size-5" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Building className="w-4 h-4 sm:w-5 sm:h-5" />
                   Company Information
                 </CardTitle>
-                <CardDescription>Update your company details for invoice headers and documents.</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Update your company details for invoice headers and documents.</CardDescription>
               </div>
               <div className="flex gap-2">
                 {!isEditingCompany && (
-                  <Button onClick={() => setIsEditingCompany(true)} variant="outline" size="sm">
+                  <Button onClick={() => setIsEditingCompany(true)} variant="outline" size="sm" className="w-full sm:w-auto">
                     <Edit2 className="mr-2 size-4" />
                     Edit Company
                   </Button>
@@ -649,7 +650,7 @@ export default function ProfilePage() {
                   toast.error('Failed to save company settings')
                 }
               }} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
                     <label htmlFor="companyName" className="text-sm font-medium">Company Name</label>
                     <Input 
@@ -658,6 +659,7 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ companyName: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Your company name" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -668,6 +670,7 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ companyAddress: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Street address" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -678,6 +681,7 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ companyCity: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Addis Ababa, Ethiopia" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -689,6 +693,7 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ companyEmail: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="info@company.com" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -699,6 +704,7 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ companyPhone: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="+251 91 123 4567" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -709,6 +715,7 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ companyWebsite: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="www.company.com" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -719,13 +726,14 @@ export default function ProfilePage() {
                       onChange={(e) => setCompanyInfo({ taxId: e.target.value })}
                       disabled={!isEditingCompany}
                       placeholder="Tax identification number" 
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <label htmlFor="logoUrl" className="text-sm font-medium">Company Logo</label>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       {companyInfo.logoUrl ? (
-                        <div className="relative size-24 rounded-lg border overflow-hidden bg-muted">
+                        <div className="relative size-20 sm:size-24 rounded-lg border overflow-hidden bg-muted">
                           <img 
                             src={companyInfo.logoUrl} 
                             alt="Company logo" 
@@ -734,11 +742,11 @@ export default function ProfilePage() {
                           />
                         </div>
                       ) : (
-                        <div className="size-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-                          <Building className="size-8 text-muted-foreground/50" />
+                        <div className="size-20 sm:size-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                          <Building className="size-6 sm:size-8 text-muted-foreground/50" />
                         </div>
                       )}
-                      <div className="flex-1">
+                      <div className="flex-1 w-full sm:w-auto">
                         <Input 
                           id="logoUrl" 
                           type="file"
@@ -782,11 +790,11 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 {isEditingCompany && (
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={() => setIsEditingCompany(false)} variant="outline">
+                  <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                    <Button onClick={() => setIsEditingCompany(false)} variant="outline" className="w-full sm:w-auto">
                       Cancel
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" className="w-full sm:w-auto">
                       <Save className="mr-2 size-4" />
                       Save Changes
                     </Button>
@@ -799,15 +807,15 @@ export default function ProfilePage() {
 
         <TabsContent value="agents" className="w-full">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <CardTitle className="flex items-center gap-2">
-                  <Briefcase className="size-5" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
                   Agents
                 </CardTitle>
-                <CardDescription>Manage trademark agents and representatives.</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">Manage trademark agents and representatives.</CardDescription>
               </div>
-              <Button onClick={() => handleOpenAgentDialog()} size="sm">
+              <Button onClick={() => handleOpenAgentDialog()} size="sm" className="w-full sm:w-auto">
                 <Plus className="mr-2 size-4" />
                 Add Agent
               </Button>
@@ -818,27 +826,67 @@ export default function ProfilePage() {
                   <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 </div>
               ) : agents.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Country</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Telephone</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop Table - hidden on mobile */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Country</TableHead>
+                          <TableHead>City</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Telephone</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {agents.map((agent) => (
+                          <TableRow key={agent.id}>
+                            <TableCell className="font-medium">{agent.name}</TableCell>
+                            <TableCell>{agent.country || '-'}</TableCell>
+                            <TableCell>{agent.city || '-'}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{agent.email || '-'}</TableCell>
+                            <TableCell>{agent.telephone || '-'}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleOpenAgentDialog(agent)}
+                                >
+                                  <Edit2 className="size-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDeleteAgent(agent.id)}
+                                >
+                                  <Trash2 className="size-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards - shown on mobile */}
+                  <div className="md:hidden space-y-3">
                     {agents.map((agent) => (
-                      <TableRow key={agent.id}>
-                        <TableCell className="font-medium">{agent.name}</TableCell>
-                        <TableCell>{agent.country || '-'}</TableCell>
-                        <TableCell>{agent.city || '-'}</TableCell>
-                        <TableCell>{agent.email || '-'}</TableCell>
-                        <TableCell>{agent.telephone || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                      <Card key={agent.id} className="p-4">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">{agent.name}</h4>
+                            <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                              {agent.country && <div>Country: {agent.country}</div>}
+                              {agent.city && <div>City: {agent.city}</div>}
+                              {agent.email && <div className="truncate">Email: {agent.email}</div>}
+                              {agent.telephone && <div>Phone: {agent.telephone}</div>}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -854,13 +902,13 @@ export default function ProfilePage() {
                               <Trash2 className="size-4 text-destructive" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-muted-foreground text-sm">
                   No agents found. Add your first agent to get started.
                 </div>
               )}
@@ -872,19 +920,19 @@ export default function ProfilePage() {
         <TabsContent value="pending" className="w-full">
           <Card className="border shadow-sm">
             <CardHeader className="pb-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="size-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
                     Pending Administrators
                   </CardTitle>
-                  <CardDescription>Review and approve new administrator accounts.</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">Review and approve new administrator accounts.</CardDescription>
                 </div>
-                <div className="relative flex-1 md:w-[250px]">
+                <div className="relative w-full sm:max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                   <Input 
                     placeholder="Search administrators..." 
-                    className="pl-9 bg-muted/50"
+                    className="pl-9 bg-muted/50 text-sm"
                     value={pendingSearch}
                     onChange={(e) => setPendingSearch(e.target.value)}
                     aria-label="Search administrators"
@@ -900,118 +948,118 @@ export default function ProfilePage() {
                   ))}
                 </div>
               ) : filteredPendingAdmins.length === 0 ? (
-                <div className="text-center py-12">
-                  <UserPlus size={48} className="mx-auto text-muted-foreground mb-4" />
-                  <Typography.h3>No Pending Administrators</Typography.h3>
-                  <Typography.muted>
+                <div className="text-center py-8 sm:py-12">
+                  <UserPlus className="w-9 h-9 sm:w-12 sm:h-12 mx-auto text-muted-foreground mb-4" />
+                  <Typography.h3 className="text-lg sm:text-xl">No Pending Administrators</Typography.h3>
+                  <Typography.muted className="text-xs sm:text-sm">
                     {pendingSearch ? "No administrators match your search." : "All administrator accounts have been reviewed."}
                   </Typography.muted>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3 sm:gap-4">
                   {filteredPendingAdmins.map((admin) => (
-                    <Card key={admin.id} className="p-4">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                            <span className="text-primary font-semibold">
+                    <Card key={admin.id} className="p-3 sm:p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span className="text-primary font-semibold text-sm sm:text-base">
                               {admin.full_name?.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <div>
-                            <div className="font-semibold">{admin.full_name}</div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                              <Mail size={12} />
-                              {admin.email}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm sm:text-base truncate">{admin.full_name}</div>
+                            <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 sm:gap-2 mt-0.5">
+                              <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                               <span className="truncate">{admin.email}</span>
                             </div>
                           </div>
+                          <div className="shrink-0">
+                            {admin.rejection_count >= 3 ? (
+                              <Badge variant="destructive" className="text-xs">
+                                Permanently Rejected
+                              </Badge>
+                            ) : admin.is_approved === 1 ? (
+                              <Badge variant="default" className="text-xs">
+                                Approved
+                              </Badge>
+                            ) : admin.rejection_count > 0 ? (
+                              <Badge variant="destructive" className="text-xs">
+                                Rejected ({admin.rejection_count})
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                Pending
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground ml-13">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground pl-11 sm:pl-13">
                           {admin.firm_name && (
-                            <div className="flex items-center gap-2">
-                              <Building size={12} />
-                              {admin.firm_name}
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <Building className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                               <span className="truncate max-w-[150px] sm:max-w-none">{admin.firm_name}</span>
                             </div>
                           )}
-                          <div className="flex items-center gap-2">
-                            <Clock size={12} />
-                            Applied {new Date(admin.created_at).toLocaleDateString()}
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                             Applied {new Date(admin.created_at).toLocaleDateString()}
                           </div>
                           {admin.rejection_count > 0 && (
                             <div className="flex items-center gap-1 text-amber-600">
-                              <AlertTriangle size={12} />
-                              <span className="text-xs font-medium">
+                              <AlertTriangle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                               <span className="text-xs font-medium">
                                 Rejected {admin.rejection_count}/3 times
                               </span>
                             </div>
                           )}
                         </div>
-                      </div>
-                        <div className="flex items-center gap-2">
-                         {admin.rejection_count >= 3 ? (
-                           <Badge variant="destructive" className="text-xs">
-                             Permanently Rejected
-                           </Badge>
-                         ) : admin.is_approved === 1 ? (
-                            <Badge variant="default" className="text-xs">
-                             Approved
-                           </Badge>
-                         ) : admin.rejection_count > 0 ? (
-                           <Badge variant="destructive" className="text-xs">
-                             Rejected ({admin.rejection_count})
-                           </Badge>
-                         ) : (
-                           <Badge variant="outline" className="text-xs">
-                             Pending
-                           </Badge>
-                         )}
-                         {admin.is_approved !== 1 && admin.rejection_count < 3 && (
-                           <>
-                             <Button
-                                 onClick={() => handleApproveAdmin(admin.id)}
-                                 disabled={pendingProcessing === admin.id}
-                                 size="sm"
-                                 className="transition-colors hover:opacity-90"
-                               >
-                               <Check size={16} className="mr-1" />
-                               Approve
-                             </Button>
-                             <Button
-                                 onClick={() => handleRejectAdmin(admin.id)}
-                                 disabled={pendingProcessing === admin.id}
-                                 variant="destructive"
-                                 size="sm"
-                                 className="transition-colors"
-                               >
-                               <X size={16} className="mr-1" />
-                               Reject
-                             </Button>
-                           </>
-                         )}
-                          {admin.is_approved === 1 && admin.rejection_count < 3 && (
+                        {admin.is_approved !== 1 && admin.rejection_count < 3 && (
+                          <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pl-11 sm:pl-0">
+                            <Button
+                              onClick={() => handleApproveAdmin(admin.id)}
+                              disabled={pendingProcessing === admin.id}
+                              size="sm"
+                              className="w-full sm:w-auto transition-colors hover:opacity-90"
+                            >
+                              <Check size={16} className="mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              onClick={() => handleRejectAdmin(admin.id)}
+                              disabled={pendingProcessing === admin.id}
+                              variant="destructive"
+                              size="sm"
+                              className="w-full sm:w-auto transition-colors"
+                            >
+                              <X size={16} className="mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                        {admin.is_approved === 1 && admin.rejection_count < 3 && (
+                          <div className="pl-11 sm:pl-0">
                             <span className="text-xs text-muted-foreground italic">
                               Already approved
                             </span>
-                          )}
-                         </div>
-                        </div>
-                       </Card>
-                     ))}
-                  </div>
-               )}
-             </CardContent>
-           </Card>
-         </TabsContent>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
        </Tabs>
 
 
 
         <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg sm:max-w-2xl max-h-[90vh] overflow-y-auto mx-3 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg">
               {editingAgent ? 'Edit Agent' : 'Add New Agent'}
             </DialogTitle>
           </DialogHeader>
@@ -1023,9 +1071,10 @@ export default function ProfilePage() {
                 value={agentFormData.name} 
                 onChange={handleAgentFormChange}
                 placeholder="Agent or firm name"
+                className="text-sm"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label htmlFor="country" className="text-sm font-medium">Country</label>
                 <CountrySelector 
@@ -1042,10 +1091,11 @@ export default function ProfilePage() {
                   value={agentFormData.city} 
                   onChange={handleAgentFormChange}
                   placeholder="City"
+                  className="text-sm"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label htmlFor="subcity" className="text-sm font-medium">Subcity</label>
                 <Input 
@@ -1053,6 +1103,7 @@ export default function ProfilePage() {
                   value={agentFormData.subcity} 
                   onChange={handleAgentFormChange}
                   placeholder="Subcity"
+                  className="text-sm"
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1062,10 +1113,11 @@ export default function ProfilePage() {
                   value={agentFormData.woreda} 
                   onChange={handleAgentFormChange}
                   placeholder="Woreda"
+                  className="text-sm"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label htmlFor="houseNo" className="text-sm font-medium">House No</label>
                 <Input 
@@ -1073,6 +1125,7 @@ export default function ProfilePage() {
                   value={agentFormData.houseNo} 
                   onChange={handleAgentFormChange}
                   placeholder="House number"
+                  className="text-sm"
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1082,10 +1135,11 @@ export default function ProfilePage() {
                   value={agentFormData.poBox} 
                   onChange={handleAgentFormChange}
                   placeholder="PO Box"
+                  className="text-sm"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label htmlFor="telephone" className="text-sm font-medium">Telephone</label>
                 <Input 
@@ -1093,6 +1147,7 @@ export default function ProfilePage() {
                   value={agentFormData.telephone} 
                   onChange={handleAgentFormChange}
                   placeholder="Telephone"
+                  className="text-sm"
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1102,6 +1157,7 @@ export default function ProfilePage() {
                   value={agentFormData.fax} 
                   onChange={handleAgentFormChange}
                   placeholder="Fax"
+                  className="text-sm"
                 />
               </div>
             </div>
@@ -1113,26 +1169,27 @@ export default function ProfilePage() {
                 value={agentFormData.email} 
                 onChange={handleAgentFormChange}
                 placeholder="Email address"
+                className="text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAgentDialogOpen(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setAgentDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSaveAgent} disabled={agentFormLoading || !agentFormData.name}>
+            <Button onClick={handleSaveAgent} disabled={agentFormLoading || !agentFormData.name} className="w-full sm:w-auto">
               {agentFormLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
               {editingAgent ? 'Save Changes' : 'Add Agent'}
             </Button>
           </DialogFooter>
-      </DialogContent>
+        </DialogContent>
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-3 sm:mx-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2 text-lg">
                 <Trash2 className="size-5 text-destructive" />
                 Delete Agent
               </DialogTitle>
@@ -1142,11 +1199,11 @@ export default function ProfilePage() {
                 Are you sure you want to delete this agent? This action cannot be undone.
               </p>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={confirmDeleteAgent}>
+              <Button variant="destructive" onClick={confirmDeleteAgent} className="w-full sm:w-auto">
                 <Trash2 className="mr-2 size-4" />
                 Delete Agent
               </Button>
@@ -1156,9 +1213,9 @@ export default function ProfilePage() {
 
         {/* 2FA Setup Dialog */}
       <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-3 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <Smartphone className="size-5" />
               Setup Two-Factor Authentication
             </DialogTitle>
@@ -1170,11 +1227,11 @@ export default function ProfilePage() {
                 <img 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(totpUri)}`} 
                   alt="QR Code" 
-                  className="w-48 h-48"
+                  className="w-36 h-36 sm:w-48 sm:h-48"
                 />
               </div>
-              <p className="mt-4 text-xs text-muted-foreground">
-                Can't scan? Enter this code manually: <code className="bg-muted px-1 rounded">{totpSecret}</code>
+              <p className="mt-4 text-xs text-muted-foreground break-all">
+                Can't scan? Enter this code manually: <code className="bg-muted px-1 rounded text-xs">{totpSecret}</code>
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -1188,11 +1245,11 @@ export default function ProfilePage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSetupDialogOpen(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setSetupDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleVerify2FA} disabled={totpLoading || verifyCode.length !== 6}>
+            <Button onClick={handleVerify2FA} disabled={totpLoading || verifyCode.length !== 6} className="w-full sm:w-auto">
               {totpLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
               Verify & Enable
             </Button>
@@ -1202,9 +1259,9 @@ export default function ProfilePage() {
 
       {/* Backup Codes Dialog */}
       <Dialog open={showBackupCodes} onOpenChange={setShowBackupCodes}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-3 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <Key className="size-5" />
               Backup Codes
             </DialogTitle>
@@ -1218,17 +1275,17 @@ export default function ProfilePage() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               {backupCodes.map((code, index) => (
-                <code key={index} className="text-sm bg-muted px-2 py-1 rounded font-mono text-center">
+                <code key={index} className="text-xs sm:text-sm bg-muted px-2 py-1 rounded font-mono text-center break-all">
                   {code}
                 </code>
               ))}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCopyBackupCodes}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleCopyBackupCodes} className="w-full sm:w-auto">
               Copy Codes
             </Button>
-            <Button onClick={() => setShowBackupCodes(false)}>
+            <Button onClick={() => setShowBackupCodes(false)} className="w-full sm:w-auto">
               I've Saved My Codes
             </Button>
           </DialogFooter>

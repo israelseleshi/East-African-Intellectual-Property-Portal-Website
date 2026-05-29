@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, CaretDown, Globe, Trash, CheckSquare, Square } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, CaretDown, Globe, Trash, CheckSquare, Square, Table } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +24,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ColumnCustomizerModal } from '@/components/ColumnCustomizerModal'
+import JurisdictionBadge from '@/components/JurisdictionBadge'
+import {
+  loadColumnPreferences,
+  saveColumnPreferences,
+  getColumnById,
+  ALL_COLUMNS,
+  getDefaultPreferences,
+  type ColumnDef,
+  type ColumnPreferences,
+} from '@/utils/tableColumnConfig'
 
 const JURISDICTION_NAMES: Record<string, string> = {
   ALL: 'All Jurisdictions',
@@ -190,7 +201,11 @@ export default function TrademarksPage() {
   const [status, setStatus] = useState<string | 'ALL'>('ALL')
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
-  const pageSize = viewMode === 'grid' ? 6 : 5
+  const pageSize = 20
+
+  // Column visibility customization
+  const [showColumnModal, setShowColumnModal] = useState(false)
+  const [colPrefs, setColPrefs] = useState<ColumnPreferences>(() => loadColumnPreferences())
 
   // Selection state for bulk actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -262,6 +277,15 @@ export default function TrademarksPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
   const paginatedRows = useMemo(() => filteredRows, [filteredRows])
+
+  const visibleColumnDefs = useMemo(() => {
+    const visibleSet = new Set(colPrefs.visibleColumns)
+    const order = colPrefs.columnOrder || ALL_COLUMNS.map(c => c.id)
+    return order
+      .filter(id => visibleSet.has(id))
+      .map(id => getColumnById(id))
+      .filter((d): d is ColumnDef => d !== undefined)
+  }, [colPrefs])
 
   useEffect(() => { setCurrentPage(1) }, [q, jurisdiction, status])
 
@@ -543,6 +567,49 @@ export default function TrademarksPage() {
     }
   }
 
+  const renderCell = useCallback((row: any, col: ColumnDef) => {
+    switch (col.render) {
+      case 'mark':
+        return (
+          <div className="flex items-center gap-3">
+            <MarkInfoThumbnail markImage={row.mark_image || row.markImage} label={markLabel(row)} />
+            <span className="font-medium truncate hover:underline">{markLabel(row)}</span>
+          </div>
+        )
+      case 'statusBadge': {
+        const statusKey = row.status || 'DRAFT'
+        return (
+          <Badge className={STATUS_COLORS[statusKey] || 'bg-primary text-primary-foreground'}>
+            {STATUS_NAMES[statusKey] || statusKey}
+          </Badge>
+        )
+      }
+      case 'jurisdictionBadge':
+        return <JurisdictionBadge jurisdiction={row.jurisdiction || 'ET'} />
+      case 'filingBadge':
+        return <Badge>{row.filing_number || row.filingNumber || 'PENDING'}</Badge>
+      case 'actions':
+        return (
+          <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDownloadForm(e, row) }}>
+            <DownloadSimple size={16} />
+          </Button>
+        )
+      default: {
+        let value = row[col.fieldKey] ?? row[col.id] ?? '—'
+        if (value === '—' && col.id === 'nextRenewalDate') {
+          value = row.expiry_date || row.expiryDate || '—'
+        }
+        if (value && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+          return value.split('T')[0]
+        }
+        if (typeof value === 'object' && value !== null) {
+          return value.name || value.type || '—'
+        }
+        return String(value)
+      }
+    }
+  }, [handleDownloadForm])
+
   return (
     <div className="w-full max-w-[100vw] mx-auto p-4 md:p-8 space-y-6 min-h-screen bg-[#E8E8ED]">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -564,6 +631,10 @@ export default function TrademarksPage() {
               </Button>
             </div>
           )}
+          <Button variant="outline" onClick={() => setShowColumnModal(true)} className="bg-white" title="Customize columns">
+            <Table size={18} className="mr-1" />
+            <span className="hidden sm:inline">Columns</span>
+          </Button>
           <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white">
             <DownloadSimple size={18} className="mr-1" />
             <span className="hidden sm:inline">Export Excel</span>
@@ -655,6 +726,16 @@ export default function TrademarksPage() {
         </div>
       </Card>
 
+      <ColumnCustomizerModal
+        open={showColumnModal}
+        onOpenChange={setShowColumnModal}
+        preferences={colPrefs}
+        onApply={(prefs) => {
+          setColPrefs(prefs)
+          saveColumnPreferences(prefs)
+        }}
+      />
+
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}
@@ -740,12 +821,20 @@ export default function TrademarksPage() {
                       )}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Mark</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">Client</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">Region</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">Status</th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold">Filing #</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold">Actions</th>
+                  {visibleColumnDefs.map(col => (
+                    <th
+                      key={col.id}
+                      className={`px-4 py-3 text-sm font-semibold ${
+                        col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction'
+                          ? 'text-left'
+                          : col.id === 'actions'
+                          ? 'text-right'
+                          : 'text-center'
+                      }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -763,14 +852,24 @@ export default function TrademarksPage() {
                         )}
                       </button>
                     </td>
-                    <td className="px-4 py-3 cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}>
-                      <div className="flex items-center gap-3"><MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} /><span className="font-medium truncate hover:underline">{markLabel(t)}</span></div>
-                    </td>
-                    <td className="px-4 py-3 text-center cursor-pointer truncate max-w-[150px]" onClick={() => navigate(`/trademarks/${t.id}`)}>{t.client_name || t.client?.name || '—'}</td>
-                    <td className="px-4 py-3 text-center cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}><Badge variant="outline">{t.jurisdiction || 'ET'}</Badge></td>
-                    <td className="px-4 py-3 text-center cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}><Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge></td>
-                    <td className="px-4 py-3 text-center cursor-pointer" onClick={() => navigate(`/trademarks/${t.id}`)}><Badge>{t.filing_number || t.filingNumber || 'PENDING'}</Badge></td>
-                    <td className="px-4 py-3 text-right"><Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); handleDownloadForm(e, t) }}><DownloadSimple size={16} /></Button></td>
+                    {visibleColumnDefs.map(col => {
+                      const isClickable = !['actions', 'markImage', 'colorIndication'].includes(col.id)
+                      return (
+                        <td
+                          key={col.id}
+                          className={`px-4 py-3 ${
+                            col.id === 'markName' || col.id === 'clientName'
+                              ? 'text-left'
+                              : col.id === 'actions'
+                              ? 'text-right'
+                              : 'text-center'
+                          } ${isClickable ? 'cursor-pointer' : ''} ${col.id === 'clientName' ? 'truncate max-w-[150px]' : ''}`}
+                          onClick={isClickable ? () => navigate(`/trademarks/${t.id}`) : undefined}
+                        >
+                          {renderCell(t, col)}
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))}
               </tbody>

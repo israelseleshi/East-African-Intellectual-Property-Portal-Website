@@ -187,17 +187,17 @@ export default function AppShell() {
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
-      <div className="flex h-screen w-full overflow-hidden light">
+      <div className="flex h-screen w-full light">
         <AppSidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col min-h-0">
           {/* <TopBar
             title={title}
             onOpenCommand={() => setCommandOpen(true)}
           /> */}
-          <main className="flex-1 overflow-hidden bg-[var(--auth-page-bg)]">
+          <main className="flex-1 min-h-0 bg-[var(--auth-page-bg)]">
             {/* Top row with hamburger icon for mobile to open sidebar */}
             <MobileMenuButton />
-            <ScrollArea className="h-full">
+            <ScrollArea className="flex-1">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={location.pathname}
@@ -205,7 +205,7 @@ export default function AppShell() {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className="w-full overflow-hidden"
+                  className="w-full"
                 >
                   <Outlet />
                 </motion.div>

@@ -146,6 +146,7 @@ export const caseRepository = {
         tc.filing_number,
         tc.filing_date,
         tc.registration_dt,
+        tc.expiry_date,
         tc.next_action_date,
         tc.certificate_number,
         tc.priority,
