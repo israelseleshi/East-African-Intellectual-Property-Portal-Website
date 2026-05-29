@@ -87,6 +87,15 @@ router.post('/chat', authenticateToken, async (req, res) => {
 
     const chat = model.startChat({
       history: history || [],
+      systemInstruction: {
+        role: "system",
+        parts: [{ 
+          text: `You are the EAIP Assistant. Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. 
+          Respond in plain text or simple, clean formatting. Do NOT use markdown bolding (**) or headers. Use bullet points (-) for lists. 
+          When listing deadlines, present them clearly like:
+          - Mark: [Name] | Task: [Type] | Due: [Date]` 
+        }]
+      }
     });
 
     let result = await chat.sendMessage(message);

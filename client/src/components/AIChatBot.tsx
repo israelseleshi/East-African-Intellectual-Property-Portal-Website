@@ -186,9 +186,6 @@ export default function AIChatBot() {
         {isOpen ? <X size={28} /> : (
           <div className="relative">
             <MessageSquare size={28} />
-            <div className="absolute -top-1 -right-1">
-               <Sparkles size={14} className="text-yellow-400 fill-yellow-400 animate-pulse" />
-            </div>
           </div>
         )}
       </motion.button>
