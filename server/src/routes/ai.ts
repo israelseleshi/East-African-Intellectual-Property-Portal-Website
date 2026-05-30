@@ -1,25 +1,33 @@
 import express from 'express';
-import { GoogleGenerativeAI, Tool, SchemaType } from '@google/generative-ai';
 import { authenticateToken } from '../middleware/auth.js';
 import { pool } from '../database/db.js';
 import { logRouteError, sendApiError } from '../utils/apiError.js';
 
 const router = express.Router();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Dynamic import so the server doesn't crash if the package is missing
+const getGenAI = async () => {
+  try {
+    const mod = await import('@google/generative-ai');
+    const key = process.env.GEMINI_API_KEY || '';
+    if (!key) throw new Error('GEMINI_API_KEY not configured');
+    return new mod.GoogleGenerativeAI(key);
+  } catch (e) {
+    throw new Error('AI chatbot unavailable: ' + (e instanceof Error ? e.message : 'package not installed'));
+  }
+};
 
-// Define the tools for Gemini
-const tools: Tool[] = [
+const tools = [
   {
     functionDeclarations: [
       {
         name: "get_deadlines",
         description: "Fetch upcoming intellectual property deadlines for the user's cases.",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
             days: {
-              type: SchemaType.NUMBER,
+              type: "NUMBER",
               description: "Number of days from now to search for deadlines (e.g., 30 for this month)."
             }
           },
@@ -30,10 +38,10 @@ const tools: Tool[] = [
         name: "get_recent_cases",
         description: "Fetch a list of recent trademark cases.",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
             limit: {
-              type: SchemaType.NUMBER,
+              type: "NUMBER",
               description: "Maximum number of cases to return."
             }
           }
@@ -81,9 +89,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const model = genAI.getGenerativeModel({ 
+    const ai = await getGenAI();
+    const model = ai.getGenerativeModel({ 
       model: "gemini-flash-lite-latest",
-      tools: tools
+      tools: tools as any
     });
 
     const chat = model.startChat({

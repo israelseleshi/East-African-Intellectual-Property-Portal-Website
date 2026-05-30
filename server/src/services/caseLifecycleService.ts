@@ -130,7 +130,8 @@ export const caseLifecycleService = {
         caseId: input.caseId,
         status: input.status,
         hadFilingDate: Boolean(oldCase.filing_date),
-        hadRegistrationDate: Boolean(oldCase.registration_dt)
+        hadRegistrationDate: Boolean(oldCase.registration_dt),
+        publicationDate: input.publicationDate
       });
 
       const invoiceStage = input.status === 'REGISTERED' ? 'CERTIFICATE_ISSUED' : input.status;

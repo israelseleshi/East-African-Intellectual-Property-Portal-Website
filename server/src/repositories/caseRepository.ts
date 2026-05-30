@@ -146,12 +146,9 @@ export const caseRepository = {
         tc.filing_number,
         tc.filing_date,
         tc.registration_dt,
-        tc.expiry_date,
         tc.next_action_date,
         tc.certificate_number,
         tc.priority,
-        tc.priority_country,
-        tc.priority_filing_date,
         tc.color_indication,
         tc.mark_image,
         tc.created_at,
@@ -284,7 +281,7 @@ export const caseRepository = {
 
   async updateCaseStatus(
     connection: PoolConnection,
-    payload: { caseId: string; status: string; hadFilingDate: boolean; hadRegistrationDate: boolean }
+    payload: { caseId: string; status: string; hadFilingDate: boolean; hadRegistrationDate: boolean; publicationDate?: string }
   ): Promise<void> {
     let updateSql = 'UPDATE trademark_cases SET status = ?';
     const params: Array<string | null> = [payload.status];
@@ -294,6 +291,10 @@ export const caseRepository = {
     }
     if (payload.status === 'REGISTERED' && !payload.hadRegistrationDate) {
       updateSql += ', registration_dt = NOW()';
+    }
+    if (payload.status === 'PUBLISHED' && payload.publicationDate) {
+      updateSql += ', publication_date = ?';
+      params.push(payload.publicationDate);
     }
 
     updateSql += ' WHERE id = ?';

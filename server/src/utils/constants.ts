@@ -1,7 +1,7 @@
 import path from 'path';
 
 export const JURISDICTION_RULES = {
-    ET: { oppositionDays: 60, renewalYears: 10, currency: 'ETB' },
+    ET: { oppositionDays: 60, renewalYears: 7, currency: 'ETB' },
     KE: { oppositionDays: 90, renewalYears: 10, currency: 'KES' }
 };
 
