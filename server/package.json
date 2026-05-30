@@ -19,6 +19,7 @@
     "lint:fix": "eslint src --ext .ts,.js --fix"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "axios": "^1.13.5",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
