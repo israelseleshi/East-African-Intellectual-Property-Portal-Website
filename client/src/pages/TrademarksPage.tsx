@@ -39,7 +39,7 @@ import {
 const JURISDICTION_NAMES: Record<string, string> = {
   ALL: 'All Jurisdictions',
   ET: 'Ethiopia', KE: 'Kenya', ER: 'Eritrea', DJ: 'Djibouti',
-  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi',
+  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi', SD: 'Sudan', SS: 'South Sudan',
 }
 
 const STATUS_ICONS: Record<string, typeof File> = {

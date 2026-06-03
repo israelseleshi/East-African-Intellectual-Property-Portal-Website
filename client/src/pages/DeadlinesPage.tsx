@@ -34,12 +34,13 @@ const JURISDICTION_FLAGS: Record<string, string> = {
   SD: '/flags/sudan-image.png',
   DJ: '/flags/djibouti-flag.png',
   ER: '/flags/eritrea-flag.png',
-  ET: '/flags/ethiopia-flag.png'
+  ET: '/flags/ethiopia-flag.png',
+  SS: '🇸🇸'
 }
 
 const JURISDICTION_NAMES: Record<string, string> = {
   ALL: 'All Regions', ET: 'Ethiopia', KE: 'Kenya', ER: 'Eritrea', DJ: 'Djibouti',
-  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi', SD: 'Sudan'
+  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi', SD: 'Sudan', SS: 'South Sudan'
 }
 
 const JurisdictionFlag = ({ code, className = "h-4 w-6" }: { code: string, className?: string }) => {

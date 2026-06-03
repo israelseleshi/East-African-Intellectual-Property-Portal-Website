@@ -205,7 +205,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8">
+    <div className="flex flex-col gap-6 p-4 md:p-8 min-h-screen bg-[#E8E8ED]">
       <div className="flex flex-col gap-1">
         <Typography.h1>Dashboard Overview</Typography.h1>
         <Typography.p className="text-muted-foreground">Live data from East African Intellectual Property Registry.</Typography.p>

@@ -56,7 +56,7 @@ interface CaseData {
 
 const JURISDICTION_NAMES: Record<string, string> = {
   ET: 'Ethiopia', KE: 'Kenya', ER: 'Eritrea', DJ: 'Djibouti',
-  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi',
+  SO: 'Somalia', TZ: 'Tanzania', UG: 'Uganda', RW: 'Rwanda', BI: 'Burundi', SD: 'Sudan', SS: 'South Sudan',
 };
 
 export default function CaseFlowPage() {
