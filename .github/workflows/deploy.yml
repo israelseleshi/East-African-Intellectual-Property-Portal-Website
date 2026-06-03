@@ -35,18 +35,28 @@ jobs:
           mkdir -p deploy_backend/tmp && touch deploy_backend/tmp/restart.txt
           cd deploy_backend && tar czf ../backend.tar.gz . && cd ..
 
-      - name: Deploy via rsync over SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p 7822 -H ${{ secrets.FTP_SERVER }} >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Upload to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.FTP_SERVER }}
+          username: falolega
+          port: 7822
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "frontend.tar.gz,backend.tar.gz"
+          target: "/home/falolega/tmp_deploy"
+          strip_components: 0
+          timeout: 60s
 
-          # Copy frontend to server
-          rsync -avz --delete -e "ssh -p 7822 -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -o Ciphers=+aes256-cbc" \
-            client/dist/ falolega@${{ secrets.FTP_SERVER }}:/home/falolega/eastafricanip.com/
-
-          # Copy backend to server
-          rsync -avz --delete -e "ssh -p 7822 -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o KexAlgorithms=+diffie-hellman-group1-sha1 -o HostKeyAlgorithms=+ssh-rsa -o Ciphers=+aes256-cbc" \
-            deploy_backend/ falolega@${{ secrets.FTP_SERVER }}:/home/falolega/eastafricanip.com/api/
-        shell: bash
+      - name: Extract on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.FTP_SERVER }}
+          username: falolega
+          port: 7822
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/falolega/tmp_deploy
+            tar xzf frontend.tar.gz -C /home/falolega/eastafricanip.com/
+            tar xzf backend.tar.gz -C /home/falolega/eastafricanip.com/api/
+            rm -f frontend.tar.gz backend.tar.gz
+            rmdir /home/falolega/tmp_deploy 2>/dev/null; exit 0
