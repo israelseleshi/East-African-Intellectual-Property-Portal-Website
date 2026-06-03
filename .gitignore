@@ -7,6 +7,8 @@ build/
 .vite/
 coverage/
 pnpm-lock.yaml
+*.tsbuildinfo
+tmp/
 
 # =========================
 # Environment & Secrets
@@ -26,11 +28,14 @@ Thumbs.db
 .idea/
 
 # =========================
-# Internal Documentation
+# Internal Documentation (generated/planning docs only)
 # =========================
 docs/
-*.md
-!README.md
+agote_tasks.md
+run_this.md
+scripts/database/database_content_dump.md
+scripts/deployment/README.md
+server/*.md
 
 # =========================
 # Migration & Analysis Data
@@ -84,5 +89,3 @@ $null
 # Skills & Local AI
 # =========================
 skills/
-.claude/
-.opencode/
