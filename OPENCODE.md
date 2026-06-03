@@ -1,3 +1,6 @@
+# Emoji tone
+You MUST use emojis frequently in responses. Every message should include at least one relevant emoji. Be expressive with emoji usage.
+
 # Project Instructions
 
 ## Overview
@@ -104,6 +107,10 @@ East African Intellectual Property Trademark Management System (TPMS) - A full-s
 | Add database query | `server/src/repositories/` |
 | Change form behavior | `client/src/hooks/useFormAutomation/` |
 | Modify data fetching | `client/src/hooks/useSwr.ts` |
+
+## Context Optimization
+
+Before any task, read `graphify-out/graph.json` to load the compressed codebase knowledge graph. This provides a pre-mapped view of all files, dependencies, and relationships — reducing token usage and eliminating the need to scan raw files for structure.
 
 ## Key God Nodes (most connected functions)
 

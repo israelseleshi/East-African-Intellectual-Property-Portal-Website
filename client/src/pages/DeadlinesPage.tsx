@@ -346,24 +346,25 @@ export default function DeadlinesPage() {
                         if (!grouped[y]) grouped[y] = []
                         grouped[y].push(d)
                       })
-                      const sorted = Object.entries(grouped).sort(([a], [b]) => Number(b) - Number(a))
+                      Object.values(grouped).forEach(items => items.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')))
+                      const sorted = Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b))
 
                       return (
                         <div className="divide-y divide-border">
                           {sorted.map(([year, items]) => (
                             <div key={year}>
-                              <div className="sticky top-0 z-10 px-6 py-2 bg-muted/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b flex items-center gap-2">
-                                {year}
-                                <span className="text-[9px] font-normal text-muted-foreground/60">· {items.length} deadline{items.length !== 1 ? 's' : ''}</span>
+<div className="sticky top-0 z-10 px-6 py-3 bg-muted/40 text-sm font-bold uppercase tracking-widest text-muted-foreground border-b flex items-center gap-2">
+                  {year}
+                  <span className="text-xs font-normal text-muted-foreground/60">· {items.length} deadline{items.length !== 1 ? 's' : ''}</span>
                               </div>
                               {items.map((d) => {
                                 const daysLeft = getDaysRemaining(d.due_date)
                                 return (
                                   <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
                                     <div className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-lg border bg-background shadow-sm">
-                                      <span className="text-[9px] font-bold uppercase text-primary leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
+                                      <span className="text-xs font-bold uppercase text-primary leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
                                       <span className="text-lg font-bold leading-none py-0.5">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
-                                      <span className="text-[9px] font-bold text-muted-foreground leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
+                                      <span className="text-xs font-bold text-muted-foreground leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2">
