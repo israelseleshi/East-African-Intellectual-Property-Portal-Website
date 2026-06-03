@@ -20,7 +20,11 @@ jobs:
         run: |
           cd server && npm ci && npm run build && cd ..
 
-      - name: Prepare backend folder
+      - name: Package frontend
+        run: |
+          cd client/dist && tar czf ../../frontend.tar.gz . && cd ../..
+
+      - name: Package backend
         run: |
           mkdir -p deploy_backend
           cp -r server/dist/* deploy_backend/
@@ -28,25 +32,29 @@ jobs:
           if [ -f server.js.temp ]; then cp server.js.temp deploy_backend/server.js; fi
           if [ -f scripts/deployment/server.htaccess ]; then cp scripts/deployment/server.htaccess deploy_backend/.htaccess; fi
           mkdir -p deploy_backend/tmp && touch deploy_backend/tmp/restart.txt
+          cd deploy_backend && tar czf ../backend.tar.gz . && cd ..
 
-      - name: FTP Upload frontend
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: SFTP upload
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          host: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT }}
-          local-dir: client/dist/
-          server-dir: /eastafricanip.com/
-          dangerous-cleanup: false
+          port: 7822
+          source: "frontend.tar.gz,backend.tar.gz"
+          target: "~/tmp_deploy"
+          strip_components: 0
 
-      - name: FTP Upload backend
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Extract on server
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          host: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT }}
-          local-dir: deploy_backend/
-          server-dir: /eastafricanip.com/api/
-          dangerous-cleanup: false
+          port: 7822
+          script: |
+            cd ~/tmp_deploy
+            tar xzf frontend.tar.gz -C /eastafricanip.com/
+            tar xzf backend.tar.gz -C /eastafricanip.com/api/
+            rm frontend.tar.gz backend.tar.gz
+            rmdir ~/tmp_deploy 2>/dev/null; exit 0
