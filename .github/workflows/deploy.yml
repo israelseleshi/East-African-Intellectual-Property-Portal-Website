@@ -1,3 +1,4 @@
+# Deploy frontend + backend to A2 Hosting via SSH
 name: Deploy to A2 Hosting
 on:
   push:
