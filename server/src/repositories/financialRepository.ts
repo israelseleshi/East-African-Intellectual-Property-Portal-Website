@@ -89,8 +89,10 @@ export const financialRepository = {
   },
 
   async getNextInvoiceNumber(connection: PoolConnection): Promise<string> {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const prefix = today;
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
     
     const [rows] = await connection.execute(
       'SELECT COUNT(*) as count FROM invoices WHERE DATE(issue_date) = CURDATE()'
@@ -98,7 +100,7 @@ export const financialRepository = {
     const count = (rows as any)[0]?.count || 0;
     const sequence = String(count + 1).padStart(3, '0');
     
-    return `${prefix}-${sequence}`;
+    return `IPINV-${sequence}-${day}-${month}-${year}`;
   },
 
   async insertInvoice(connection: PoolConnection, invoice: InvoiceInsert): Promise<void> {
