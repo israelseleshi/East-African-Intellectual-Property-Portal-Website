@@ -1,10 +1,10 @@
-# Deploy frontend + backend to A2 Hosting via SSH
-name: Deploy to A2 Hosting
+# Build & test on push (deploy locally via scripts/deployment/deploy.ps1)
+name: CI Build
 on:
   push:
     branches: [main]
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,43 +20,3 @@ jobs:
       - name: Build backend
         run: |
           cd server && npm ci && npm run build && cd ..
-
-      - name: Package frontend
-        run: |
-          cd client/dist && tar czf ../../frontend.tar.gz . && cd ../..
-
-      - name: Package backend
-        run: |
-          mkdir -p deploy_backend
-          cp -r server/dist/* deploy_backend/
-          cp server/package.json deploy_backend/
-          if [ -f server.js.temp ]; then cp server.js.temp deploy_backend/server.js; fi
-          if [ -f scripts/deployment/server.htaccess ]; then cp scripts/deployment/server.htaccess deploy_backend/.htaccess; fi
-          mkdir -p deploy_backend/tmp && touch deploy_backend/tmp/restart.txt
-          cd deploy_backend && tar czf ../backend.tar.gz . && cd ..
-
-      - name: Upload to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.FTP_SERVER }}
-          username: falolega
-          port: 7822
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "frontend.tar.gz,backend.tar.gz"
-          target: "/home/falolega/tmp_deploy"
-          strip_components: 0
-          timeout: 60s
-
-      - name: Extract on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.FTP_SERVER }}
-          username: falolega
-          port: 7822
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/falolega/tmp_deploy
-            tar xzf frontend.tar.gz -C /home/falolega/eastafricanip.com/
-            tar xzf backend.tar.gz -C /home/falolega/eastafricanip.com/api/
-            rm -f frontend.tar.gz backend.tar.gz
-            rmdir /home/falolega/tmp_deploy 2>/dev/null; exit 0
