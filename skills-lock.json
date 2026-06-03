@@ -5,6 +5,18 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "computedHash": "49ccc3eccb47ab302fc5de3ef9f772dcdee1cab03c548012eb2998255a23171b"
+    },
+    "create-readme": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-readme/SKILL.md",
+      "computedHash": "d0ece1b2164ce1376e4ab6e98d6ac079df3a2a94f5f02224362b6a1ce2516ae9"
+    },
+    "readme-wizard": {
+      "source": "debs-obrien/learn-agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/readme-wizard/SKILL.md",
+      "computedHash": "54b0b97360b7f024ca888128f55ae807323277b970a752812561045a819d153f"
     }
   }
 }

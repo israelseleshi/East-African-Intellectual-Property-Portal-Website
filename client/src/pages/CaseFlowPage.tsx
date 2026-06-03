@@ -124,6 +124,8 @@ export default function CaseFlowPage() {
 
       const fullCaseData = await api.get(`/cases/${id}`);
 
+      const resolvedImage = fullCaseData.mark_image || fullCaseData.markImage || ''
+
       const fillData = {
         ...fullCaseData,
         applicant_name: fullCaseData.client?.name || fullCaseData.client_name,
@@ -135,6 +137,8 @@ export default function CaseFlowPage() {
         filing_number: fullCaseData.filing_number || fullCaseData.filingNumber,
         registration_no: fullCaseData.registration_no || fullCaseData.registrationNo,
         jurisdiction: fullCaseData.jurisdiction,
+        mark_image: resolvedImage,
+        image_field: resolvedImage,
       };
 
       const pdfUrl = '/application_form.pdf';

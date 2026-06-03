@@ -528,6 +528,8 @@ export default function TrademarkDetailInfoPage() {
       const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
       
       // Merge top-level case data into eipaForm to ensure PDF engine gets the latest DB values
+      const resolvedImage = tm.mark_image || (tm.eipaForm as any)?.image_field || (tm.eipaForm as any)?.mark_image || ''
+
       const mergedData = {
         ...(tm.eipaForm as Record<string, unknown> || {}),
         // Primary Checkboxes (Mark Type)
@@ -546,6 +548,9 @@ export default function TrademarkDetailInfoPage() {
         disclaimer_text_amharic: tm.disclaimer_amharic,
         mark_description: tm.mark_description,
         mark_name: tm.markName || tm.mark_name,
+        // Mark image - ensure it gets passed for PDF embedding
+        mark_image: resolvedImage,
+        image_field: resolvedImage,
         // Signature fields
         applicant_sign_day: tm.applicant_sign_day || '',
         applicant_sign_month: tm.applicant_sign_month || '',

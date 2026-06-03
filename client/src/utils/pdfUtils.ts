@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, PDFFont, PDFTextField, PDFCheckBox, PDFObject, PDFName, PDFArray, PDFDict, PDFHexString, PDFString } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
+import { resolveMarkImageUrl } from './markImage'
 
 export async function getPdfFields(pdfUrl: string) {
   try {
@@ -147,11 +148,7 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
     const amharicFontName = amharicFont?.name || null;
 
     const fillField = async (possibleNames: string[], value: unknown, customFontSize?: number) => {
-      if (value === undefined || value === null || value === '') return;
-      const strValue = String(value);
-      if (strValue.trim() === '') return;
-
-      const hasAmharic = /[\u1200-\u137F]/.test(strValue);
+      if (value === undefined || value === null || (typeof value === 'string' && value === '')) return;
 
       // Find exact matches first, then fallback to case-insensitive if needed
       let matches = availableFields.filter(actualName =>
@@ -174,21 +171,45 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
           const field = form.getField(matchedName);
 
           // Image fields (PDFButton type in the PDF)
+          const isImageData = typeof value === 'string' && value.startsWith('data:image');
+          const isImageBytes = value instanceof Uint8Array;
+
           if ((matchedName.toLowerCase().includes('image') || matchedName.toLowerCase().includes('logo'))
-            && strValue.startsWith('data:image')) {
+            && (isImageData || isImageBytes)) {
             try {
-              const parts = strValue.split(',');
-              const imgBytes = Uint8Array.from(atob(parts[1]), c => c.charCodeAt(0));
+              let imgBytes: Uint8Array;
+              if (isImageBytes) {
+                imgBytes = value as Uint8Array;
+              } else {
+                const parts = (value as string).split(',');
+                imgBytes = Uint8Array.from(atob(parts[1]), c => c.charCodeAt(0));
+              }
+
               let img: any;
               try { img = await pdfDoc.embedPng(imgBytes); }
-              catch { img = await pdfDoc.embedJpg(imgBytes); }
-              // setImage() is now safe because pdfDoc.save({ updateFieldAppearances: false })
-              // prevents the global appearance update that used to crash on Amharic fields.
-              try { form.getButton(matchedName).setImage(img); }
-              catch { /* not a button field, skip */ }
+              catch { 
+                try { img = await pdfDoc.embedJpg(imgBytes); }
+                catch (e) {
+                   console.error('Failed to embed image as PNG or JPG:', e);
+                   continue;
+                }
+              }
+              
+              try { 
+                const button = form.getButton(matchedName);
+                button.setImage(img); 
+                console.log(`[PDF-ENGINE] Set image on button ${matchedName}`);
+              }
+              catch (e) { 
+                console.warn(`Field ${matchedName} is not a button, cannot set image:`, e);
+              }
             } catch (e) { console.error('Image embed err:', e); }
             continue;
           }
+
+          const strValue = String(value);
+          if (strValue.trim() === '') continue;
+          const hasAmharic = /[\u1200-\u137F]/.test(strValue);
 
           if (field instanceof PDFTextField) {
             const acroField = (field as any).acroField;
@@ -351,11 +372,60 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       await fillField(['mark_has_three_dim_features'], data.mark_has_three_dim_features);
       await fillField(['mark_color_indication'], data.mark_color_indication);
       
-      // Fix image field mapping - template uses 'image_field'
-      // Try both possible data properties
-      const markImage = data.image_field || (data as any).mark_image || (data as any).markImage || (data as any).renewal_mark_logo;
-      if (markImage) {
-        await fillField(['image_field'], markImage);
+      // Fix image field mapping - template uses 'image_field' or 'renewal_mark_logo'
+      const markImageRaw = data.image_field || (data as any).mark_image || (data as any).markImage || (data as any).renewal_mark_logo;
+      if (markImageRaw) {
+        let markImage = String(markImageRaw);
+        // Use the smart resolver to handle localhost vs production and various path formats
+        if (!markImage.startsWith('data:image') && !markImage.startsWith('data:')) {
+          markImage = resolveMarkImageUrl(markImage);
+        }
+
+        if (markImage.startsWith('data:image')) {
+          await fillField(['image_field', 'renewal_mark_logo'], markImage);
+        } else if (markImage.startsWith('http') || markImage.startsWith('/')) {
+          try {
+            const fetchUrl = (markImage.startsWith('/') && !markImage.startsWith('//')) 
+              ? `${window.location.origin}${markImage}` 
+              : markImage;
+
+            const response = await fetch(fetchUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const blob = await response.blob();
+            
+            // Try to use a canvas to ensure the image is a valid PNG/JPG and correctly oriented
+            try {
+              const dataUri = await new Promise<string>((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // Avoid tainted canvas
+                img.onload = () => {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) {
+                    reject(new Error('Canvas context failed'));
+                    return;
+                  }
+                  ctx.drawImage(img, 0, 0);
+                  resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => reject(new Error('Image load failed'));
+                const reader = new FileReader();
+                reader.onload = () => { img.src = reader.result as string; };
+                reader.readAsDataURL(blob);
+              });
+              await fillField(['image_field', 'renewal_mark_logo'], dataUri);
+            } catch (canvasErr) {
+              console.warn('Canvas normalization failed, falling back to direct bytes:', canvasErr);
+              const arrayBuffer = await blob.arrayBuffer();
+              await fillField(['image_field', 'renewal_mark_logo'], new Uint8Array(arrayBuffer));
+            }
+          } catch (e) {
+            console.warn('Could not fetch mark image for PDF:', e);
+          }
+        }
       }
 
       // V. Priority Right
