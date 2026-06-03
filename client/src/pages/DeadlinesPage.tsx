@@ -315,9 +315,10 @@ export default function DeadlinesPage() {
                         const isUrgent = daysLeft >= 0 && daysLeft <= 7
                         return (
                           <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                            <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-lg border">
-                              <span className="text-[10px] font-bold uppercase">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
-                              <span className="text-lg font-bold leading-none">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
+                            <div className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-lg border bg-background shadow-sm">
+                              <span className="text-[9px] font-bold uppercase text-primary leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
+                              <span className="text-lg font-bold leading-none py-0.5">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
