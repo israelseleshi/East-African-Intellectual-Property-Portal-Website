@@ -35,7 +35,21 @@ jobs:
           mkdir -p deploy_backend/tmp && touch deploy_backend/tmp/restart.txt
           cd deploy_backend && tar czf ../backend.tar.gz . && cd ..
 
+      - name: Debug SSH connection
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p 7822 -H ${{ secrets.FTP_SERVER }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -p 22 -H ${{ secrets.FTP_SERVER }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          echo "=== Trying port 7822 ==="
+          ssh -v -o ConnectTimeout=15 -o ServerAliveInterval=5 -p 7822 -i ~/.ssh/deploy_key falolega@${{ secrets.FTP_SERVER }} "echo SSH_OK" 2>&1 || true
+          echo "=== Trying port 22 ==="
+          ssh -v -o ConnectTimeout=15 -o ServerAliveInterval=5 -p 22 -i ~/.ssh/deploy_key falolega@${{ secrets.FTP_SERVER }} "echo SSH_OK" 2>&1 || true
+        shell: bash
+
       - name: SSH deploy
+        if: false
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.FTP_SERVER }}
@@ -47,6 +61,7 @@ jobs:
           strip_components: 0
 
       - name: Extract on server
+        if: false
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.FTP_SERVER }}
