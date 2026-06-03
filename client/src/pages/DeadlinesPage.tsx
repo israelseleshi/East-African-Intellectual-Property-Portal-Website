@@ -78,6 +78,7 @@ export default function DeadlinesPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [yearFilter, setYearFilter] = useState('ALL')
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newMonth = new Date(currentMonth)
@@ -109,6 +110,7 @@ export default function DeadlinesPage() {
 
   const uniqueTrademarks = Array.from(new Set(deadlines.map(d => d.mark).filter(Boolean))).sort()
   const uniqueClients = Array.from(new Set(deadlines.map(d => d.client).filter(Boolean))).sort()
+  const uniqueYears = Array.from(new Set(deadlines.map(d => d.due_date ? new Date(d.due_date).getFullYear().toString() : '').filter(Boolean))).sort()
 
   useEffect(() => {
     async function fetchDeadlines() {
@@ -302,37 +304,81 @@ export default function DeadlinesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="border-r border-border">
                 <div className="p-4 border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
                     <Typography.h4a className="text-muted-foreground flex items-center gap-2">
                       <List size={16} /> Detailed List
                     </Typography.h4a>
+                    <Select value={yearFilter} onValueChange={setYearFilter}>
+                      <SelectTrigger className="h-7 w-[120px] text-xs border border-black/20 bg-transparent hover:bg-muted focus:ring-0">
+                        <SelectValue placeholder="All Years" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Years</SelectItem>
+                        {uniqueYears.map(y => (
+                          <SelectItem key={y} value={y}>{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 {filteredDeadlines.length > 0 ? (
                   <ScrollArea className="h-[600px]">
-                    <div className="divide-y divide-border">
-                      {filteredDeadlines.map((d) => {
-                        const daysLeft = getDaysRemaining(d.due_date)
-                        const isOverdue = daysLeft < 0
-                        const isUrgent = daysLeft >= 0 && daysLeft <= 7
+                    {(() => {
+                      const listDeadlines = yearFilter === 'ALL'
+                        ? filteredDeadlines
+                        : filteredDeadlines.filter(d => d.due_date && new Date(d.due_date).getFullYear().toString() === yearFilter)
+
+                      if (listDeadlines.length === 0) {
                         return (
-                          <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                            <div className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-lg border bg-background shadow-sm">
-                              <span className="text-[9px] font-bold uppercase text-primary leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
-                              <span className="text-lg font-bold leading-none py-0.5">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
-                              <span className="text-[9px] font-bold text-muted-foreground leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <Typography.h4a className="truncate">{d.mark || 'Unnamed Mark'}</Typography.h4a>
-                                <Badge variant="outline" className="text-xs"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-1" />{d.jurisdiction}</Badge>
-                                <Badge className="text-xs">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">{d.client}</p>
-                            </div>
-                            <ChevronsRight size={20} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                          <div className="px-6 py-12 text-center">
+                            <CalendarIcon size={48} className="mx-auto text-muted-foreground opacity-50 mb-4" />
+                            <p className="text-muted-foreground">No deadlines for {yearFilter}.</p>
                           </div>
                         )
-                      })}
-                    </div>
+                      }
+
+                      const grouped: Record<string, typeof listDeadlines> = {}
+                      listDeadlines.forEach(d => {
+                        const y = d.due_date ? new Date(d.due_date).getFullYear().toString() : 'Unknown'
+                        if (!grouped[y]) grouped[y] = []
+                        grouped[y].push(d)
+                      })
+                      const sorted = Object.entries(grouped).sort(([a], [b]) => Number(b) - Number(a))
+
+                      return (
+                        <div className="divide-y divide-border">
+                          {sorted.map(([year, items]) => (
+                            <div key={year}>
+                              <div className="sticky top-0 z-10 px-6 py-2 bg-muted/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b flex items-center gap-2">
+                                {year}
+                                <span className="text-[9px] font-normal text-muted-foreground/60">· {items.length} deadline{items.length !== 1 ? 's' : ''}</span>
+                              </div>
+                              {items.map((d) => {
+                                const daysLeft = getDaysRemaining(d.due_date)
+                                return (
+                                  <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
+                                    <div className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-lg border bg-background shadow-sm">
+                                      <span className="text-[9px] font-bold uppercase text-primary leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
+                                      <span className="text-lg font-bold leading-none py-0.5">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
+                                      <span className="text-[9px] font-bold text-muted-foreground leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <Typography.h4a className="truncate">{d.mark || 'Unnamed Mark'}</Typography.h4a>
+                                        <Badge variant="outline" className="text-xs"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-1" />{d.jurisdiction}</Badge>
+                                        <Badge className="text-xs">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground truncate">{d.client}</p>
+                                    </div>
+                                    <ChevronsRight size={20} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
                   </ScrollArea>
                 ) : (
                   <div className="px-6 py-12 text-center">
