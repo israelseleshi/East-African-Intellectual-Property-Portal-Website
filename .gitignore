@@ -89,3 +89,33 @@ $null
 # Skills & Local AI
 # =========================
 skills/
+
+# =========================
+# Cypress E2E
+# =========================
+cypress.env.json
+cypress/artifacts/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+
+# =========================
+# Local AI / Agent files (project-root copies of agent state)
+# =========================
+.agents/
+AGENTS.md
+OPENCODE.md
+monitor-opencode.js
+findings.md
+progress.md
+task_plan.md
+agote_tasks.md
+run_this.md
+README2.md
+
+# =========================
+# Extra safety (server config / SQL dumps / logs)
+# =========================
+server/.htaccess
+*.sql
+logs/
