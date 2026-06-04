@@ -34,6 +34,14 @@ interface Deadline {
   status?: string
 }
 
+interface CaseWithDeadlines {
+  mark_name?: string
+  markName?: string
+  jurisdiction?: string
+  client_name?: string
+  deadlines?: Array<{ id?: string; status?: string } & Record<string, unknown>>
+}
+
 export default function DashboardCalendar() {
   const navigate = useNavigate()
   const [deadlines, setDeadlines] = useState<Deadline[]>([])
@@ -71,14 +79,17 @@ export default function DashboardCalendar() {
   useEffect(() => {
     async function fetchDeadlines() {
       try {
-        const cases = await trademarkService.getCases()
-        const allDeadlines = cases.flatMap((c: any) =>
-          (c.deadlines || []).filter((d: any) => d.status !== 'COMPLETED' && d.status !== 'SUPERSEDED').map((d: any) => ({
+        const response = await trademarkService.getCases()
+        const cases = Array.isArray(response?.rows) ? response.rows : []
+        const allDeadlines = (cases as CaseWithDeadlines[]).flatMap((c) =>
+          (c.deadlines || []).filter((d) => d.status !== 'COMPLETED' && d.status !== 'SUPERSEDED').map((d) => ({
             ...d, mark: c.mark_name || c.markName, jurisdiction: c.jurisdiction, client: c.client_name
           }))
         )
         setDeadlines(allDeadlines)
-      } catch (err) { console.error('Failed to fetch deadlines:', err) }
+      } catch (err) {
+        console.error('Failed to fetch deadlines:', err)
+      }
     }
     fetchDeadlines()
   }, [])
@@ -92,49 +103,49 @@ export default function DashboardCalendar() {
   const selectedDateDeadlines = getSelectedDateDeadlines()
 
   return (
-    <Card className="border-primary/10">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <CalendarIcon size={22} className="text-primary" />
-          Upcoming Deadlines
+    <Card className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white h-full">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl font-bold tracking-tight text-primary flex items-center gap-2">
+          <CalendarIcon size={24} className="text-primary/60" weight="duotone" />
+          Registry Calendar
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <Typography.h4 className="text-foreground">
+      <CardContent className="p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Typography.h4 className="text-primary font-bold text-xl">
               {currentMonth.toLocaleString('en-US', { month: 'long' })}
             </Typography.h4>
             <Select
               value={currentMonth.getFullYear().toString()}
               onValueChange={(val) => setYear(parseInt(val))}
             >
-              <SelectTrigger className="h-8 w-[100px] border bg-transparent hover:bg-muted text-sm px-3 focus:ring-0">
+              <SelectTrigger className="h-9 w-[110px] border-none bg-muted/40 hover:bg-muted/60 text-sm font-semibold px-4 focus:ring-0 rounded-xl transition-colors">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl border-none shadow-premium">
                 {Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - 10 + i).map(y => (
-                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  <SelectItem key={y} value={y.toString()} className="rounded-lg">{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth('prev')}>
-              <CaretLeft size={16} />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 transition-colors" onClick={() => navigateMonth('prev')}>
+              <CaretLeft size={20} weight="bold" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth('next')}>
-              <CaretRight size={16} />
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 transition-colors" onClick={() => navigateMonth('next')}>
+              <CaretRight size={20} weight="bold" />
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-sm">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
-            <div key={`header-${idx}`} className="font-bold text-muted-foreground py-2 text-sm">{day}</div>
+        <div className="grid grid-cols-7 gap-2 text-center text-sm mb-4">
+          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, idx) => (
+            <div key={`header-${idx}`} className="font-bold text-muted-foreground/40 py-2 text-[10px] uppercase tracking-widest">{day}</div>
           ))}
           {Array.from({ length: startDayOfMonth(currentMonth) }).map((_, i) => (
-            <div key={`empty-${i}`} className="py-3" />
+            <div key={`empty-${i}`} className="aspect-square" />
           ))}
           {Array.from({ length: daysInMonth(currentMonth) }, (_, i) => i + 1).map(day => {
             const hasDeadline = isDeadlineOnDate(day)
@@ -142,10 +153,9 @@ export default function DashboardCalendar() {
               <div
                 key={day}
                 onClick={() => setSelectedDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))}
-                className={`py-3 rounded-lg transition-all cursor-pointer relative text-center text-base font-medium
-                  ${isSelected(day) ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted/50"} 
-                  ${isToday(day) && !isSelected(day) ? "ring-2 ring-primary" : ""} 
-                  ${hasDeadline && !isSelected(day) ? "bg-orange-100 text-orange-700 font-semibold" : ""}`}
+                className={`aspect-square flex items-center justify-center rounded-2xl transition-all cursor-pointer relative text-sm font-bold
+                  ${isSelected(day) ? "bg-primary text-primary-foreground shadow-lg scale-110 z-10" : hasDeadline ? "bg-orange-500 text-white shadow-md ring-1 ring-orange-600/30" : "hover:bg-primary/5 text-primary/80"}
+                  ${isToday(day) && !isSelected(day) && !hasDeadline ? "border-2 border-primary/20 text-primary" : ""}`}
               >
                 {day}
               </div>
@@ -154,35 +164,42 @@ export default function DashboardCalendar() {
         </div>
 
         {selectedDate && (
-          <div className="mt-5 pt-4 border-t">
-            <Typography.small className="text-muted-foreground uppercase font-semibold mb-3 block">
-              {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-            </Typography.small>
-            <div className="space-y-3 max-h-48 overflow-y-auto">
+          <div className="mt-8 pt-6 border-t border-muted/50">
+            <div className="flex items-center justify-between mb-6">
+              <Typography.small className="text-primary uppercase font-bold tracking-widest text-[10px]">
+                {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </Typography.small>
+              <Badge variant="secondary" className="bg-primary/5 text-primary border-none">
+                {selectedDateDeadlines.length} {selectedDateDeadlines.length === 1 ? 'Deadline' : 'Deadlines'}
+              </Badge>
+            </div>
+            <div className="space-y-3">
               {selectedDateDeadlines.length === 0 ? (
-                <Typography.small className="text-muted-foreground py-2 block">No deadlines</Typography.small>
+                <div className="py-10 text-center bg-muted/10 rounded-2xl border border-dashed border-muted-foreground/20">
+                  <Typography.small className="text-muted-foreground font-medium italic">No events scheduled</Typography.small>
+                </div>
               ) : (
-                selectedDateDeadlines.slice(0, 3).map(d => (
+                selectedDateDeadlines.slice(0, 4).map(d => (
                   <div 
                     key={d.id} 
-                    className="p-3 bg-muted/50 rounded-lg flex items-center justify-between border border-border/50 hover:bg-muted transition-colors cursor-pointer"
+                    className="p-4 bg-muted/30 rounded-2xl flex items-center justify-between border border-transparent hover:border-primary/20 hover:bg-white hover:shadow-sm transition-all cursor-pointer group/deadline"
                     onClick={() => navigate(`/deadlines/${d.id}`)}
                   >
-                    <div className="flex-1 min-w-0 pr-3">
-                      <Typography.small className="font-semibold truncate block">{d.mark}</Typography.small>
-                      <Typography.small className="text-muted-foreground truncate block">{d.client}</Typography.small>
+                    <div className="flex-1 min-w-0 pr-4">
+                      <Typography.small className="font-bold text-primary truncate block group-hover/deadline:text-accent transition-colors">{d.mark}</Typography.small>
+                      <Typography.small className="text-muted-foreground truncate block mt-0.5 text-[10px] font-medium uppercase tracking-wide">{d.client}</Typography.small>
                     </div>
-                    <Badge className={`${DEADLINE_TYPE_COLORS[d.type?.toUpperCase() || 'GENERIC']} text-xs px-2 py-0.5`}>
+                    <Badge className={`${DEADLINE_TYPE_COLORS[d.type?.toUpperCase() || 'GENERIC']} text-white text-[10px] px-3 py-1 font-bold border-none`}>
                       {DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC']}
                     </Badge>
                   </div>
                 ))
               )}
-              {selectedDateDeadlines.length > 3 && (
+              {selectedDateDeadlines.length > 4 && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="w-full text-sm py-5"
+                  className="w-full text-xs font-bold py-6 hover:bg-primary/5 text-primary tracking-widest uppercase mt-2 transition-all"
                   onClick={() => navigate('/deadlines')}
                 >
                   View all {selectedDateDeadlines.length} deadlines

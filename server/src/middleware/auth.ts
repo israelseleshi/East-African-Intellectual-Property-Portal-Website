@@ -17,8 +17,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     const cookieToken = req.cookies?.access_token;
     const authHeader = req.headers['authorization'];
     const bearerToken = authHeader && authHeader.split(' ')[1];
-    const customToken = req.headers['x-access-token'] as string;
-    const token = cookieToken || bearerToken || customToken;
+    const token = cookieToken || bearerToken;
 
     if (!token) {
         return sendApiError(req, res, 401, {

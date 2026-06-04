@@ -11,8 +11,9 @@ import {
   DownloadSimple,
 } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { trademarkService } from '../utils/api'
+import { casesApi } from '@/api/cases'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Typography } from '@/components/ui/typography'
+import { deriveAlertInfo, type AlertSeverity } from '@/utils/alertHelpers'
 
 const JURISDICTION_FLAGS: Record<string, string> = {
   ALL: '🌍',
@@ -77,6 +79,8 @@ export default function DeadlinesPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'overdue' | 'upcoming' | 'completed'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [deadlines, setDeadlines] = useState<Array<{ id?: string; due_date?: string; type?: string; priority?: string; case_id?: string; mark?: string; jurisdiction?: string; client?: string; status?: string }>>([])
+  const [allCases, setAllCases] = useState<Array<Record<string, unknown>>>([])
+  const [alertFilter, setAlertFilter] = useState<AlertSeverity | 'all'>('all')
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -118,12 +122,31 @@ export default function DeadlinesPage() {
   useEffect(() => {
     async function fetchDeadlines() {
       try {
-        const cases = await trademarkService.getCases()
-        const allDeadlines = cases.flatMap((c: any) =>
-          (c.deadlines || []).filter((d: any) => d.status !== 'COMPLETED' && d.status !== 'SUPERSEDED').map((d: any) => ({
-            ...d, mark: c.mark_name || c.markName, jurisdiction: c.jurisdiction, client: c.client_name
-          }))
-        )
+        const response = await casesApi.listPage<Record<string, unknown>>({
+          page: 1,
+          pageSize: 10000,
+          includeDeadlines: true
+        })
+        const cases = Array.isArray(response?.rows) ? response.rows : []
+        const allDeadlines = cases.flatMap((c) => {
+          const caseRecord = c as Record<string, unknown>
+          const caseDeadlines = Array.isArray(caseRecord.deadlines) ? caseRecord.deadlines : []
+          return caseDeadlines
+            .filter((d) => {
+              const dd = d as Record<string, unknown>
+              const s = String(dd.status ?? '').toUpperCase()
+              return s !== 'COMPLETED' && s !== 'SUPERSEDED'
+            })
+            .map((d) => {
+              const dd = d as Record<string, unknown>
+              return {
+                ...dd,
+                mark: String(caseRecord.mark_name ?? caseRecord.markName ?? ''),
+                jurisdiction: String(caseRecord.jurisdiction ?? ''),
+                client: String(caseRecord.client_name ?? '')
+              }
+            })
+        })
         setDeadlines(allDeadlines)
       } catch (error) { console.error('Failed to fetch deadlines:', error) }
       finally { setLoading(false) }
@@ -131,7 +154,37 @@ export default function DeadlinesPage() {
     fetchDeadlines()
   }, [])
 
+  useEffect(() => {
+    async function fetchAllCasesForAlerts() {
+      try {
+        const response = await casesApi.listPage<Record<string, unknown>>({
+          page: 1,
+          pageSize: 10000,
+          sort: 'created_at_desc',
+          includeDeadlines: false
+        })
+        setAllCases(Array.isArray(response?.rows) ? response.rows : [])
+      } catch {
+        setAllCases([])
+      }
+    }
+    fetchAllCasesForAlerts()
+  }, [])
+
   const getDaysRemaining = (dueDate?: string) => dueDate ? Math.ceil((new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0
+
+  const caseById = useMemo(() => {
+    const map = new Map<string, Record<string, unknown>>()
+    for (const c of allCases) {
+      if (typeof c.id === 'string') map.set(c.id, c)
+    }
+    return map
+  }, [allCases])
+
+  const handleAlertFilterClick = (severity: AlertSeverity | 'all') => {
+    setAlertFilter(severity)
+    setSelectedDate(null)
+  }
 
   const filteredDeadlines = deadlines.filter(d => {
     const matchesJurisdiction = filter === 'ALL' || d.jurisdiction === filter
@@ -140,7 +193,16 @@ export default function DeadlinesPage() {
     const matchesSearch = !searchQuery || d.mark?.toLowerCase().includes(searchQuery.toLowerCase()) || d.type?.toLowerCase().includes(searchQuery.toLowerCase()) || d.client?.toLowerCase().includes(searchQuery.toLowerCase())
     const daysLeft = getDaysRemaining(d.due_date)
     const matchesStatus = statusFilter === 'all' || (statusFilter === 'overdue' && daysLeft < 0) || (statusFilter === 'upcoming' && daysLeft >= 0 && daysLeft <= 30) || (statusFilter === 'completed' && d.status === 'COMPLETED')
-    return matchesJurisdiction && matchesTrademark && matchesClient && matchesSearch && matchesStatus
+    let matchesAlert = true
+    if (alertFilter !== 'all') {
+      if (d.case_id && typeof d.case_id === 'string') {
+        const linkedCase = caseById.get(d.case_id)
+        matchesAlert = linkedCase ? deriveAlertInfo(linkedCase).severity === alertFilter : false
+      } else {
+        matchesAlert = false
+      }
+    }
+    return matchesJurisdiction && matchesTrademark && matchesClient && matchesSearch && matchesStatus && matchesAlert
   })
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -220,44 +282,44 @@ export default function DeadlinesPage() {
 
   if (loading) {
     return (
-      <div className="w-full p-4 md:p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
+      <div className="w-full p-4 md:p-10 space-y-8 bg-[#F8F9FA] text-foreground min-h-screen">
         <header className="flex items-center justify-between">
+          <Skeleton className="h-12 w-64" />
           <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-64" />
         </header>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        <div className="grid gap-6 md:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
         </div>
-        <Card><CardContent className="p-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
+        <Card className="border-none shadow-premium"><CardContent className="p-10"><Skeleton className="h-96 w-full rounded-2xl" /></CardContent></Card>
       </div>
     )
   }
 
   return (
-    <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
+    <div className="w-full space-y-8 bg-[#F8F9FA] text-foreground min-h-screen">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-10 pt-4 md:pt-10">
         <div className="space-y-2">
-          <Typography.h1a>Statutory Deadlines</Typography.h1a>
-          <Typography.muted>Critical tracking for oppositions, renewals, and responses.</Typography.muted>
+          <Typography.h1 className="tracking-tight font-bold">Statutory Deadlines</Typography.h1>
+          <Typography.p className="text-muted-foreground text-lg font-medium opacity-80">Critical tracking for oppositions, renewals, and responses.</Typography.p>
         </div>
-        <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white">
-          <DownloadSimple size={18} className="mr-1" />
-          <span>Export Excel</span>
+        <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold">
+          <DownloadSimple size={20} className="mr-2" />
+          <span>Export Excel Report</span>
         </Button>
       </header>
 
-      <div className="mx-4 md:mx-8 pb-8">
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 md:w-[200px]">
-                  <Funnel className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                  <Input placeholder="Search deadlines..." className="pl-9 bg-[#E8E8ED]" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+      <div className="mx-4 md:mx-10 pb-10 space-y-8">
+        <Card className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white">
+          <CardHeader className="p-8 pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 md:w-[300px]">
+                  <Funnel className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={18} />
+                  <Input placeholder="Search deadlines..." className="pl-12 bg-muted/30 border-none h-12 rounded-xl focus-visible:ring-primary/20" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
                 <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
-                  <SelectTrigger className="w-[140px] bg-[#E8E8ED]"><SelectValue placeholder="Status" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="w-[160px] border-none bg-muted/30 h-12 rounded-xl font-semibold"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-none shadow-premium">
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
                     <SelectItem value="upcoming">Upcoming</SelectItem>
@@ -265,38 +327,38 @@ export default function DeadlinesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="justify-between">
-                      <JurisdictionFlag code={filter} className="h-4 w-5 mr-2" />
+                    <Button variant="ghost" className="h-12 justify-between bg-muted/30 border-none rounded-xl px-4 hover:bg-muted/50 font-semibold">
+                      <JurisdictionFlag code={filter} className="h-4 w-6 mr-2" />
                       {JURISDICTION_NAMES[filter]}
-                      <CaretDown size={14} className="ml-2" />
+                      <CaretDown size={14} className="ml-2 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl border-none shadow-premium p-2">
                     {Object.entries(JURISDICTION_NAMES).map(([code, name]) => (
-                      <DropdownMenuItem key={code} onClick={() => setFilter(code)}>
-                        <JurisdictionFlag code={code} className="h-4 w-5 mr-2" />
-                        {name}
+                      <DropdownMenuItem key={code} onClick={() => setFilter(code)} className="rounded-lg py-2.5">
+                        <JurisdictionFlag code={code} className="h-4 w-6 mr-3" />
+                        <span className="font-medium">{name}</span>
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
 
                 <Select value={trademarkFilter} onValueChange={setTrademarkFilter}>
-                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]"><SelectValue placeholder="All Trademarks" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="w-[200px] border-none bg-muted/30 h-12 rounded-xl font-semibold"><SelectValue placeholder="All Trademarks" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-none shadow-premium max-h-[300px]">
                     <SelectItem value="ALL">All Trademarks</SelectItem>
-                    {uniqueTrademarks.map(t => (<SelectItem key={t} value={t || ''}>{t}</SelectItem>))}
+                    {uniqueTrademarks.map(t => (<SelectItem key={t} value={t || ''} className="rounded-lg">{t}</SelectItem>))}
                   </SelectContent>
                 </Select>
 
                 <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]"><SelectValue placeholder="All Clients" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="w-[200px] border-none bg-muted/30 h-12 rounded-xl font-semibold"><SelectValue placeholder="All Clients" /></SelectTrigger>
+                  <SelectContent className="rounded-xl border-none shadow-premium max-h-[300px]">
                     <SelectItem value="ALL">All Clients</SelectItem>
-                    {uniqueClients.map(c => (<SelectItem key={c} value={c || ''}>{c}</SelectItem>))}
+                    {uniqueClients.map(c => (<SelectItem key={c} value={c || ''} className="rounded-lg">{c}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -305,27 +367,28 @@ export default function DeadlinesPage() {
 
           <CardContent className="p-0">
             <div className="grid grid-cols-1 lg:grid-cols-2">
-              <div className="border-r border-border">
-                <div className="p-4 border-b bg-muted/30">
+              <div className="border-r border-muted/30">
+                <div className="p-6 border-b bg-muted/10">
                   <div className="flex items-center justify-between">
-                    <Typography.h4a className="text-muted-foreground flex items-center gap-2">
-                      <List size={16} /> Detailed List
-                    </Typography.h4a>
+                    <Typography.h4 className="text-primary font-bold flex items-center gap-2 tracking-tight">
+                      <List size={22} weight="bold" /> 
+                      Deadline Registry
+                    </Typography.h4>
                     <Select value={yearFilter} onValueChange={setYearFilter}>
-                      <SelectTrigger className="h-7 w-[120px] text-xs border border-black/20 bg-transparent hover:bg-muted focus:ring-0">
+                      <SelectTrigger className="h-9 w-[130px] text-sm border-none bg-white/50 hover:bg-white shadow-sm font-semibold rounded-xl focus:ring-0 transition-all">
                         <SelectValue placeholder="All Years" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">All Years</SelectItem>
+                      <SelectContent className="rounded-xl border-none shadow-premium">
+                        <SelectItem value="ALL" className="rounded-lg">All Years</SelectItem>
                         {uniqueYears.map(y => (
-                          <SelectItem key={y} value={y}>{y}</SelectItem>
+                          <SelectItem key={y} value={y} className="rounded-lg">{y}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 {filteredDeadlines.length > 0 ? (
-                  <ScrollArea className="h-[600px]">
+                  <ScrollArea className="h-[700px]">
                     {(() => {
                       const listDeadlines = yearFilter === 'ALL'
                         ? filteredDeadlines
@@ -333,9 +396,9 @@ export default function DeadlinesPage() {
 
                       if (listDeadlines.length === 0) {
                         return (
-                          <div className="px-6 py-12 text-center">
-                            <CalendarIcon size={48} className="mx-auto text-muted-foreground opacity-50 mb-4" />
-                            <p className="text-muted-foreground">No deadlines for {yearFilter}.</p>
+                          <div className="px-6 py-20 text-center">
+                            <CalendarIcon size={64} className="mx-auto text-muted-foreground/20 mb-6" weight="duotone" />
+                            <p className="text-muted-foreground font-medium">No deadlines recorded for {yearFilter}.</p>
                           </div>
                         )
                       }
@@ -350,34 +413,44 @@ export default function DeadlinesPage() {
                       const sorted = Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b))
 
                       return (
-                        <div className="divide-y divide-border">
+                        <div className="divide-y divide-muted/30">
                           {sorted.map(([year, items]) => (
-                            <div key={year}>
-<div className="sticky top-0 z-10 px-6 py-3 bg-muted/40 text-sm font-bold uppercase tracking-widest text-muted-foreground border-b flex items-center gap-2">
-                  {year}
-                  <span className="text-xs font-normal text-muted-foreground/60">· {items.length} deadline{items.length !== 1 ? 's' : ''}</span>
+                            <div key={year} className="bg-white">
+                              <div className="sticky top-0 z-10 px-8 py-4 bg-muted/5 backdrop-blur-md text-sm font-bold uppercase tracking-[0.2em] text-primary/40 border-b border-muted/30 flex items-center justify-between">
+                                <span>{year}</span>
+                                <Badge variant="secondary" className="bg-primary/5 text-primary border-none rounded-lg">{items.length} EVENTS</Badge>
                               </div>
-                              {items.map((d) => {
-                                const daysLeft = getDaysRemaining(d.due_date)
-                                return (
-                                  <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer">
-                                    <div className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-lg border bg-background shadow-sm">
-                                      <span className="text-xs font-bold uppercase text-primary leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
-                                      <span className="text-lg font-bold leading-none py-0.5">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
-                                      <span className="text-xs font-bold text-muted-foreground leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <Typography.h4a className="truncate">{d.mark || 'Unnamed Mark'}</Typography.h4a>
-                                        <Badge variant="outline" className="text-xs"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-1" />{d.jurisdiction}</Badge>
-                                        <Badge className="text-xs">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
+                              <div className="divide-y divide-muted/20">
+                                {items.map((d) => {
+                                  const daysLeft = getDaysRemaining(d.due_date)
+                                  return (
+                                    <div key={d.id} onClick={() => navigate(`/deadlines/${d.id}`)} className="group flex items-center gap-6 px-8 py-6 hover:bg-primary/[0.02] transition-all cursor-pointer relative overflow-hidden">
+                                      {daysLeft < 0 && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />}
+                                      {daysLeft >= 0 && daysLeft <= 30 && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />}
+                                      
+                                      <div className="shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl border border-muted shadow-sm bg-white group-hover:shadow-md group-hover:scale-105 transition-all duration-300">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-primary/40 leading-tight">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-US', { month: 'short' }) : '?'}</span>
+                                        <span className="text-2xl font-bold text-primary tracking-tighter leading-none py-1">{d.due_date ? new Date(d.due_date).getDate() : '?'}</span>
+                                        <span className="text-[10px] font-bold text-muted-foreground/60 leading-tight">{d.due_date ? new Date(d.due_date).getFullYear() : ''}</span>
                                       </div>
-                                      <p className="text-sm text-muted-foreground truncate">{d.client}</p>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-1.5">
+                                          <Typography.h4 className="truncate font-bold tracking-tight text-primary group-hover:text-accent transition-colors">{d.mark || 'Unnamed Mark'}</Typography.h4>
+                                          <Badge variant="outline" className="text-[10px] font-bold bg-white/50 border-muted/50 px-2 py-0"><JurisdictionFlag code={d.jurisdiction || ''} className="h-3 w-4 mr-2" />{d.jurisdiction}</Badge>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          <Badge variant={daysLeft < 0 ? 'destructive' : daysLeft <= 30 ? 'warning' : 'info'} className="text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider">{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC'] || d.type}</Badge>
+                                          <Typography.small className="text-muted-foreground truncate font-medium text-xs">{d.client}</Typography.small>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-2">
+                                        <ChevronsRight size={24} weight="bold" className="text-primary/10 group-hover:text-primary/40 group-hover:translate-x-2 transition-all duration-300" />
+                                        {daysLeft < 0 && <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">OVERDUE</span>}
+                                      </div>
                                     </div>
-                                    <ChevronsRight size={20} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                                  </div>
-                                )
-                              })}
+                                  )
+                                })}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -385,81 +458,93 @@ export default function DeadlinesPage() {
                     })()}
                   </ScrollArea>
                 ) : (
-                  <div className="px-6 py-12 text-center">
-                    <CalendarIcon size={48} className="mx-auto text-muted-foreground opacity-50 mb-4" />
-                    <p className="text-muted-foreground">No deadlines found for your filters.</p>
+                  <div className="px-6 py-20 text-center">
+                    <CalendarIcon size={64} className="mx-auto text-muted-foreground/20 mb-6" weight="duotone" />
+                    <p className="text-muted-foreground font-medium">No deadlines matching your search criteria.</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Typography.h3a className="flex items-center gap-2">
-                      <CalendarIcon size={20} className="text-primary" />
+              <div className="p-10 bg-muted/5">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <Typography.h3 className="flex items-center gap-3 font-bold text-primary tracking-tight">
+                      <CalendarIcon size={28} className="text-primary/60" weight="duotone" />
                       {currentMonth.toLocaleString('en-US', { month: 'long' })}
-                    </Typography.h3a>
+                    </Typography.h3>
                     <Select
                       value={currentMonth.getFullYear().toString()}
                       onValueChange={(val) => setYear(parseInt(val))}
                     >
-                      <SelectTrigger className="h-8 w-[100px] border border-black bg-transparent hover:bg-muted font-semibold text-lg px-2 focus:ring-0">
+                      <SelectTrigger className="h-10 w-[120px] border-none bg-white shadow-sm hover:shadow-md font-bold text-xl px-4 focus:ring-0 rounded-xl transition-all">
                         <SelectValue placeholder="Year" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="rounded-xl border-none shadow-premium">
                         {Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - 10 + i).map(y => (
-                          <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                          <SelectItem key={y} value={y.toString()} className="rounded-lg">{y}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" onClick={() => navigateMonth('prev')}><CaretLeft size={16} /></Button>
-                    <Button variant="outline" size="icon" onClick={() => navigateMonth('next')}><ChevronsRight size={16} /></Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => navigateMonth('prev')}><CaretLeft size={20} weight="bold" /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => navigateMonth('next')}><ChevronsRight size={20} weight="bold" /></Button>
                   </div>
                 </div>
-                <div className="grid grid-cols-7 gap-1 text-center text-sm">
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (<div key={`header-${day}-${idx}`} className="font-bold text-muted-foreground py-2">{day}</div>))}
-                  {Array.from({ length: startDayOfMonth(currentMonth) }).map((_, i) => (<div key={`empty-${i}`} className="py-2" />))}
+                <div className="grid grid-cols-7 gap-3 text-center text-sm mb-8">
+                  {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, idx) => (<div key={`header-${day}-${idx}`} className="font-bold text-muted-foreground/30 py-2 text-[10px] uppercase tracking-[0.2em]">{day}</div>))}
+                  {Array.from({ length: startDayOfMonth(currentMonth) }).map((_, i) => (<div key={`empty-${i}`} className="aspect-square" />))}
                   {Array.from({ length: daysInMonth(currentMonth) }, (_, i) => i + 1).map(day => {
                     const hasDeadline = isDeadlineOnDate(day)
                     return (
                       <div
                         key={day}
                         onClick={() => setSelectedDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))}
-                        className={`py-3 rounded-lg transition-all cursor-pointer relative text-center 
-                          ${isSelected(day) ? "bg-primary text-primary-foreground shadow-md font-bold" : "hover:bg-muted/50"} 
-                          ${isToday(day) ? "ring-2 ring-primary ring-offset-2" : ""} 
-                          ${hasDeadline && !isSelected(day) ? "bg-orange-100 text-orange-600 font-bold" : ""}`}
+                        className={`aspect-square flex items-center justify-center rounded-2xl transition-all cursor-pointer relative text-sm font-bold
+                          ${isSelected(day) ? "bg-primary text-primary-foreground shadow-lg scale-110 z-10" : hasDeadline ? "bg-orange-500 text-white shadow-md ring-1 ring-orange-600/30" : "hover:bg-primary/5 text-primary/80 bg-white shadow-sm border border-muted/10"}
+                          ${isToday(day) && !isSelected(day) && !hasDeadline ? "border-2 border-primary/40" : ""}`}
                       >
                         {day}
-                        {hasDeadline && isToday(day) && !isSelected(day) && (
-                          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-white rounded-full" />
-                        )}
                       </div>
                     )
                   })}
                 </div>
                 {selectedDate && (
-                  <div className="mt-6 pt-4 border-t animate-in fade-in slide-in-from-top-2">
-                    <div className="text-xs font-bold uppercase text-muted-foreground mb-3">{selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</div>
-                    <div className="space-y-2">
+                  <div className="mt-10 pt-8 border-t border-muted/30 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between mb-6">
+                      <Typography.small className="text-primary uppercase font-bold tracking-[0.2em] text-[10px]">
+                        {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </Typography.small>
+                      <Badge variant="secondary" className="bg-primary/5 text-primary border-none rounded-lg font-bold uppercase tracking-wider">
+                        {(() => {
+                          const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+                          return filteredDeadlines.filter(d => d.due_date && d.due_date.startsWith(selectedDateStr)).length
+                        })()} Events
+                      </Badge>
+                    </div>
+                    <div className="space-y-4">
                       {(() => {
                         const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
                         const selectedDeadlines = filteredDeadlines.filter(d => d.due_date && d.due_date.startsWith(selectedDateStr))
-                        if (selectedDeadlines.length === 0) return <p className="text-sm text-muted-foreground">No deadlines</p>
+                        if (selectedDeadlines.length === 0) return (
+                          <div className="py-12 text-center bg-muted/10 rounded-3xl border border-dashed border-muted-foreground/20">
+                            <p className="text-sm text-muted-foreground font-medium italic">No deadlines scheduled for this date</p>
+                          </div>
+                        )
                         return selectedDeadlines.map(d => (
-                          <div key={d.id} className="p-3 bg-muted/50 rounded-lg flex items-center justify-between border border-border/50 hover:bg-muted transition-colors cursor-pointer" onClick={() => navigate(`/deadlines/${d.id}`)}>
-                            <div className="flex-1 min-w-0 pr-4">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="font-bold truncate text-foreground">{d.mark}</div>
-                                <Badge variant="outline" className="text-[10px] h-4 py-0">{d.jurisdiction}</Badge>
+                          <div key={d.id} className="p-5 bg-white rounded-3xl flex items-center justify-between border border-transparent shadow-sm hover:shadow-md hover:border-primary/20 transition-all cursor-pointer group/item" onClick={() => navigate(`/deadlines/${d.id}`)}>
+                            <div className="flex-1 min-w-0 pr-6">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="font-bold truncate text-primary group-hover:text-accent transition-colors tracking-tight text-lg">{d.mark}</div>
+                                <Badge variant="outline" className="text-[10px] h-5 py-0 font-bold bg-muted/5 border-muted/50">{d.jurisdiction}</Badge>
                               </div>
-                              <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                                 {d.client}
                               </div>
                             </div>
-                            <Badge className={DEADLINE_TYPE_COLORS[d.type?.toUpperCase() || 'GENERIC']}>{DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC']}</Badge>
+                            <Badge className={`${DEADLINE_TYPE_COLORS[d.type?.toUpperCase() || 'GENERIC']} text-white text-[10px] px-4 py-1.5 font-bold border-none shadow-sm`}>
+                              {DEADLINE_TYPE_LABELS[d.type?.toUpperCase() || 'GENERIC']}
+                            </Badge>
                           </div>
                         ))
                       })()}

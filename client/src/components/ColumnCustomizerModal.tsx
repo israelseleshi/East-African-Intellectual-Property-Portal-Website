@@ -12,7 +12,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { CaretDown, CaretRight, DotsSixVertical, ArrowClockwise, Table } from '@phosphor-icons/react'
 import {
-  ALL_COLUMNS,
   COLUMN_GROUPS,
   PRESETS,
   getDefaultPreferences,
@@ -72,7 +71,6 @@ function ColumnGroupSection({
   groupColor,
   columns,
   visibleColumns,
-  columnOrder,
   onToggleColumn,
   onToggleGroup,
   onReorderColumn,
@@ -82,7 +80,6 @@ function ColumnGroupSection({
   groupColor: string
   columns: ColumnDef[]
   visibleColumns: Set<string>
-  columnOrder: string[]
   onToggleColumn: (id: string) => void
   onToggleGroup: (groupId: ColumnGroupId, checked: boolean) => void
   onReorderColumn: (dragId: string, dropId: string) => void
@@ -224,37 +221,41 @@ export function ColumnCustomizerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <Table size={22} weight="duotone" className="text-primary" />
-            <DialogTitle>Customize Table Columns</DialogTitle>
+      <DialogContent className="sm:max-w-[540px] max-h-[85vh] flex flex-col rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white/95 backdrop-blur-xl">
+        <DialogHeader className="p-8 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <Table size={28} weight="duotone" />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl font-black tracking-tight uppercase">Registry Protocol</DialogTitle>
+              <DialogDescription className="font-medium">Configure visibility and hierarchy for the trademark registry.</DialogDescription>
+            </div>
           </div>
-          <DialogDescription>
-            Show, hide, and reorder columns. Changes save automatically when you apply.
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 pb-3 border-b">
-          {PRESETS.map(preset => (
-            <Button
-              key={preset.id}
-              variant="outline"
-              size="sm"
-              onClick={() => handlePreset(preset.id)}
-              className="text-xs"
-              title={preset.description}
-            >
-              {preset.label}
-            </Button>
-          ))}
+        <div className="px-8 py-4 bg-muted/5 flex items-center gap-2 border-b border-border/50">
+          <div className="flex flex-wrap items-center gap-2">
+            {PRESETS.map(preset => (
+              <Button
+                key={preset.id}
+                variant="outline"
+                size="sm"
+                onClick={() => handlePreset(preset.id)}
+                className="text-[10px] font-black uppercase tracking-widest h-8 px-4 rounded-lg border-none shadow-sm hover:shadow-md transition-all bg-white"
+                title={preset.description}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
           <div className="flex-1" />
-          <Button variant="ghost" size="icon" onClick={handleReset} title="Reset to Default">
-            <ArrowClockwise size={16} />
+          <Button variant="ghost" size="icon" onClick={handleReset} title="Reset to Default" className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm">
+            <ArrowClockwise size={16} weight="bold" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 py-3">
+        <div className="flex-1 overflow-y-auto space-y-4 py-6 px-8 scrollbar-hide">
           {COLUMN_GROUPS.map(group => {
             const groupCols = getGroupColumns(group.id)
             if (groupCols.length === 0) return null
@@ -266,7 +267,6 @@ export function ColumnCustomizerModal({
                 groupColor={group.color}
                 columns={groupCols}
                 visibleColumns={visibleSet}
-                columnOrder={columnOrder}
                 onToggleColumn={handleToggleColumn}
                 onToggleGroup={handleToggleGroup}
                 onReorderColumn={handleReorderColumn}
@@ -275,12 +275,12 @@ export function ColumnCustomizerModal({
           })}
         </div>
 
-        <DialogFooter className="border-t pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+        <DialogFooter className="p-8 border-t border-border/50 bg-muted/20 gap-3">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl font-bold h-12 px-6">
+            Discard Changes
           </Button>
-          <Button onClick={handleApply}>
-            Apply
+          <Button onClick={handleApply} className="rounded-xl h-12 px-10 font-black text-[11px] uppercase tracking-widest shadow-lg shadow-primary/20">
+            Apply Configuration
           </Button>
         </DialogFooter>
       </DialogContent>

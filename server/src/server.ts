@@ -92,14 +92,38 @@ if (!fs.existsSync(MARKS_UPLOAD_DIR)) {
 }
 
 // Serve uploads from both /uploads and /api/uploads for production compatibility
-app.use('/uploads', express.static(uploadDir));
-app.use('/api/uploads', express.static(uploadDir));
+app.use('/uploads', express.static(uploadDir, {
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'attachment');
+  }
+}));
+app.use('/api/uploads', express.static(uploadDir, {
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'attachment');
+  }
+}));
 
-// Fallback for when Passenger strips /api
 app.get('/uploads/*', (req: any, res, next) => {
   const filename = req.params[0];
   const filePath = path.join(uploadDir, filename);
-  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  if (fs.existsSync(filePath)) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'attachment');
+    return res.sendFile(filePath);
+  }
+  next();
+});
+
+app.get('/api/uploads/*', (req: any, res, next) => {
+  const filename = req.params[0];
+  const filePath = path.join(uploadDir, filename);
+  if (fs.existsSync(filePath)) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'attachment');
+    return res.sendFile(filePath);
+  }
   next();
 });
 

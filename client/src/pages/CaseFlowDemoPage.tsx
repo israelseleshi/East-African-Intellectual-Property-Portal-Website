@@ -140,10 +140,10 @@ export default function CaseFlowDemoPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 bg-[#F8F9FA] min-h-screen">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-[var(--eai-text)]">
+          <h1 className="text-[24px] font-black tracking-tight text-[var(--eai-text)]">
             Case Flow Demo
           </h1>
           <p className="text-[14px] text-[var(--eai-text-secondary)] mt-1">
@@ -172,8 +172,8 @@ export default function CaseFlowDemoPage() {
       </header>
 
       {/* Demo Info Card */}
-      <Card className="apple-card border-l-4 border-l-[var(--eai-primary)]">
-        <CardContent className="p-4">
+      <Card className="border-none shadow-premium rounded-[2.5rem] border-l-4 border-l-[var(--eai-primary)] overflow-hidden">
+        <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center bg-[var(--eai-primary)]/10 text-[var(--eai-primary)]">
               <span className="text-[20px] font-bold">TM</span>
@@ -200,9 +200,9 @@ export default function CaseFlowDemoPage() {
       />
 
       {/* Stage History Timeline */}
-      <Card className="apple-card">
+      <Card className="border-none shadow-premium rounded-3xl overflow-hidden">
         <CardHeader>
-          <CardTitle className="text-[16px] font-bold tracking-tight">
+          <CardTitle className="text-[16px] font-black tracking-tight">
             Stage History Log
           </CardTitle>
         </CardHeader>
@@ -240,7 +240,7 @@ export default function CaseFlowDemoPage() {
       </Card>
 
       {/* Legend */}
-      <Card className="apple-card bg-[var(--eai-bg)]/50">
+      <Card className="border-none shadow-premium rounded-3xl overflow-hidden bg-white/80">
         <CardContent className="p-4">
           <h4 className="text-[12px] font-bold tracking-wider text-[var(--eai-text-secondary)] mb-3">
             Stage legend

@@ -162,13 +162,13 @@ export const caseLifecycleService = {
         });
       }
 
-      await connection.commit();
-
       const updatedCase: CaseRow = { ...oldCase, status: input.status };
       if (input.status === 'PUBLISHED' && input.publicationDate) {
         (updatedCase as CaseRow & { publication_date?: Date }).publication_date = new Date(input.publicationDate);
       }
       await recalculateDeadlines(input.caseId, input.status, updatedCase, connection);
+
+      await connection.commit();
 
       return { id: input.caseId, status: input.status };
     } catch (error) {
@@ -238,11 +238,15 @@ export const caseLifecycleService = {
           updates.next_action_date = addDays(effectiveDate, jurisdictionConfig.certificate_request_days || 20);
           updates.status = 'PUBLISHED';
           break;
-        case 'CERTIFICATE_ISSUED':
+        case 'CERTIFICATE_ISSUED': {
+          const renewalDate = new Date(effectiveDate);
+          renewalDate.setFullYear(renewalDate.getFullYear() + (jurisdictionConfig.renewal_years || 7));
           updates.registration_dt = effectiveDate;
+          updates.expiry_date = renewalDate;
           updates.status = 'REGISTERED';
           if (extraData.certificateNumber) updates.certificate_number = extraData.certificateNumber;
           break;
+        }
         case 'REGISTERED': {
           const renewalDate = new Date(effectiveDate);
           renewalDate.setFullYear(renewalDate.getFullYear() + (jurisdictionConfig.renewal_years || 7));

@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 
 const CSRF_COOKIE_NAME = 'csrf_token';
-const IGNORE_PATHS = ['/auth/login', '/auth/refresh'];
+const IGNORE_PATHS = new Set<string>(['/auth/login', '/api/auth/login']);
 const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
 const makeToken = () => crypto.randomBytes(24).toString('hex');
@@ -24,7 +24,7 @@ export const csrfTokenSetter = (req: Request, res: Response, next: NextFunction)
 export const csrfMiddleware = (req: Request, res: Response, next: NextFunction) => {
   if (SAFE_METHODS.includes(req.method)) return next();
   const path = req.path.toLowerCase();
-  if (IGNORE_PATHS.some((p) => path.endsWith(p))) return next();
+  if (IGNORE_PATHS.has(path)) return next();
 
   const cookieToken = req.cookies?.[CSRF_COOKIE_NAME];
   const headerToken = req.header('x-csrf-token');

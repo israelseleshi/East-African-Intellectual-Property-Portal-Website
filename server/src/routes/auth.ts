@@ -30,6 +30,22 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { success: false, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many refresh attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const verifyLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many 2FA attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 interface User {
   id: string;
   full_name: string;
@@ -97,6 +113,16 @@ const updateProfileSchema = z.object({
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(6)
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email().max(254)
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email().max(254),
+  otp: z.string().regex(/^[0-9A-F]{6}$/i),
+  password: z.string().min(8).max(128)
 });
 
 const ACCESS_COOKIE = 'access_token';
@@ -468,7 +494,7 @@ router.post('/verify-otp', csrfMiddleware, async (req, res) => {
   }
 });
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', refreshLimiter, async (req, res) => {
   try {
     const refreshToken = req.cookies?.[REFRESH_COOKIE];
     if (!refreshToken) {
@@ -556,10 +582,15 @@ router.post('/logout', authenticateToken, async (req, res) => {
 
 router.post('/forgot-password', authLimiter, csrfMiddleware, async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      return sendApiError(req, res, 400, { code: 'EMAIL_REQUIRED', message: 'Email is required' });
+    const parsed = forgotPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_FORGOT_PASSWORD_PAYLOAD',
+        message: 'Invalid forgot password payload',
+        details: parsed.error.flatten()
+      });
     }
+    const { email } = parsed.data;
 
     const [rows] = await pool.execute('SELECT id, full_name, email FROM users WHERE email = ? AND is_active = 1', [email]);
     const user = (rows as User[])[0];
@@ -599,10 +630,15 @@ router.post('/forgot-password', authLimiter, csrfMiddleware, async (req, res) =>
 
 router.post('/reset-password', authLimiter, csrfMiddleware, async (req, res) => {
   try {
-    const { email, otp, password } = req.body;
-    if (!email || !otp || !password) {
-      return sendApiError(req, res, 400, { code: 'MISSING_FIELDS', message: 'Email, OTP, and password are required' });
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendApiError(req, res, 400, {
+        code: 'INVALID_RESET_PASSWORD_PAYLOAD',
+        message: 'Invalid reset password payload',
+        details: parsed.error.flatten()
+      });
     }
+    const { email, otp, password } = parsed.data;
 
     const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
     const [rows] = await pool.execute(
@@ -843,7 +879,7 @@ router.post('/2fa/disable', authenticateToken, csrfMiddleware, async (req, res) 
   }
 });
 
-router.post('/2fa/verify-login', authLimiter, async (req, res) => {
+router.post('/2fa/verify-login', authLimiter, verifyLoginLimiter, async (req, res) => {
   try {
     const { userId, code } = req.body;
     

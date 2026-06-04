@@ -136,7 +136,7 @@ export default function InvoiceDetailPage() {
         notes: data.notes || ''
       })
       setEditItems(
-        (data.items || []).map((item: any) => ({
+        (data.items || []).map((item: InvoiceItem) => ({
           id: item.id,
           case_id: item.case_id || null,
           description: item.description || '',
@@ -308,14 +308,20 @@ export default function InvoiceDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
-        <div className="space-y-4">
-          <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-          <div className="h-12 w-64 bg-muted animate-pulse rounded" />
+      <div className="p-4 md:p-8 space-y-6 bg-[#F8F9FA] text-foreground min-h-screen">
+        <div className="flex items-start gap-5">
+          <div className="h-14 w-14 rounded-2xl bg-muted animate-pulse shrink-0" />
+          <div className="space-y-3">
+            <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+            <div className="h-9 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-48 bg-muted animate-pulse rounded" />
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="h-48 bg-muted animate-pulse rounded-lg" />
-          <div className="h-48 bg-muted animate-pulse rounded-lg" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <div className="h-[300px] bg-muted animate-pulse rounded-[2.5rem]" />
+          </div>
+          <div className="h-[400px] bg-muted animate-pulse rounded-3xl" />
         </div>
       </div>
     )
@@ -323,13 +329,18 @@ export default function InvoiceDetailPage() {
 
   if (!invoice) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-8">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Invoice Not Found</h2>
-            <p className="text-muted-foreground">The invoice you're looking for doesn't exist.</p>
-            <Button onClick={() => navigate('/billing')}>
-              <CaretLeft size={16} /> Back to Billing
+      <div className="flex flex-col items-center justify-center min-h-screen p-8 bg-[#F8F9FA]">
+        <Card className="max-w-md w-full border-none shadow-premium rounded-[2.5rem] bg-white">
+          <CardContent className="p-10 text-center space-y-5">
+            <div className="p-4 rounded-3xl bg-primary/10 text-primary mx-auto w-fit">
+              <Receipt size={40} weight="duotone" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black tracking-tight text-foreground">Invoice Not Found</h2>
+              <p className="text-sm text-muted-foreground mt-1">The invoice you're looking for doesn't exist or has been removed.</p>
+            </div>
+            <Button onClick={() => navigate('/billing')} className="rounded-xl shadow-premium">
+              <CaretLeft size={16} className="mr-2" /> Back to Billing
             </Button>
           </CardContent>
         </Card>
@@ -367,29 +378,29 @@ export default function InvoiceDetailPage() {
   const ItemsTable = ({ editing = false }: { editing?: boolean }) => (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className={cn("border-b", editing ? "bg-muted/50" : "bg-muted/20")}>
+        <thead className={cn("border-b", editing ? "bg-muted/30" : "bg-muted/10")}>
           <tr>
-            <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider">Description</th>
-            <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider">Category</th>
-            <th className="px-4 py-3 text-right font-bold text-xs uppercase tracking-wider">Amount</th>
-            {editing && <th className="px-4 py-3 w-12"></th>}
+            <th className="px-5 py-3.5 text-left font-bold text-xs uppercase tracking-wider text-muted-foreground">Description</th>
+            <th className="px-5 py-3.5 text-left font-bold text-xs uppercase tracking-wider text-muted-foreground">Category</th>
+            <th className="px-5 py-3.5 text-right font-bold text-xs uppercase tracking-wider text-muted-foreground">Amount</th>
+            {editing && <th className="px-5 py-3.5 w-14"></th>}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">
+        <tbody className="divide-y divide-border/60">
           {(editing ? editItems : invoice.items).map((item, index) => (
-            <tr key={index} className="hover:bg-muted/5 group transition-colors">
-              <td className="px-4 py-3">
+            <tr key={index} className="hover:bg-muted/10 group transition-colors">
+              <td className="px-5 py-3">
                 {editing ? (
                   <Input
                     value={editItems[index]?.description || ''}
                     onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-9 text-sm rounded-xl"
                   />
                 ) : (
                   <div className="font-semibold text-foreground">{item.description}</div>
                 )}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-5 py-3">
                 {editing ? (
                   <Select 
                     value={editItems[index]?.description || ''} 
@@ -402,35 +413,35 @@ export default function InvoiceDetailPage() {
                       }
                     }}
                   >
-                    <SelectTrigger className="h-8 text-xs w-[200px]"><SelectValue placeholder="Select fee type" /></SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
+                    <SelectTrigger className="h-9 text-xs w-[200px] rounded-xl"><SelectValue placeholder="Select fee type" /></SelectTrigger>
+                    <SelectContent className="max-h-[300px] rounded-xl border-none shadow-premium">
                       {EIPO_FEES.map(fee => (
                         <SelectItem key={fee.code} value={fee.description}>{fee.description}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Badge variant="secondary" className="text-[10px] font-bold tracking-tight px-2 py-0 h-5">
+                  <Badge variant="secondary" className="text-[10px] font-bold tracking-tight px-2.5 py-0.5 h-5 rounded-lg">
                     {item.category}
                   </Badge>
                 )}
               </td>
-              <td className="px-4 py-3 text-right font-sans font-bold">
+              <td className="px-5 py-3 text-right font-sans font-bold">
                 {editing ? (
                   <Input
                     type="number"
                     value={editItems[index]?.amount ?? 0}
                     onChange={(e) => updateItem(index, 'amount', Number(e.target.value || 0))}
-                    className="text-right h-8 text-sm"
+                    className="text-right h-9 text-sm rounded-xl w-28 ml-auto"
                   />
                 ) : (
-                  formatAmount(item.amount, currency)
+                  <span className="text-sm font-bold text-foreground">{formatAmount(item.amount, currency)}</span>
                 )}
               </td>
               {editing && (
-                <td className="px-4 py-3">
+                <td className="px-5 py-3">
                   {editItems.length > 1 && (
-                    <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                    <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-8 w-8 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
                       <Trash size={14} />
                     </Button>
                   )}
@@ -444,22 +455,22 @@ export default function InvoiceDetailPage() {
   )
 
   const Actions = (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {!isEditing ? (
         <>
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined}>
-            <PencilSimple size={16} className="mr-2" /> Edit
+          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} className="rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
+            <PencilSimple size={16} className="mr-1.5" /> Edit
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsDeleteOpen(true)} className="text-destructive hover:text-destructive" disabled={fromTrash}>
-            <Trash size={16} className="mr-2" /> Delete
+          <Button variant="outline" size="sm" onClick={() => setIsDeleteOpen(true)} className="text-destructive hover:text-destructive rounded-xl shadow-sm bg-white hover:shadow-md transition-all" disabled={fromTrash}>
+            <Trash size={16} className="mr-1.5" /> Delete
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handlePreview}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl shadow-sm bg-white hover:shadow-md transition-all" onClick={handlePreview}>
             <Eye size={16} />
             Preview
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleDownload}>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl shadow-sm bg-white hover:shadow-md transition-all" onClick={handleDownload}>
             <DownloadSimple size={16} />
-            Download PDF
+            PDF
           </Button>
         </>
       ) : (
@@ -473,11 +484,11 @@ export default function InvoiceDetailPage() {
               status: invoice.status || 'DRAFT',
               notes: invoice.notes || ''
             })
-          }}>
+          }} className="rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
             Cancel
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
-            <FloppyDisk size={16} className="mr-2" /> {saving ? 'Saving...' : 'Save Changes'}
+          <Button size="sm" onClick={handleSave} disabled={saving} className="rounded-xl shadow-premium hover:shadow-xl transition-all">
+            <FloppyDisk size={16} className="mr-1.5" /> {saving ? 'Saving...' : 'Save'}
           </Button>
         </>
       )}
@@ -488,16 +499,21 @@ export default function InvoiceDetailPage() {
   const ClassicLayout = (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
-        <Card className="border shadow-sm overflow-hidden bg-card">
-          <CardHeader className="bg-muted/10 border-b">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle><Typography.h3>Line Items</Typography.h3></CardTitle>
-                <Typography.muted>Breakdown of charges and fees</Typography.muted>
+        <Card className="border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white">
+          <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <Receipt size={22} weight="duotone" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-black tracking-tight">Line Items</CardTitle>
+                  <CardDescription className="font-medium text-xs text-muted-foreground">Breakdown of charges and fees</CardDescription>
+                </div>
               </div>
               {isEditing && (
-                <Button variant="outline" size="sm" onClick={addItem}>
-                  <Plus size={14} className="mr-2" /> Add Item
+                <Button variant="outline" size="sm" onClick={addItem} className="rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
+                  <Plus size={14} className="mr-1.5" /> Add Item
                 </Button>
               )}
             </div>
@@ -508,74 +524,104 @@ export default function InvoiceDetailPage() {
         </Card>
 
         {isEditing && (
-          <Card className="bg-muted/5 border-dashed">
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <Label>Notes for Client</Label>
-                <Textarea 
-                  value={editData.notes} 
-                  onChange={e => setEditData(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="Will appear on the invoice PDF..."
-                />
+          <Card className="border-none shadow-premium rounded-3xl bg-white overflow-hidden">
+            <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-4 px-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <Notebook size={22} weight="duotone" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-black tracking-tight">Client Notes</CardTitle>
+                  <CardDescription className="font-medium text-xs text-muted-foreground">Will appear on the invoice PDF</CardDescription>
+                </div>
               </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <Textarea 
+                value={editData.notes} 
+                onChange={e => setEditData(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Add notes for the client..."
+                className="min-h-[100px] text-sm rounded-xl"
+              />
             </CardContent>
           </Card>
         )}
       </div>
 
       <div className="space-y-6">
-        <Card className="border-border/50 shadow-md">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Invoice Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex flex-col gap-4">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="space-y-1.5"><Label>Status</Label>
-                    <Select value={editData.status} onValueChange={(v) => setEditData(p => ({ ...p, status: v }))}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DRAFT">Draft</SelectItem>
-                        <SelectItem value="PAID">Paid</SelectItem>
-                        <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
-                        <SelectItem value="OVERDUE">Overdue</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5"><Label>Due Date</Label>
-                    <DatePicker 
-                      date={editData.due_date ? new Date(editData.due_date) : undefined} 
-                      onDateChange={d => setEditData(p => ({ ...p, due_date: d ? d.toISOString().split('T')[0] : '' }))} 
-                      allowFuture={true}
-                    />
-                  </div>
-                  <div className="space-y-1.5"><Label>Currency</Label>
-                    <Select value={editData.currency} onValueChange={v => setEditData(p => ({ ...p, currency: v }))}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="ETB">ETB</SelectItem><SelectItem value="KES">KES</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {SummaryFields.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/40 last:border-0 grow">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <f.icon size={16} /> <span>{f.label}</span>
-                      </div>
-                      <span className={cn("font-medium", f.className)}>{f.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {!isEditing && (
-              <div className="pt-4 border-t border-border space-y-2 text-foreground">
-                <Label className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Client Notes</Label>
-                <p className="text-xs italic text-muted-foreground leading-relaxed">{invoice.notes || 'No specific notes for this invoice.'}</p>
+        <Card className="border-none shadow-premium rounded-3xl bg-white overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Wallet size={22} weight="duotone" />
               </div>
+              <div>
+                <CardTitle className="text-lg font-black tracking-tight">Summary</CardTitle>
+                <CardDescription className="font-medium text-xs text-muted-foreground">Payment status and due details</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {isEditing ? (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</Label>
+                  <Select value={editData.status} onValueChange={(v) => setEditData(p => ({ ...p, status: v }))}>
+                    <SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-premium">
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
+                      <SelectItem value="OVERDUE">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Separator className="opacity-30" />
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Due Date</Label>
+                  <DatePicker 
+                    date={editData.due_date ? new Date(editData.due_date) : undefined} 
+                    onDateChange={d => setEditData(p => ({ ...p, due_date: d ? d.toISOString().split('T')[0] : '' }))} 
+                    allowFuture={true}
+                  />
+                </div>
+                <Separator className="opacity-30" />
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Currency</Label>
+                  <Select value={editData.currency} onValueChange={v => setEditData(p => ({ ...p, currency: v }))}>
+                    <SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-premium">
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="ETB">ETB</SelectItem>
+                      <SelectItem value="KES">KES</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {SummaryFields.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                        <f.icon size={16} weight="duotone" />
+                      </div>
+                      <span className="text-sm font-medium">{f.label}</span>
+                    </div>
+                    <span className={cn("text-sm font-bold", f.className)}>{f.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {!isEditing && invoice.notes && (
+              <>
+                <Separator className="my-4 opacity-30" />
+                <div className="space-y-2">
+                  <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Client Notes</Label>
+                  <p className="text-xs text-muted-foreground/80 leading-relaxed">{invoice.notes}</p>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -586,23 +632,23 @@ export default function InvoiceDetailPage() {
   const DashboardLayout = (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Billable</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</CardContent></Card>
-        <Card className="bg-emerald-500/5 border-emerald-500/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-emerald-600">{formatAmount(paidAmount, currency)}</CardContent></Card>
-        <Card className="bg-destructive/5 border-destructive/20"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-destructive">{formatAmount(outstandingAmount, currency)}</CardContent></Card>
-        <Card className="bg-muted/40"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Invoice Status</CardTitle></CardHeader><CardContent className="p-4 pt-0"><BadgeStatus status={invoice.status}/></CardContent></Card>
+        <Card className="bg-primary/5 border-primary/20 rounded-3xl"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Billable</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-foreground">{formatAmount(invoice.total_amount, currency)}</CardContent></Card>
+        <Card className="bg-emerald-500/5 border-emerald-500/20 rounded-3xl"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-emerald-600">{formatAmount(paidAmount, currency)}</CardContent></Card>
+        <Card className="bg-destructive/5 border-destructive/20 rounded-3xl"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0 font-sans text-2xl font-bold text-destructive">{formatAmount(outstandingAmount, currency)}</CardContent></Card>
+        <Card className="bg-muted/40 rounded-3xl"><CardHeader className="p-4 pb-2"><CardTitle className="text-xs text-muted-foreground uppercase font-bold">Invoice Status</CardTitle></CardHeader><CardContent className="p-4 pt-0"><BadgeStatus status={invoice.status}/></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-lg">
-          <CardHeader className="bg-muted/10 border-b py-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold text-foreground">Detailed Line Items</CardTitle>
+        <Card className="border-none shadow-premium rounded-3xl overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-b py-4 px-6 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-black text-foreground">Detailed Line Items</CardTitle>
             {isEditing && <Button size="sm" variant="outline" onClick={addItem}><Plus size={12} className="mr-1" /> Add</Button>}
           </CardHeader>
           <CardContent className="p-0"><ItemsTable editing={isEditing} /></CardContent>
         </Card>
 
-        <Card className="bg-card">
-          <CardHeader className="border-b bg-muted/5 py-3"><CardTitle className="text-sm font-bold text-foreground">Associated Metadata</CardTitle></CardHeader>
+        <Card className="border-none shadow-premium rounded-3xl overflow-hidden bg-white">
+          <CardHeader className="border-b bg-[#F8F9FA] py-4 px-6"><CardTitle className="text-sm font-black text-foreground">Associated Metadata</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
               {SummaryFields.filter(f => !f.label.includes('Amount')).map((f, i) => (
@@ -669,7 +715,7 @@ export default function InvoiceDetailPage() {
   const DoubleSidebarLayout = (
     <div className="flex flex-col xl:flex-row gap-8 items-start">
       <div className="flex-1 w-full space-y-6 shrink-0">
-        <Card className="border shadow-lg drop-shadow-sm overflow-hidden rounded-2xl">
+        <Card className="border-none shadow-premium overflow-hidden rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10">
             <div>
               <CardTitle className="text-xl text-foreground">Invoiced Items</CardTitle>
@@ -694,7 +740,7 @@ export default function InvoiceDetailPage() {
       </div>
 
       <div className="xl:w-96 w-full space-y-6 xl:sticky xl:top-24">
-         <Card className="bg-card shadow-xl rounded-3xl overflow-hidden ring-1 ring-border/30">
+         <Card className="bg-white shadow-premium rounded-3xl overflow-hidden ring-1 ring-border/20 border-none">
             <div className="h-2 w-full bg-primary" />
             <CardHeader className="pb-2">
                <CardTitle className="text-xs font-bold uppercase text-muted-foreground text-foreground">Financial Summary</CardTitle>
@@ -740,7 +786,7 @@ export default function InvoiceDetailPage() {
   )
 
   const CompactLayout = (
-    <Card className="bg-card shadow-sm rounded-lg overflow-hidden border">
+    <Card className="bg-white shadow-premium rounded-3xl overflow-hidden border-none">
         <div className="bg-muted/10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-px border-b">
            {SummaryFields.map((f, i) => (
              <div key={i} className="bg-card p-4 flex flex-col items-center justify-center text-center gap-1 border-r last:border-0 grow">
@@ -773,20 +819,18 @@ export default function InvoiceDetailPage() {
   const CurrentLayout = () => ClassicLayout
 
   return (
-    <div className="w-full p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+    <div className="w-full p-4 md:p-8 space-y-6 bg-[#F8F9FA] text-foreground min-h-screen" style={{ fontFamily: 'DM Sans, sans-serif' }}>
       <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
-        <div className="flex flex-col gap-6">
-          <Button variant="outline" onClick={() => navigate('/billing')} className="w-fit h-9 px-4 group bg-white">
-            <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Ledger
+        <div className="flex items-start gap-5">
+          <Button variant="outline" onClick={() => navigate('/billing')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
+            <ArrowLeft size={24} weight="bold" />
           </Button>
           <div>
-            <div className="mb-1">
-               <Badge className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-3 py-1 mb-3 inline-flex items-center border-none">Invoice Doc</Badge>
-            </div>
-<Typography.h1>{invoice.invoice_number}</Typography.h1>
+            <Badge className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-3 py-1 mb-3 inline-flex items-center border-none">Invoice</Badge>
+            <Typography.h1 className="font-black">{invoice.invoice_number}</Typography.h1>
             <Typography.lead className="flex items-center gap-2">
               <Buildings size={20} className="text-primary/70" /> {invoice.client_name} 
-              {invoice.mark_name && <span className="opacity-40">•</span>}
+              {invoice.mark_name && <span className="opacity-40 mx-1">•</span>}
               {invoice.mark_name && <span className="text-foreground/80">{invoice.mark_name}</span>}
             </Typography.lead>
           </div>
@@ -797,24 +841,27 @@ export default function InvoiceDetailPage() {
         </div>
       </header>
 
-      <Separator className="opacity-40" />
+      <Separator className="my-2 opacity-30" />
 
       <div className="animate-in fade-in duration-500">
         <CurrentLayout />
       </div>
 
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-premium backdrop-blur-xl bg-white/95">
           <DialogHeader>
-            <DialogTitle>Delete Invoice</DialogTitle>
+            <div className="mx-auto w-fit p-3 rounded-2xl bg-destructive/10 text-destructive mb-2">
+              <Trash size={24} weight="duotone" />
+            </div>
+            <DialogTitle className="text-center text-xl font-black tracking-tight">Delete Invoice</DialogTitle>
           </DialogHeader>
-          <Typography.p className="py-4">
+          <Typography.p className="text-center text-sm text-muted-foreground px-4 pb-2">
             Are you sure you want to delete this invoice? This action cannot be undone.
           </Typography.p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Deleting...' : 'Delete Invoice'}
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="rounded-xl shadow-sm bg-white flex-1">Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting} className="rounded-xl shadow-premium flex-1">
+              <Trash size={16} className="mr-2" /> {deleting ? 'Deleting...' : 'Delete Invoice'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,23 +1,17 @@
-// Database connection - Node.js only
 import mysql from 'mysql2/promise';
-import type { Pool } from 'mysql2/promise';
+import type { Pool, PoolOptions } from 'mysql2/promise';
 import { performance } from 'perf_hooks';
 import { logger } from '../utils/logger.js';
 
-// Priority: Individual env vars (DB_HOST, etc.) take precedence for MySQL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const poolConfig: any = {
+const poolConfig: PoolOptions = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: parseInt(process.env.DB_PORT || '3306'),
   connectTimeout: 30000,
-  // Handle connection issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 };
 
-// Only use connection string if explicit variables are missing or if DATABASE_URL is specifically provided
 if (!process.env.DB_HOST && process.env.DATABASE_URL) {
   poolConfig.uri = process.env.DATABASE_URL;
 }
@@ -31,10 +25,7 @@ export const pool: Pool = mysql.createPool({
   keepAliveInitialDelay: 0,
 });
 
-// Minimal DB bootstrap so dev/prod don't fail hard if a table was missed during manual SQL setup.
-// Uses IF NOT EXISTS so it is safe to run repeatedly.
 export const ensureAuthTables = async () => {
-  // users.id is CHAR(36) in this project, so the FK column must match exactly.
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS user_refresh_tokens (
       id CHAR(36) NOT NULL,
@@ -69,25 +60,30 @@ const recordMetric = (label: string, durationMs: number) => {
   }
 };
 
+type SqlParam = string | number | bigint | boolean | Date | null;
+type SqlParamList = SqlParam[];
+
 export const query = async (sql: string, params?: unknown[]) => {
   let mysqlSql = sql;
-  const mysqlParams: unknown[] = [];
+  const mysqlParams: SqlParamList = [];
 
   if (params && params.length > 0) {
     let i = 1;
     while (mysqlSql.includes('$' + i)) {
       mysqlSql = mysqlSql.replace('$' + i, '?');
-      mysqlParams.push(params[i - 1]);
+      mysqlParams.push(normalizeParam(params[i - 1]));
       i++;
     }
   }
 
+  const finalParams: SqlParamList =
+    mysqlParams.length > 0 ? mysqlParams : (params as SqlParamList | undefined ?? []).map(normalizeParam);
   const started = performance.now();
-  const [results] = await pool.execute(mysqlSql as string, (mysqlParams.length > 0 ? mysqlParams : (params || [])) as any[]);
+  const [results] = await pool.execute(mysqlSql, finalParams);
   const duration = performance.now() - started;
   recordMetric('default', duration);
   if (duration > 200) {
-    logger.warn('slow-query', { sql: mysqlSql, params: mysqlParams, durationMs: duration });
+    logger.warn('slow-query', { sql: mysqlSql, params: finalParams, durationMs: duration });
   }
   return { rows: Array.isArray(results) ? (results as unknown[]) : [results] };
 };
@@ -104,7 +100,8 @@ export const getQueryMetrics = () =>
 
 export const timedExecute = async (label: string, sql: string, params?: unknown[]) => {
   const started = performance.now();
-  const [results] = await pool.execute(sql, params as any[]);
+  const finalParams: SqlParamList = (params ?? []).map(normalizeParam);
+  const [results] = await pool.execute(sql, finalParams);
   const duration = performance.now() - started;
   recordMetric(label, duration);
   if (duration > 200) {
@@ -112,3 +109,19 @@ export const timedExecute = async (label: string, sql: string, params?: unknown[
   }
   return results;
 };
+
+function normalizeParam(value: unknown): SqlParam {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint' || typeof value === 'boolean') {
+    return value;
+  }
+  if (value instanceof Date) return value;
+  if (typeof value === 'object' && value !== null && 'valueOf' in value) {
+    const primitive = (value as { valueOf: () => unknown }).valueOf();
+    if (primitive === null || primitive === undefined) return null;
+    if (typeof primitive === 'string' || typeof primitive === 'number' || typeof primitive === 'bigint' || typeof primitive === 'boolean') {
+      return primitive;
+    }
+  }
+  return String(value);
+}

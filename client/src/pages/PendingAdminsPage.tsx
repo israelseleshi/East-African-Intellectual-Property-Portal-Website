@@ -90,17 +90,17 @@ export default function PendingAdminsPage() {
   }
 
   return (
-    <div className="w-full max-w-[100vw] mx-auto p-4 md:p-8 space-y-6 min-h-screen bg-[#E8E8ED]">
+    <div className="w-full max-w-[100vw] mx-auto p-4 md:p-8 space-y-6 min-h-screen bg-[#F8F9FA]">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <Typography.h1a>Pending Administrators</Typography.h1a>
+          <Typography.h1a className="font-black">Pending Administrators</Typography.h1a>
           <Typography.muted className="hidden sm:block">
             Review and approve new administrator accounts.
           </Typography.muted>
         </div>
       </header>
 
-      <Card className="border shadow-sm">
+      <Card className="border-none shadow-premium rounded-3xl">
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative flex-1 md:w-[250px]">

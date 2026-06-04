@@ -103,19 +103,19 @@ export default function NewClientPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 bg-[#F8F9FA] text-foreground min-h-screen">
       <header className="flex items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigate('/clients')}
-            className="h-10 w-10 shrink-0 border-border hover:bg-muted"
+            className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all border-none"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={24} weight="bold" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">New Client</h1>
+            <h1 className="text-3xl font-black tracking-tight">New Client</h1>
             <p className="text-muted-foreground text-sm mt-1">Add a new individual or company to your client database.</p>
           </div>
         </div>
@@ -123,13 +123,17 @@ export default function NewClientPage() {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <Card className="border-border shadow-sm overflow-hidden bg-card">
-          <CardHeader className="bg-muted/30 border-b border-border pb-4">
-            <div className="flex items-center gap-2">
-              <Info size={20} className="text-primary" />
-              <CardTitle className="text-lg">Basic Information</CardTitle>
+        <Card className="border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white">
+          <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Info size={22} weight="duotone" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-black tracking-tight">Basic Information</CardTitle>
+                <CardDescription className="font-medium text-xs text-muted-foreground">Enter the legal name and entity type for this client.</CardDescription>
+              </div>
             </div>
-            <CardDescription>Enter the legal name and entity type for this client.</CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -239,11 +243,13 @@ export default function NewClientPage() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-border shadow-sm bg-card h-fit">
-            <CardHeader className="bg-muted/30 border-b border-border pb-4">
-              <div className="flex items-center gap-2">
-<Envelope size={20} className="text-primary" />
-              <CardTitle className="text-lg">Contact Details</CardTitle>
+          <Card className="border-none shadow-premium rounded-3xl bg-white h-fit">
+            <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <Envelope size={22} weight="duotone" />
+                </div>
+                <CardTitle className="text-lg font-black tracking-tight">Contact Details</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-5">
@@ -290,11 +296,13 @@ export default function NewClientPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border shadow-sm bg-card">
-            <CardHeader className="bg-muted/30 border-b border-border pb-4">
-              <div className="flex items-center gap-2">
-<MapPin size={20} className="text-primary" />
-              <CardTitle className="text-lg">Address Information</CardTitle>
+          <Card className="border-none shadow-premium rounded-3xl bg-white">
+            <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <MapPin size={22} weight="duotone" />
+                </div>
+                <CardTitle className="text-lg font-black tracking-tight">Address Information</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-6">

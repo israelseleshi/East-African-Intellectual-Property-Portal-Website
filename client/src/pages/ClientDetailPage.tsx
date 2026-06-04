@@ -180,14 +180,14 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
+    <div className="w-full mx-auto p-4 md:p-8 space-y-6 bg-[#F8F9FA] text-foreground min-h-screen">
       <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate('/clients')} className="h-10 w-10 shrink-0">
-            <ArrowLeft size={20} />
+          <Button variant="outline" size="icon" onClick={() => navigate('/clients')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
+            <ArrowLeft size={24} weight="bold" />
           </Button>
           <div>
-            <Typography.h2a>{isEditing ? 'Edit Client' : client.name}</Typography.h2a>
+            <Typography.h2a className="font-black">{isEditing ? 'Edit Client' : client.name}</Typography.h2a>
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="default">{CLIENT_TYPE_LABELS[client.type]}</Badge>
               {client.nationality && <Badge variant="outline">{client.nationality}</Badge>}
@@ -215,11 +215,13 @@ export default function ClientDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Identity Card */}
-        <Card className="border-border shadow-sm bg-card" data-tour="identity-card">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2">
-              <User size={20} className="text-primary" />
-              <CardTitle><Typography.h4>Identity & Type</Typography.h4></CardTitle>
+        <Card className="border-none shadow-premium rounded-3xl bg-white" data-tour="identity-card">
+          <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <User size={22} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Identity & Type</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
@@ -274,11 +276,13 @@ export default function ClientDetailPage() {
         </Card>
 
         {/* Contact Info */}
-        <Card className="border-border shadow-sm bg-card" data-tour="contact-card">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Envelope size={20} className="text-primary" />
-              <CardTitle><Typography.h4>Contact Information</Typography.h4></CardTitle>
+        <Card className="border-none shadow-premium rounded-3xl bg-white" data-tour="contact-card">
+          <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Envelope size={22} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Contact Information</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
@@ -311,11 +315,13 @@ export default function ClientDetailPage() {
         </Card>
 
         {/* Address Card */}
-        <Card className="border-border shadow-sm bg-card md:col-span-2" data-tour="address-card">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center gap-2">
-              <MapPin size={20} className="text-primary" />
-              <CardTitle><Typography.h4>Address & Location</Typography.h4></CardTitle>
+        <Card className="border-none shadow-premium rounded-[2.5rem] bg-white md:col-span-2" data-tour="address-card">
+          <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <MapPin size={22} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Address & Location</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -391,12 +397,16 @@ export default function ClientDetailPage() {
 
         {/* Associated Trademarks */}
         {!isEditing && client.trademarks && client.trademarks.length > 0 && (
-          <Card className="border-border shadow-sm bg-card md:col-span-2" data-tour="trademarks-card">
-            <CardHeader className="bg-muted/30 border-b border-border">
-              <div className="flex items-center gap-2">
-                <FileText size={20} className="text-primary" />
-                <CardTitle><Typography.h4>Associated Trademarks</Typography.h4></CardTitle>
-                <Typography.muted>Trademarks filed by this client</Typography.muted>
+          <Card className="border-none shadow-premium rounded-[2.5rem] bg-white md:col-span-2" data-tour="trademarks-card">
+            <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <FileText size={22} weight="duotone" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-black tracking-tight">Associated Trademarks</CardTitle>
+                  <CardDescription className="font-medium text-xs text-muted-foreground">Trademarks filed by this client</CardDescription>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">

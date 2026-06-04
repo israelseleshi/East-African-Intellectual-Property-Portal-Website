@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Typography } from '@/components/ui/typography';
 import { 
   FileText, 
   ClockClockwise, 
@@ -17,7 +18,8 @@ import {
   Archive,
   CloudArrowUp,
   Calendar,
-  Clock
+  Clock,
+  Briefcase
 } from '@phosphor-icons/react';
 import CaseStageTracker from '@/components/CaseStageTracker';
 import { trademarkService } from '@/utils/api';
@@ -26,6 +28,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { CaseNotesTab } from '@/components/CaseNotesTab';
 import { useApi } from '@/hooks/useApi';
 import { fillPdfForm } from '@/utils/pdfUtils';
+import { cn } from '@/lib/utils';
 import type { Jurisdiction, CaseFlowStage } from '@/shared/database';
 
 interface CaseHistoryEntry {
@@ -182,40 +185,64 @@ export default function CaseFlowPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
-      <header className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate('/trademarks')}>
-          <ArrowLeft size={20} />
+    <div className="space-y-8 p-10 max-w-7xl mx-auto animate-in fade-in duration-700">
+      <header className="flex items-center gap-6">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => navigate('/trademarks')}
+          className="rounded-full h-12 w-12 border-border shadow-sm hover:shadow-md transition-all hover:-translate-x-1"
+        >
+          <ArrowLeft size={22} weight="bold" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Case Lifecycle Management
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {caseData.mark_name} ({caseData.filing_number || 'Pending'})
-          </p>
+          <Typography.h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+            Case Lifecycle
+            <Badge variant="outline" className="ml-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest border-primary/20 bg-primary/5 text-primary">
+              Management
+            </Badge>
+          </Typography.h1>
+          <div className="flex items-center gap-2 mt-1.5">
+            <Typography.muted className="text-base font-medium">
+              {caseData.mark_name}
+            </Typography.muted>
+            <Separator orientation="vertical" className="h-3 mx-1" />
+            <span className="text-xs font-mono bg-muted/50 px-2 py-0.5 rounded text-muted-foreground">
+              {caseData.filing_number || 'REGISTRATION PENDING'}
+            </span>
+          </div>
         </div>
       </header>
 
-      <Card className="border-l-4 border-l-primary">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center bg-primary/10 text-primary">
-                <span className="text-xl font-bold">TM</span>
+      <Card className="border-none shadow-premium rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm group">
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
+        <CardContent className="p-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner transition-transform group-hover:scale-110 duration-500">
+                <Briefcase size={32} weight="duotone" />
               </div>
               <div>
-                <div className="text-base font-bold">
+                <Typography.h3 className="text-xl font-black tracking-tight">
                   {caseData.mark_name}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Client: {caseData.client_name} • Jurisdiction: {JURISDICTION_NAMES[caseData.jurisdiction] || caseData.jurisdiction}
+                </Typography.h3>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <User size={16} weight="duotone" className="text-primary" />
+                    {caseData.client_name}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <MapPin size={16} weight="duotone" className="text-primary" />
+                    {JURISDICTION_NAMES[caseData.jurisdiction] || caseData.jurisdiction}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs font-bold tracking-widest text-muted-foreground">Current status</div>
-              <div className="text-lg font-black text-primary">{currentStage.replace(/_/g, ' ')}</div>
+            <div className="w-full md:w-auto p-4 md:p-6 bg-muted/30 rounded-2xl border border-border/50 text-right">
+              <div className="text-[10px] font-black tracking-[0.2em] text-muted-foreground uppercase mb-1">Current Lifecycle Status</div>
+              <div className="text-2xl font-black text-primary drop-shadow-sm">
+                {currentStage.replace(/_/g, ' ')}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -230,60 +257,78 @@ export default function CaseFlowPage() {
         isEditable={true}
       />
 
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b border-border py-4">
+      <Card className="shadow-premium border-none rounded-3xl overflow-hidden bg-white">
+        <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-bold tracking-tight flex items-center gap-2">
-              <ClockClockwise size={20} className="text-primary" />
+            <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3">
+              <ClockClockwise size={24} weight="duotone" className="text-primary" />
               Lifecycle Audit Log
             </CardTitle>
-            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
-              {caseData.history?.length || 0} Entries
+            <Badge variant="secondary" className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider">
+              {caseData.history?.length || 0} Events Logged
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-[400px]">
-            <div className="p-6">
+          <ScrollArea className="h-[500px]">
+            <div className="p-10">
               {caseData.history && caseData.history.length > 0 ? (
                 <div className="relative space-y-0">
                   {/* Vertical Timeline line */}
-                  <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />
+                  <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-primary/20 via-border to-transparent" />
                   
                   {caseData.history.map((entry, index) => {
                     const date = new Date(entry.created_at);
                     const isNewest = index === 0;
                     
                     return (
-                      <div key={entry.id} className="relative pl-10 pb-8 group last:pb-0">
+                      <div key={entry.id} className="relative pl-14 pb-12 group last:pb-0">
                         {/* Timeline dot */}
-                        <div className={`absolute left-0 top-1 h-8 w-8 rounded-full border-4 flex items-center justify-center z-10 transition-colors
-                          ${isNewest ? 'bg-primary border-primary/20 text-white shadow-sm' : 'bg-background border-border text-muted-foreground'}
-                        `}>
-                          {entry.action.includes('FILE') ? <CloudArrowUp size={14} /> : 
-                           entry.action.includes('SUBMIT') ? <ShieldCheck size={14} /> :
-                           entry.action.includes('UPDATE') ? <FileText size={14} /> :
-                           <CheckCircle size={14} />}
+                        <div className={cn(
+                          "absolute left-0 top-1 h-10 w-10 rounded-xl border-4 flex items-center justify-center z-10 transition-all duration-500",
+                          isNewest 
+                            ? "bg-primary border-primary/20 text-white shadow-lg shadow-primary/30 scale-110" 
+                            : "bg-white border-border text-muted-foreground group-hover:border-primary/40 group-hover:text-primary"
+                        )}>
+                          {entry.action.includes('FILE') ? <CloudArrowUp size={18} weight="duotone" /> : 
+                           entry.action.includes('SUBMIT') ? <ShieldCheck size={18} weight="duotone" /> :
+                           entry.action.includes('UPDATE') ? <FileText size={18} weight="duotone" /> :
+                           <CheckCircle size={18} weight="duotone" />}
                         </div>
                         
-                        <div className={`p-4 rounded-xl border transition-all hover:shadow-md
-                          ${isNewest ? 'bg-primary/5 border-primary/20 bg-card shadow-sm' : 'bg-background border-border'}
-                        `}>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                            <h4 className={`text-sm font-bold uppercase tracking-tight ${isNewest ? 'text-primary' : 'text-foreground'}`}>
-                              {entry.action.replace(/_/g, ' ')}
-                            </h4>
-                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                              <Calendar size={12} />
-                              {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              <Separator orientation="vertical" className="h-2" />
-                              <Clock size={12} />
-                              {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        <div className={cn(
+                          "p-6 rounded-2xl border transition-all duration-300",
+                          isNewest 
+                            ? "bg-primary/5 border-primary/20 shadow-sm" 
+                            : "bg-white border-border/50 hover:border-primary/30 hover:shadow-md"
+                        )}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                            <div>
+                              <h4 className={cn(
+                                "text-sm font-black uppercase tracking-widest",
+                                isNewest ? "text-primary" : "text-foreground"
+                              )}>
+                                {entry.action.replace(/_/g, ' ')}
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-1 font-medium">
+                                Action recorded on systemic ledger
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 text-[11px] font-bold text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full border border-border/30 shadow-sm">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar size={14} weight="duotone" className="text-primary" />
+                                {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                              <Separator orientation="vertical" className="h-3" />
+                              <div className="flex items-center gap-1.5">
+                                <Clock size={14} weight="duotone" className="text-primary" />
+                                {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
                             </div>
                           </div>
                           
                           {entry.new_data && (
-                            <div className="mt-3 space-y-2">
+                            <div className="mt-4 pt-4 border-t border-border/50">
                               <div className="flex flex-wrap gap-2">
                                 {(() => {
                                   let data = entry.new_data;
@@ -300,16 +345,15 @@ export default function CaseFlowPage() {
                                   return Object.entries(data).map(([key, val]) => {
                                     if (!val || key === 'deadlines') return null;
                                     
-                                    // Handle nested objects if any (like from the stringified example)
                                     let displayVal = val;
                                     if (typeof val === 'object' && val !== null) {
                                       displayVal = JSON.stringify(val);
                                     }
 
                                     return (
-                                      <div key={key} className="flex items-center gap-1.5 bg-background border border-border px-2 py-1 rounded-md text-[11px]">
-                                        <span className="font-bold text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
-                                        <span className="font-medium truncate max-w-[200px]">{String(displayVal)}</span>
+                                      <div key={key} className="flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1.5 rounded-lg text-[11px] group/item transition-colors hover:bg-white hover:border-primary/20">
+                                        <span className="font-black text-muted-foreground uppercase tracking-tighter">{key.replace(/_/g, ' ')}:</span>
+                                        <span className="font-bold text-foreground truncate max-w-[250px]">{String(displayVal)}</span>
                                       </div>
                                     );
                                   });
@@ -323,9 +367,10 @@ export default function CaseFlowPage() {
                   })}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Archive size={48} className="text-muted-foreground/20 mb-4" />
-                  <p className="text-sm font-medium text-muted-foreground">No history recorded yet.</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/10 rounded-3xl border border-dashed border-border">
+                  <Archive size={64} weight="duotone" className="text-muted-foreground/20 mb-6" />
+                  <Typography.h3 className="text-muted-foreground">No history recorded yet</Typography.h3>
+                  <Typography.muted>The lifecycle of this case is currently in its initial phase.</Typography.muted>
                 </div>
               )}
             </div>
@@ -334,13 +379,14 @@ export default function CaseFlowPage() {
       </Card>
 
       {id && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-bold tracking-tight">
+        <Card className="shadow-premium border-none rounded-3xl overflow-hidden bg-white">
+          <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
+            <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3">
+              <FileText size={24} weight="duotone" className="text-primary" />
               Case Notes & Communications
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-8">
             <CaseNotesTab caseId={id} />
           </CardContent>
         </Card>

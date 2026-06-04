@@ -20,7 +20,21 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const ALLOWED_MIME_TYPES = /^image\/(png|jpe?g|webp|gif|svg\+xml)$/;
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FILES_PER_REQUEST = 1;
+
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE_BYTES, files: MAX_FILES_PER_REQUEST },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
+});
 
 const generateSchema = z.object({
   caseId: z.string().min(1),

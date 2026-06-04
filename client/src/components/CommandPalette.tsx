@@ -34,7 +34,7 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
       ])
       // Handle both direct array and paginated { data, meta } responses
       setClients(Array.isArray(clientsResult) ? clientsResult : (clientsResult?.data || []))
-      setTrademarks(Array.isArray(trademarksResult) ? trademarksResult : (trademarksResult?.data || []))
+      setTrademarks((Array.isArray(trademarksResult) ? trademarksResult : (trademarksResult?.rows || [])) as Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; jurisdiction?: string; client_name?: string; client?: { name?: string } }>)
     } catch (e) {
       console.error('Failed to load search data:', e)
     } finally {

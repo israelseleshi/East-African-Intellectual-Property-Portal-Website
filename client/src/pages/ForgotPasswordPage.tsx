@@ -150,7 +150,7 @@ export default function ForgotPasswordPage() {
         className="w-full max-w-md"
       >
         <motion.div variants={cardVariants}>
-          <Card className="w-full my-4 rounded-none shadow-lg">
+          <Card className="w-full my-4 rounded-3xl shadow-premium border-none">
             <motion.div 
               className="flex justify-center pt-6 pb-2"
               variants={itemVariants}
@@ -166,7 +166,7 @@ export default function ForgotPasswordPage() {
             
             <CardHeader className="space-y-1 text-center">
               <motion.div variants={itemVariants}>
-                <Typography.h1a>
+                <Typography.h1a className="font-black">
                   {step === 'success' ? 'Password Reset Complete' : 'Forgot Password'}
                 </Typography.h1a>
               </motion.div>

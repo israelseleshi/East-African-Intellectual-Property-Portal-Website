@@ -226,7 +226,7 @@ export default function VerifyOtpPage() {
         className="w-full max-w-md"
       >
         <motion.div variants={cardVariants}>
-          <Card className="w-full my-4 rounded-none shadow-lg">
+          <Card className="w-full my-4 rounded-3xl shadow-premium border-none">
             <motion.div 
               className="flex justify-center pt-6 pb-2"
               variants={itemVariants}
@@ -250,7 +250,7 @@ export default function VerifyOtpPage() {
                 />
               </motion.div>
               <motion.div variants={itemVariants}>
-                <Typography.h1a>Verify your email</Typography.h1a>
+                <Typography.h1a className="font-black">Verify your email</Typography.h1a>
               </motion.div>
               <motion.div variants={itemVariants}>
                 <Typography.muted>

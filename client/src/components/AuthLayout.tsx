@@ -22,7 +22,7 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   useLayoutEffect(() => {
     document.documentElement.classList.remove('dark')
-    document.documentElement.style.setProperty('--auth-page-bg', '#E8E8ED')
+    document.documentElement.style.setProperty('--auth-page-bg', '#F8F9FA')
     document.documentElement.style.setProperty('--auth-form-bg', '#FFFFFF')
   }, [])
 

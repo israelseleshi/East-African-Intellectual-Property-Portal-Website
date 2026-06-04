@@ -28,7 +28,7 @@ import {
   ShareFat
 } from '@phosphor-icons/react'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -549,29 +549,29 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="w-full p-4 md:p-8 space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
-        <header className="flex items-center justify-between mb-8">
+      <div className="w-full p-4 md:p-10 space-y-8 bg-[#F8F9FA] text-foreground min-h-screen">
+        <header className="flex items-center justify-between">
+          <Skeleton className="h-12 w-64" />
           <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-40" />
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <Card key={i}>
-              <CardContent className="p-6 space-y-4">
+            <Card key={i} className="border-none shadow-premium rounded-2xl">
+              <CardContent className="p-8 space-y-4">
                 <Skeleton className="h-12 w-12 rounded-xl" />
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-10 w-48" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <Skeleton className="h-6 w-48" />
+        <Card className="border-none shadow-premium rounded-3xl">
+          <CardContent className="p-10 space-y-6">
+            <Skeleton className="h-8 w-64" />
             {[1, 2, 3, 4, 5].map(i => (
-              <Skeleton key={i} className="h-16 w-full" />
+              <Skeleton key={i} className="h-16 w-full rounded-xl" />
             ))}
           </CardContent>
         </Card>
@@ -580,11 +580,11 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
+    <div className="w-full space-y-8 bg-[#F8F9FA] text-foreground min-h-screen pb-12">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-10 pt-4 md:pt-10">
         <div className="space-y-2">
-          <Typography.h1a>Billing & Ledger</Typography.h1a>
-          <Typography.muted>Professional invoicing and financial fee management.</Typography.muted>
+          <Typography.h1 className="tracking-tight font-bold">Billing & Financials</Typography.h1>
+          <Typography.p className="text-muted-foreground text-lg font-medium opacity-80">Professional invoicing and regional fee management system.</Typography.p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {selectedIds.size > 0 && (
@@ -593,9 +593,9 @@ export default function BillingPage() {
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={isDeleting}
                 variant="destructive"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
               >
-                <Trash size={16} />
+                <Trash size={20} weight="bold" />
                 <span>Delete {selectedIds.size}</span>
               </Button>
             </div>
@@ -603,563 +603,621 @@ export default function BillingPage() {
           <Button
             onClick={handleExportExcel}
             variant="outline"
-            className="flex items-center gap-2 bg-white"
+            className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold"
           >
-            <FileArrowDown size={16} />
-            <span>Export Excel</span>
+            <FileArrowDown size={20} className="mr-2" />
+            <span>Export CSV Report</span>
           </Button>
           <Button
             onClick={() => setIsCreateInvoiceModalOpen(true)}
-            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
           >
-            <Plus size={16} weight="bold" />
-            Create Invoice
+            <Plus size={20} weight="bold" className="mr-2" />
+            Generate New Invoice
           </Button>
         </div>
       </header>
 
-      <div className="mx-4 md:mx-8 pb-8 space-y-8">
+      <div className="mx-4 md:px-10 space-y-10">
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-primary to-blue-800 text-white">
-            <CardContent className="p-6 relative">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Receipt size={100} weight="duotone" />
+        <div className="grid gap-8 md:grid-cols-3">
+          <Card className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-[#1A1A1A] to-[#404040] text-white rounded-3xl transform hover:scale-[1.02] transition-all duration-300">
+            <CardContent className="p-8 relative">
+              <div className="absolute -top-6 -right-6 p-4 opacity-5 rotate-12">
+                <Receipt size={160} weight="duotone" />
               </div>
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                  <CurrencyDollar size={24} weight="bold" />
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-inner">
+                  <CurrencyDollar size={28} weight="bold" className="text-primary" />
                 </div>
-                <CreditCard size={24} weight="fill" className="opacity-50" />
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold tracking-widest uppercase">Overview</div>
               </div>
-              <div className="text-sm text-white/70 relative z-10">Total Revenue</div>
-              <div className="text-3xl font-bold leading-none mt-1 relative z-10">{formatAmount(stats.totalRevenue)}</div>
-              <div className="mt-4 flex items-center gap-2 text-sm font-medium relative z-10">
-                <ChartLineUp size={16} />
-                <span>All time revenue</span>
+              <div className="text-sm font-bold text-white/50 tracking-wider uppercase mb-2 relative z-10">Total Revenue</div>
+              <div className="text-4xl font-black tracking-tighter relative z-10">{formatAmount(stats.totalRevenue)}</div>
+              <div className="mt-6 flex items-center gap-2 text-xs font-bold text-white relative z-10">
+                <ChartLineUp size={18} weight="bold" />
+                <span className="tracking-wide">ALL TIME PERFORMANCE</span>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-[#F59E0B] to-[#D97706] text-white rounded-3xl cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
             onClick={() => setFilters(prev => ({ 
               ...prev, 
               status: (prev.status === 'OVERDUE') ? '__all__' : 'OVERDUE' 
             }))}
           >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                  <WarningCircle size={24} weight="bold" />
+            <CardContent className="p-8 relative">
+              <div className="absolute -top-6 -right-6 p-4 opacity-10 rotate-12">
+                <WarningCircle size={160} weight="duotone" />
+              </div>
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-inner">
+                  <WarningCircle size={28} weight="bold" />
+                </div>
+                <div className={`px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-bold tracking-widest uppercase ${filters.status === 'OVERDUE' ? 'bg-white text-orange-600' : ''}`}>
+                  {filters.status === 'OVERDUE' ? 'Filtered' : 'Priority'}
                 </div>
               </div>
-              <div className="text-sm text-white/70">Outstanding</div>
-              <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.outstanding)}</div>
-              <div className="mt-4 flex items-center gap-2 text-sm font-medium">
-                <Clock size={16} />
-                <span>{stats.overdueCount} overdue</span>
+              <div className="text-sm font-bold text-white/60 tracking-wider uppercase mb-2 relative z-10">Outstanding</div>
+              <div className="text-4xl font-black tracking-tighter relative z-10">{formatAmount(stats.outstanding)}</div>
+              <div className="mt-6 flex items-center gap-2 text-xs font-bold relative z-10">
+                <Clock size={18} weight="bold" />
+                <span className="tracking-wide">{stats.overdueCount} INVOICES OVERDUE</span>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-700 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-[#10B981] to-[#059669] text-white rounded-3xl cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
             onClick={() => setFilters(prev => ({ 
               ...prev, 
               status: (prev.status === 'PAID') ? '__all__' : 'PAID' 
             }))}
           >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                  <ArrowUpRight size={24} weight="bold" />
-                </div>
-                <ChartLineUp size={24} weight="fill" className="opacity-50" />
+            <CardContent className="p-8 relative">
+              <div className="absolute -top-6 -right-6 p-4 opacity-10 rotate-12">
+                <CheckCircle size={160} weight="duotone" />
               </div>
-              <div className="text-sm text-white/70">Paid (MTD)</div>
-              <div className="text-3xl font-bold leading-none mt-1">{formatAmount(stats.paidMtd)}</div>
-              <div className="mt-4 flex items-center gap-2 text-sm font-medium">
-                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">Active</span>
-                <span>Across {stats.clientCount} clients</span>
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-inner">
+                  <ArrowUpRight size={28} weight="bold" />
+                </div>
+                <div className={`px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-bold tracking-widest uppercase ${filters.status === 'PAID' ? 'bg-white text-emerald-600' : ''}`}>
+                  Current Month
+                </div>
+              </div>
+              <div className="text-sm font-bold text-white/60 tracking-wider uppercase mb-2 relative z-10">Paid (MTD)</div>
+              <div className="text-4xl font-black tracking-tighter relative z-10">{formatAmount(stats.paidMtd)}</div>
+              <div className="mt-6 flex items-center gap-2 text-xs font-bold relative z-10">
+                <span className="bg-white/20 px-3 py-1 rounded-full tracking-widest uppercase shadow-sm">Active Records</span>
+                <span className="tracking-wide">{stats.clientCount} CLIENTS PAID</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-lg">Transaction History</CardTitle>
+        {/* Filters and Search Bar */}
+        <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl border-none shadow-premium space-y-6">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <CardTitle className="text-xl font-bold mr-4">Transaction Ledger</CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
                 {filters.status !== '__all__' && (
-                  <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
-                    Status: {filters.status} <X size={12} className="ml-1" />
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
+                    Status: {filters.status} <X size={14} weight="bold" />
                   </Badge>
                 )}
                 {filters.client !== '__all__' && (
-                  <Badge variant="outline" className="bg-orange-500 text-white hover:bg-orange-600 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, client: '__all__' }))}>
-                    {clients.find(c => c.id === filters.client)?.name || 'Client'} <X size={12} className="ml-1" />
+                  <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, client: '__all__' }))}>
+                    Client: {clients.find(c => c.id === filters.client)?.name || 'Filtered'} <X size={14} weight="bold" />
                   </Badge>
                 )}
                 {filters.trademark !== '__all__' && (
-                  <Badge variant="outline" className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, trademark: '__all__' }))}>
-                    {filters.trademark} <X size={12} className="ml-1" />
+                  <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, trademark: '__all__' }))}>
+                    Record: {filters.trademark} <X size={14} weight="bold" />
                   </Badge>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Date Range */}
-                <DateRangePicker
-                  fromDate={filters.dateFrom}
-                  toDate={filters.dateTo}
-                  onDateChange={(from, to) => setFilters(prev => ({ ...prev, dateFrom: from, dateTo: to }))}
-                  placeholder="Select date range"
-                  className="w-[240px] bg-[#E8E8ED]"
-                />
-                {/* Client Filter */}
-                <Select value={filters.client} onValueChange={(val) => setFilters(prev => ({ ...prev, client: val }))}>
-                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]">
-                    <SelectValue placeholder="All Clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All Clients</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Trademark Filter */}
-                <Select value={filters.trademark} onValueChange={(val) => setFilters(prev => ({ ...prev, trademark: val }))}>
-                  <SelectTrigger className="w-[180px] bg-[#E8E8ED]">
-                    <SelectValue placeholder="All Trademarks" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All Trademarks</SelectItem>
-                    {trademarks.map((tm) => (
-                      <SelectItem key={tm} value={tm}>{tm}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Status Filter */}
-                <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
-                  <SelectTrigger className="w-[140px] bg-[#E8E8ED]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All Status</SelectItem>
-                    <SelectItem value="PAID">Paid</SelectItem>
-                    <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
-                    <SelectItem value="OVERDUE">Overdue</SelectItem>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm" onClick={resetFilters}>
-                  <X size={14} /> Clear
-                </Button>
-                <div className="flex items-center bg-muted/50 p-1 rounded-lg border ml-2">
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
-                    title="Table View"
-                  >
-                    <List size={18} weight={viewMode === 'table' ? 'fill' : 'regular'} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-[#E8E8ED] shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-[#E8E8ED]/50'}`}
-                    title="Grid View"
-                  >
-                    <SquaresFour size={18} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
-                  </button>
-                </div>
-              </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {filteredTransactions.length === 0 ? (
-              <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
-                <div className="h-16 w-16 bg-muted flex items-center justify-center rounded-2xl">
-                  <Receipt size={32} className="text-muted-foreground opacity-50" />
-                </div>
-                <div>
-                  <Typography.h3a>No transactions found</Typography.h3a>
-                <Typography.muted>Your ledger will appear here once invoices are generated.</Typography.muted>
-                </div>
+
+            <div className="flex items-center bg-[#F8F9FA] p-1.5 rounded-xl border-none shadow-inner self-end xl:self-auto">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Table View"
+              >
+                <List size={22} weight={viewMode === 'table' ? 'fill' : 'regular'} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Grid View"
+              >
+                <SquaresFour size={22} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <DateRangePicker
+              fromDate={filters.dateFrom}
+              toDate={filters.dateTo}
+              onDateChange={(from, to) => setFilters(prev => ({ ...prev, dateFrom: from, dateTo: to }))}
+              placeholder="Filter by date range"
+              className="bg-[#F8F9FA] border-none h-12 rounded-xl text-sm font-medium"
+            />
+            
+            <Select value={filters.client} onValueChange={(val) => setFilters(prev => ({ ...prev, client: val }))}>
+              <SelectTrigger className="h-12 bg-[#F8F9FA] border-none rounded-xl font-medium focus:ring-primary/20">
+                <SelectValue placeholder="All Clients" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-none shadow-xl">
+                <SelectItem value="__all__">All Clients</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filters.trademark} onValueChange={(val) => setFilters(prev => ({ ...prev, trademark: val }))}>
+              <SelectTrigger className="h-12 bg-[#F8F9FA] border-none rounded-xl font-medium focus:ring-primary/20">
+                <SelectValue placeholder="All Trademarks" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-none shadow-xl">
+                <SelectItem value="__all__">All Trademarks</SelectItem>
+                {trademarks.map((tm) => (
+                  <SelectItem key={tm} value={tm}>{tm}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
+              <SelectTrigger className="h-12 bg-[#F8F9FA] border-none rounded-xl font-medium focus:ring-primary/20">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-none shadow-xl">
+                <SelectItem value="__all__">All Status</SelectItem>
+                <SelectItem value="PAID">Fully Paid</SelectItem>
+                <SelectItem value="PARTIALLY_PAID">Partial Payment</SelectItem>
+                <SelectItem value="OVERDUE">Overdue Invoices</SelectItem>
+                <SelectItem value="DRAFT">Draft Mode</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" className="h-12 bg-white border-none shadow-sm hover:shadow-md transition-all rounded-xl font-bold flex items-center gap-2" onClick={resetFilters}>
+              <X size={18} weight="bold" /> Reset
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          {filteredTransactions.length === 0 ? (
+            <Card className="flex flex-col items-center justify-center py-32 text-center border-none shadow-premium rounded-3xl bg-white">
+              <div className="p-6 rounded-full bg-primary/5 mb-6">
+                <Receipt size={64} weight="duotone" className="text-primary/40" />
               </div>
-            ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                {paginatedTransactions.map((tx) => {
-                  const isSelected = selectedIds.has(tx.id)
-                  return (
-                    <Card 
-                      key={tx.id} 
-                      className={`cursor-pointer transition-all hover:shadow-md group ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
-                      onClick={() => navigate(`/billing/${tx.id}`)}
-                    >
-                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                          <InvoiceSharePopover row={tx} />
-                        </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}
-                          className={`p-1 rounded-md bg-[#E8E8ED]/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
-                        >
-                          {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
-                        </button>
+              <Typography.h3 className="mb-2 font-bold">No transactions found</Typography.h3>
+              <Typography.p className="max-w-md mx-auto text-muted-foreground text-lg">
+                Your financial ledger will appear here once invoices are generated or recorded.
+              </Typography.p>
+              <Button onClick={() => setIsCreateInvoiceModalOpen(true)} className="mt-8 h-12 px-8 rounded-xl shadow-lg">
+                <Plus className="mr-2" size={20} weight="bold" /> Create First Invoice
+              </Button>
+            </Card>
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {paginatedTransactions.map((tx) => {
+                const isSelected = selectedIds.has(tx.id)
+                return (
+                  <Card 
+                    key={tx.id} 
+                    className={`group relative flex flex-col cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 rounded-3xl overflow-hidden border-none ${isSelected ? 'ring-2 ring-primary bg-primary/5 shadow-xl' : 'bg-white shadow-premium'}`}
+                    onClick={() => navigate(`/billing/${tx.id}`)}
+                  >
+                    <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                      <div className="opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100" onClick={e => e.stopPropagation()}>
+                        <InvoiceSharePopover row={tx} />
                       </div>
-                      <CardContent className="p-4 pt-6">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className={`p-2 rounded-lg ${tx.status === 'PAID' ? 'bg-green-100 text-green-700' : tx.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                            <Receipt size={20} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">{tx.invoiceNumber || tx.id}</h3>
-                            <p className="text-sm text-muted-foreground">{tx.clientName}</p>
-                          </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}
+                        className={`p-1.5 rounded-xl bg-white/90 backdrop-blur-sm transition-all shadow-sm ${isSelected ? 'opacity-100 text-primary scale-110' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:scale-110'}`}
+                      >
+                        {isSelected ? <CheckSquare size={24} weight="fill" /> : <Square size={24} />}
+                      </button>
+                    </div>
+
+                    <CardContent className="p-8 pt-10">
+                      <div className="flex items-start gap-4 mb-6">
+                        <div className={`p-4 rounded-2xl transition-all duration-300 ${tx.status === 'PAID' ? 'bg-emerald-50 text-emerald-600' : tx.status === 'OVERDUE' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'} group-hover:shadow-md`}>
+                          <Receipt size={28} weight="duotone" />
                         </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Trademark</span>
-                            <span className="font-medium truncate ml-2">{tx.markName || '—'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Amount</span>
-                            <span className="font-bold">{formatAmount(tx.amount, tx.currency)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Status</span>
-                            <Badge 
-                              variant={tx.status === 'PAID' ? 'default' : tx.status === 'OVERDUE' ? 'destructive' : 'outline'}
-                              className={tx.status === 'PAID' ? 'bg-green-500' : ''}
-                            >
-                              {tx.status}
-                            </Badge>
-                          </div>
+                        <div className="flex-1 min-w-0 pt-1">
+                          <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors">{tx.invoiceNumber || tx.id}</h3>
+                          <p className="text-sm font-medium text-muted-foreground">{tx.clientName}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            ) : (
+                      </div>
+
+                      <div className="space-y-4 pt-6 border-t border-[#F8F9FA]">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium text-muted-foreground">Trademark Record</span>
+                          <span className="font-bold text-[#1A1A1A] truncate max-w-[150px]">{tx.markName || '—'}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium text-muted-foreground">Issue Date</span>
+                          <span className="font-bold text-[#1A1A1A]">{tx.date}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="text-sm font-medium text-muted-foreground">Total Amount</span>
+                          <span className="text-xl font-black text-primary tracking-tighter">{formatAmount(tx.amount, tx.currency)}</span>
+                        </div>
+                        <div className="pt-2 flex justify-between items-center">
+                          <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Current Status</span>
+                          <Badge 
+                            variant="secondary"
+                            className={`font-bold tracking-wider uppercase text-[10px] px-3 py-1 rounded-full border-none shadow-sm ${
+                              tx.status === 'PAID' ? 'bg-emerald-500 text-white' : 
+                              tx.status === 'OVERDUE' ? 'bg-orange-500 text-white' : 
+                              'bg-blue-500 text-white'
+                            }`}
+                          >
+                            {tx.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          ) : (
+            <Card className="overflow-hidden border-none shadow-premium rounded-3xl bg-white">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-muted/50 border-b">
+                <table className="w-full text-left">
+                  <thead className="text-[11px] uppercase tracking-widest bg-[#F8F9FA] text-muted-foreground font-bold border-none">
                     <tr>
-                      <th className="px-4 py-3 w-12">
-                        <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground">
+                      <th className="px-8 py-5 w-16">
+                        <button onClick={toggleSelectAll} className="hover:text-primary transition-colors">
                           {selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0 ? (
-                            <CheckSquare size={18} weight="fill" className="text-primary" />
+                            <CheckSquare size={22} weight="fill" className="text-primary" />
                           ) : (
-                            <Square size={18} />
+                            <Square size={22} />
                           )}
                         </button>
                       </th>
-                      <th className="px-6 py-3 font-semibold">Client</th>
-                      <th className="px-6 py-3 font-semibold">Trademark</th>
-                      <th className="px-6 py-3 font-semibold">Type</th>
-                      <th className="px-6 py-3 font-semibold">Date</th>
-                      <th className="px-6 py-3 font-semibold">Amount</th>
-                      <th className="px-6 py-3 font-semibold">Status</th>
-                      <th className="px-6 py-3 font-semibold text-center">Actions</th>
+                      <th className="px-6 py-5">Client & Case</th>
+                      <th className="px-6 py-5">Financial Details</th>
+                      <th className="px-6 py-5">Date & Timeline</th>
+                      <th className="px-6 py-5">Status</th>
+                      <th className="px-6 py-5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-[#F8F9FA]">
                     {paginatedTransactions.map((tx) => {
                       const isSelected = selectedIds.has(tx.id)
                       return (
                         <tr
                           key={tx.id}
-                          className={`group hover:bg-muted/50 cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
+                          className={`group cursor-pointer transition-all hover:bg-[#F8F9FA] ${isSelected ? 'bg-primary/5' : 'bg-white'}`}
                           onClick={() => navigate(`/billing/${tx.id}`)}
                         >
-                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => toggleSelect(tx.id)} className="text-muted-foreground hover:text-foreground">
-                              {isSelected ? <CheckSquare size={18} weight="fill" className="text-primary" /> : <Square size={18} />}
+                          <td className="px-8 py-6" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => toggleSelect(tx.id)} className="text-muted-foreground hover:text-primary transition-colors">
+                              {isSelected ? <CheckSquare size={22} weight="fill" className="text-primary" /> : <Square size={22} />}
                             </button>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="font-medium">{tx.clientName || 'Client'}</div>
+                          <td className="px-6 py-6">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-base text-[#1A1A1A] group-hover:text-primary transition-colors">{tx.clientName || 'Private Client'}</span>
+                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{tx.markName || 'NO TRADEMARK LINKED'}</span>
+                            </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="font-medium">{tx.markName || '—'}</div>
+                          <td className="px-6 py-6">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-black text-lg text-primary tracking-tighter">{formatAmount(tx.amount, tx.currency)}</span>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{tx.invoiceNumber || 'Manual Entry'}</span>
+                            </div>
                           </td>
-                          <td className="px-6 py-4 font-medium">{tx.type}</td>
-                          <td className="px-6 py-4 text-muted-foreground">{tx.date}</td>
-                          <td className="px-6 py-4 font-bold">{formatAmount(tx.amount, tx.currency)}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-6">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-sm text-[#4A4A4A]">{tx.date}</span>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{tx.type}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
                             <Badge 
-                            variant={
-                              tx.status === 'PAID' ? 'default' : 
-                              tx.status === 'PARTIALLY_PAID' ? 'secondary' :
-                              tx.status === 'OVERDUE' ? 'destructive' : 'outline'
-                            }
-                            className={`font-medium ${
-                              tx.status === 'PAID' ? 'bg-green-500 hover:bg-green-600' :
-                              tx.status === 'PARTIALLY_PAID' ? 'bg-blue-500 hover:bg-blue-600' :
-                              tx.status === 'OVERDUE' ? 'bg-red-500 hover:bg-red-600' :
-                              'bg-gray-500 hover:bg-gray-600'
-                            }`}
-                          >
-                            {tx.status === 'PARTIALLY_PAID' ? 'Partially Paid' : tx.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-1">
-                            {tx.status !== 'PAID' && (
+                              variant="secondary"
+                              className={`font-bold tracking-wider uppercase text-[10px] px-3 py-1 rounded-full border-none shadow-sm ${
+                                tx.status === 'PAID' ? 'bg-emerald-500 text-white' : 
+                                tx.status === 'PARTIALLY_PAID' ? 'bg-blue-400 text-white' :
+                                tx.status === 'OVERDUE' ? 'bg-orange-500 text-white' : 
+                                'bg-slate-400 text-white'
+                              }`}
+                            >
+                              {tx.status === 'PARTIALLY_PAID' ? 'Partial' : tx.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-6" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-2">
+                              {tx.status !== 'PAID' && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-10 w-10 rounded-xl text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedInvoice(tx)
+                                    setPaymentData(prev => ({ ...prev, amount: tx.amount.toString() }))
+                                    setIsPaymentModalOpen(true)
+                                  }}
+                                  title="Record Payment"
+                                >
+                                  <CheckCircle size={22} weight="bold" />
+                                </Button>
+                              )}
+                              <InvoiceSharePopover row={tx} />
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                className="h-10 w-10 rounded-xl text-primary hover:bg-primary/5 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setSelectedInvoice(tx)
-                                  setPaymentData(prev => ({ ...prev, amount: tx.amount.toString() }))
-                                  setIsPaymentModalOpen(true)
+                                  handleDownload(tx)
                                 }}
-                                title="Record Payment"
+                                title="Download PDF"
                               >
-                                <CheckCircle size={16} />
+                                <Download size={22} weight="bold" />
                               </Button>
-                            )}
-                            <div onClick={e => e.stopPropagation()}>
-                              <InvoiceSharePopover row={tx} />
                             </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDownload(tx)
-                              }}
-                              title="Download PDF"
-                            >
-                              <Download size={16} />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    )})}
+                          </td>
+                        </tr>
+                      )})}
                   </tbody>
                 </table>
               </div>
-            )}
-            
-            {filteredTransactions.length > 0 && (
-              <div className="flex items-center justify-between border-t px-6 py-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of{' '}
-                  <span className="font-medium">{filteredTransactions.length}</span>
+            </Card>
+          )}
+          
+          {filteredTransactions.length > 0 && (
+            <div className="flex flex-col md:flex-row items-center justify-between mt-10 gap-6">
+              <p className="text-sm font-semibold text-muted-foreground order-2 md:order-1">
+                Showing <span className="text-foreground">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-foreground">{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> of <span className="text-foreground">{filteredTransactions.length}</span> invoices
+              </p>
+              <div className="flex items-center gap-2 order-1 md:order-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
+                >
+                  <CaretLeft size={20} weight="bold" className="mr-2" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1.5 px-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? 'default' : 'ghost'}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-11 w-11 p-0 rounded-xl font-bold transition-all ${currentPage === page ? 'shadow-lg shadow-primary/20 scale-110' : 'hover:bg-white hover:shadow-premium'}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <CaretLeft size={16} />
-                  </Button>
-                  <span className="text-sm px-2">
-                    Page <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <CaretRight size={16} />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
+                >
+                  Next
+                  <CaretRight size={20} weight="bold" className="ml-2" />
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
 
         {/* Payment Recording Modal */}
         <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Bank size={20} className="text-primary" />
-                Record Payment
-              </DialogTitle>
+          <DialogContent className="max-w-md border-none shadow-2xl rounded-[2.5rem] p-0 overflow-hidden bg-white/95 backdrop-blur-xl">
+            <DialogHeader className="p-10 border-b border-border/50 bg-emerald-50/30">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+                  <Bank size={32} weight="duotone" />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-black tracking-tight uppercase">Deposit Protocol</DialogTitle>
+                  <DialogDescription className="font-medium text-emerald-600/80">RECORD SYSTEMIC SETTLEMENT</DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Amount Received</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">$</span>
+            <div className="p-10 space-y-8">
+              <div className="space-y-3">
+                <Label className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Settlement Amount</Label>
+                <div className="relative group">
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black text-2xl group-focus-within:scale-110 transition-transform">$</span>
                   <Input 
                     type="number"
                     value={paymentData.amount}
                     onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                    className="pl-8"
+                    className="pl-12 h-16 bg-[#F8F9FA] border-none rounded-2xl text-2xl font-black focus-visible:ring-4 focus-visible:ring-primary/5 transition-all shadow-inner"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Payment Date</Label>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Execution Date</Label>
                   <DatePicker 
                     date={paymentData.paymentDate ? new Date(paymentData.paymentDate) : undefined}
                     onDateChange={(date) => setPaymentData({...paymentData, paymentDate: date ? date.toISOString().split('T')[0] : ''})}
-                    placeholder="Select payment date"
+                    placeholder="Select date"
+                    className="h-14 bg-[#F8F9FA] border-none rounded-xl font-bold"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Method</Label>
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Channel</Label>
                   <Select 
                     value={paymentData.paymentMethod}
                     onValueChange={(val) => setPaymentData({...paymentData, paymentMethod: val})}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
-                      <SelectItem value="CASH">Cash</SelectItem>
-                      <SelectItem value="CHECK">Check</SelectItem>
-                      <SelectItem value="MOBILE_MONEY">Mobile Money</SelectItem>
+                    <SelectTrigger className="h-14 bg-[#F8F9FA] border-none rounded-xl font-bold shadow-inner"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl border-none shadow-2xl">
+                      <SelectItem value="BANK_TRANSFER" className="font-bold">Bank Transfer</SelectItem>
+                      <SelectItem value="CASH" className="font-bold">Cash Payment</SelectItem>
+                      <SelectItem value="CHECK" className="font-bold">Certified Check</SelectItem>
+                      <SelectItem value="MOBILE_MONEY" className="font-bold">Mobile Money</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Reference Number</Label>
+              <div className="space-y-3">
+                <Label className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Reference Vector</Label>
                 <Input 
                   value={paymentData.referenceNumber}
                   onChange={(e) => setPaymentData({...paymentData, referenceNumber: e.target.value})}
-                  placeholder="Receipt # or Bank Ref"
+                  placeholder="Receipt # or Bank Confirmation"
+                  className="h-14 bg-[#F8F9FA] border-none rounded-xl font-bold shadow-inner"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Notes</Label>
+              <div className="space-y-3">
+                <Label className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Systemic Notes</Label>
                 <Textarea 
                   value={paymentData.notes}
                   onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                  className="bg-[#F8F9FA] border-none rounded-2xl min-h-[120px] resize-none p-5 font-medium shadow-inner"
+                  placeholder="Input additional transaction metadata..."
                 />
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleRecordPayment}>Post Payment</Button>
+            <DialogFooter className="p-10 border-t border-border/50 bg-muted/20 gap-3">
+              <Button variant="ghost" onClick={() => setIsPaymentModalOpen(false)} className="h-14 rounded-2xl font-bold px-8">Discard</Button>
+              <Button onClick={handleRecordPayment} className="h-14 px-10 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-primary/20 bg-primary text-white hover:bg-primary/90 transition-all">Execute Settlement</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Create Invoice Modal */}
         <Dialog open={isCreateInvoiceModalOpen} onOpenChange={setIsCreateInvoiceModalOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileArrowDown size={20} className="text-primary" />
-                Create New Invoice
-              </DialogTitle>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto border-none shadow-2xl rounded-[3rem] p-0 bg-white/95 backdrop-blur-xl scrollbar-hide">
+            <DialogHeader className="p-12 border-b border-border/50 bg-primary/5">
+              <div className="flex items-center gap-6">
+                <div className="h-16 w-16 rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                  <FileArrowDown size={36} weight="duotone" />
+                </div>
+                <div>
+                  <DialogTitle className="text-3xl font-black tracking-tighter uppercase">Invoicing Protocol</DialogTitle>
+                  <DialogDescription className="text-lg font-medium text-primary/60">GENERATE SYSTEMIC BILLING ARTIFACT</DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             
-            <div className="space-y-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Client *</Label>
+            <div className="p-12 space-y-12">
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 ml-1">Entity Selection *</Label>
                   <Select 
                     value={newInvoice.clientId}
                     onValueChange={(val) => setNewInvoice({...newInvoice, clientId: val})}
                   >
-                    <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="h-16 bg-[#F8F9FA] border-none rounded-[1.5rem] font-black text-lg px-8 shadow-inner focus:ring-4 focus:ring-primary/5 transition-all"><SelectValue placeholder="Select a client" /></SelectTrigger>
+                    <SelectContent className="rounded-[1.5rem] border-none shadow-2xl p-2">
                       {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                        <SelectItem key={client.id} value={client.id} className="py-4 rounded-xl font-bold">{client.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Currency</Label>
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 ml-1">Currency Matrix</Label>
                   <Select 
                     value={newInvoice.currency}
                     onValueChange={(val) => setNewInvoice({...newInvoice, currency: val})}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD">USD - US Dollars</SelectItem>
-                      <SelectItem value="ETB">ETB - Ethiopian Birr</SelectItem>
-                      <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                    <SelectTrigger className="h-16 bg-[#F8F9FA] border-none rounded-[1.5rem] font-black text-lg px-8 shadow-inner focus:ring-4 focus:ring-primary/5 transition-all"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-[1.5rem] border-none shadow-2xl p-2">
+                      <SelectItem value="USD" className="py-4 rounded-xl font-bold">USD - US Dollars</SelectItem>
+                      <SelectItem value="ETB" className="py-4 rounded-xl font-bold">ETB - Ethiopian Birr</SelectItem>
+                      <SelectItem value="KES" className="py-4 rounded-xl font-bold">KES - Kenyan Shilling</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 ml-1">Settlement Deadline</Label>
                   <DatePicker 
                     date={newInvoice.dueDate ? new Date(newInvoice.dueDate) : undefined}
                     onDateChange={(date) => setNewInvoice({...newInvoice, dueDate: date ? date.toISOString().split('T')[0] : ''})}
                     placeholder="Select due date"
                     allowFuture={true}
+                    className="h-16 bg-[#F8F9FA] border-none rounded-[1.5rem] px-8 font-bold shadow-inner"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Total Amount</Label>
-                  <div className="h-10 px-3 flex items-center bg-muted rounded-md border font-bold">
-                    {newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}
+                <div className="space-y-3">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 ml-1">Aggregate Total</Label>
+                  <div className="h-16 px-8 flex items-center bg-primary text-white rounded-[1.5rem] font-black text-3xl tracking-tighter shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">
+                    <span className="opacity-60 mr-3 text-sm font-bold tracking-widest">{newInvoice.currency === 'ETB' ? 'ETB' : newInvoice.currency === 'KES' ? 'KES' : '$'}</span>
                     {totalInvoiceAmount.toLocaleString()}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Line Items *</Label>
-                  <Button variant="ghost" size="sm" onClick={addLineItem}>
-                    <Plus size={14} /> Add Item
+              <div className="space-y-6">
+                <div className="flex items-center justify-between ml-1">
+                  <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">Component Breakdown *</Label>
+                  <Button variant="ghost" size="sm" onClick={addLineItem} className="font-black text-[10px] uppercase tracking-widest text-primary hover:bg-primary/5 rounded-xl px-6 h-10 border border-primary/10">
+                    <Plus size={16} weight="bold" className="mr-2" /> Add Component
                   </Button>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-6">
                   {lineItems.map((item, index) => (
-                    <div key={index} className="flex gap-3 items-start p-4 bg-muted/30 rounded-lg border">
-                      <div className="flex-1 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                    <div key={index} className="group relative flex gap-6 items-start p-8 bg-[#F8F9FA] rounded-[2.5rem] transition-all hover:bg-white hover:shadow-premium border border-transparent hover:border-primary/10 shadow-inner">
+                      <div className="flex-1 space-y-6">
+                        <div className="grid grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <Label className="text-xs">Fee Type</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">Fee Category</Label>
                             <Select 
                               value={item.category}
                               onValueChange={(val) => updateLineItem(index, 'category', val)}
                             >
-                              <SelectTrigger><SelectValue placeholder="Select a fee..." /></SelectTrigger>
-                              <SelectContent>
+                              <SelectTrigger className="bg-white border-none rounded-xl h-14 font-bold shadow-sm px-6"><SelectValue placeholder="Select a fee..." /></SelectTrigger>
+                              <SelectContent className="rounded-xl border-none shadow-2xl max-h-[300px] p-2">
                                 {EIPO_FEES.map((fee) => (
-                                  <SelectItem key={fee.code} value={fee.code}>
-                                    {fee.description} ({fee.amount.toLocaleString()} ETB)
+                                  <SelectItem key={fee.code} value={fee.code} className="text-xs font-bold py-3 rounded-lg">
+                                    {fee.description}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-xs">Amount</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">Unit Valuation</Label>
                             <Input 
                               type="number"
                               placeholder="0.00"
                               value={item.amount}
                               onChange={(e) => updateLineItem(index, 'amount', e.target.value)}
+                              className="bg-white border-none rounded-xl h-14 font-black text-xl text-primary shadow-sm px-6"
                             />
                           </div>
                         </div>
                         <Input 
-                          placeholder="Description"
+                          placeholder="Detailed specifications of systemic service..."
                           value={item.description}
                           onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                          className="bg-white border-none rounded-xl h-14 font-bold text-muted-foreground placeholder:opacity-30 shadow-sm px-6"
                         />
                       </div>
                       {lineItems.length > 1 && (
@@ -1167,9 +1225,9 @@ export default function BillingPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => removeLineItem(index)}
-                          className="text-destructive"
+                          className="mt-8 text-destructive/20 hover:text-destructive hover:bg-destructive/5 rounded-2xl h-14 w-14 transition-all"
                         >
-                          <Trash size={16} />
+                          <Trash size={24} weight="bold" />
                         </Button>
                       )}
                     </div>
@@ -1177,20 +1235,21 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Notes (Optional)</Label>
+              <div className="space-y-3">
+                <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 ml-1">Internal Log Entry</Label>
                 <Textarea 
                   value={newInvoice.notes}
                   onChange={(e) => setNewInvoice({...newInvoice, notes: e.target.value})}
-                  placeholder="Internal notes..."
+                  placeholder="Record systemic context or internal billing instructions..."
+                  className="bg-[#F8F9FA] border-none rounded-[2rem] min-h-[140px] resize-none p-8 font-medium shadow-inner"
                 />
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateInvoiceModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateInvoice} disabled={creatingInvoice}>
-                {creatingInvoice ? 'Creating...' : 'Create Invoice'}
+            <DialogFooter className="p-12 border-t border-border/50 bg-muted/20 gap-4">
+              <Button variant="ghost" onClick={() => setIsCreateInvoiceModalOpen(false)} className="h-16 px-10 rounded-2xl font-bold text-lg">Discard</Button>
+              <Button onClick={handleCreateInvoice} disabled={creatingInvoice} className="h-16 px-12 rounded-2xl font-black text-xl shadow-2xl shadow-primary/30 bg-primary text-white hover:bg-primary/90 transition-all hover:scale-105">
+                {creatingInvoice ? 'Processing...' : 'Create Invoice'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1198,17 +1257,33 @@ export default function BillingPage() {
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete {selectedIds.size} invoice(s)?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will move {selectedIds.size} invoice(s) to the trash. You can restore them later from the Trash page.
-              </AlertDialogDescription>
+          <AlertDialogContent className="max-w-md border-none shadow-2xl rounded-[2.5rem] p-0 overflow-hidden bg-white/95 backdrop-blur-xl">
+            <AlertDialogHeader className="p-10 border-b border-border/50 bg-destructive/5">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive shadow-inner">
+                  <Trash size={32} weight="duotone" />
+                </div>
+                <div>
+                  <AlertDialogTitle className="text-2xl font-black tracking-tight uppercase">Purge Protocol</AlertDialogTitle>
+                  <AlertDialogDescription className="text-sm font-bold text-destructive/80 mt-1">
+                    SYSTEMIC INVOICE DECOMMISSIONING
+                  </AlertDialogDescription>
+                </div>
+              </div>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleBulkDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                {isDeleting ? 'Deleting...' : 'Delete'}
+            <div className="p-10">
+              <p className="text-base font-medium text-muted-foreground leading-relaxed">
+                You are about to move <span className="text-foreground font-black underline decoration-destructive/30 decoration-2 underline-offset-4">{selectedIds.size} invoice(s)</span> to the trash repository. This action will suspend systemic billing tracking for these entities.
+              </p>
+            </div>
+            <AlertDialogFooter className="p-10 border-t border-border/50 bg-muted/20 gap-3">
+              <AlertDialogCancel disabled={isDeleting} className="h-14 px-8 rounded-2xl font-bold border-none bg-white hover:bg-muted/50 shadow-sm transition-all">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleBulkDelete} 
+                disabled={isDeleting} 
+                className="h-14 px-10 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-destructive text-white hover:bg-destructive/90 shadow-xl shadow-destructive/20 transition-all"
+              >
+                {isDeleting ? 'Processing...' : 'Confirm Purge'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

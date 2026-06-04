@@ -146,6 +146,7 @@ export const caseRepository = {
         tc.filing_number,
         tc.filing_date,
         tc.registration_dt,
+        tc.expiry_date,
         tc.next_action_date,
         tc.certificate_number,
         tc.priority,
@@ -218,7 +219,7 @@ export const caseRepository = {
       FROM trademark_cases tc
       JOIN clients c ON tc.client_id = c.id
       LEFT JOIN agents a ON tc.agent_id = a.id
-      WHERE tc.id = ?
+      WHERE tc.id = ? AND tc.deleted_at IS NULL
       `,
       [caseId]
     );
@@ -251,7 +252,7 @@ export const caseRepository = {
   },
 
   async findCaseById(caseId: string): Promise<CaseRow | null> {
-    const [rows] = await pool.execute('SELECT * FROM trademark_cases WHERE id = ?', [caseId]);
+    const [rows] = await pool.execute('SELECT * FROM trademark_cases WHERE id = ? AND deleted_at IS NULL', [caseId]);
     const caseRows = rows as CaseRow[];
     return caseRows[0] ?? null;
   },
@@ -367,7 +368,7 @@ export const caseRepository = {
   },
 
   async findCaseRegistrationDate(connection: PoolConnection, caseId: string): Promise<Date | null> {
-    const [rows] = await connection.execute('SELECT registration_dt FROM trademark_cases WHERE id = ?', [caseId]);
+    const [rows] = await connection.execute('SELECT registration_dt FROM trademark_cases WHERE id = ? AND deleted_at IS NULL', [caseId]);
     const data = (rows as Array<RowDataPacket & { registration_dt?: Date | string | null }>)[0];
     if (!data?.registration_dt) return null;
     return new Date(data.registration_dt);
@@ -412,7 +413,7 @@ export const caseRepository = {
   },
 
   async findCaseClientId(connection: PoolConnection, caseId: string): Promise<string | null> {
-    const [rows] = await connection.execute('SELECT client_id FROM trademark_cases WHERE id = ?', [caseId]);
+    const [rows] = await connection.execute('SELECT client_id FROM trademark_cases WHERE id = ? AND deleted_at IS NULL', [caseId]);
     const data = (rows as Array<RowDataPacket & { client_id: string }>)[0];
     return data?.client_id ?? null;
   },
@@ -425,7 +426,7 @@ export const caseRepository = {
       `SELECT tc.mark_name, c.name as client_name
        FROM trademark_cases tc
        JOIN clients c ON tc.client_id = c.id
-       WHERE tc.id = ?`,
+       WHERE tc.id = ? AND tc.deleted_at IS NULL`,
       [caseId]
     );
     const row = (rows as Array<RowDataPacket & { mark_name?: string | null; client_name?: string | null }>)[0];

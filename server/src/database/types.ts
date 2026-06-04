@@ -26,8 +26,11 @@ export interface CaseRow {
   client_id: string;
   filing_number?: string;
   filing_date?: Date;
-  publication_date?: Date;
+  publication_date?: Date | string | null;
   registration_dt?: Date;
+  registration_number?: string | null;
+  expiry_date?: Date | string | null;
+  next_renewal_date?: Date | string | null;
   next_action_date?: Date;
   certificate_number?: string;
   [key: string]: unknown;

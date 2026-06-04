@@ -248,7 +248,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         className="w-full max-w-md"
       >
         <motion.div variants={cardVariants}>
-          <Card className="w-full my-4 rounded-none shadow-lg">
+          <Card className="w-full my-4 rounded-3xl shadow-premium border-none">
                 <motion.div 
                   className="flex justify-center pt-6 pb-2"
                   variants={itemVariants}
@@ -287,7 +287,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                  <div className="text-center">
                    <motion.div variants={itemVariants}>
                       <TypingAnimation
-                        className="text-3xl font-bold tracking-tight"
+                        className="text-3xl font-black tracking-tight"
                         duration={50}
                       >
                         Welcome back

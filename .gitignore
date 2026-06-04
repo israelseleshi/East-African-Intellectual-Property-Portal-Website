@@ -119,3 +119,5 @@ README2.md
 server/.htaccess
 *.sql
 logs/
+docs/CONTEXT.local.md
+

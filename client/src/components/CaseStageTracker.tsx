@@ -9,10 +9,14 @@ import {
   Warning,
   XCircle,
   Calendar,
-  Hourglass
+  Hourglass,
+  ArrowRight
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Typography } from '@/components/ui/typography';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import type { CaseFlowStage, Jurisdiction } from '@/shared/database';
 import { JURISDICTION_CONFIG } from '@/shared/database';
 
@@ -98,9 +102,9 @@ export default function CaseStageTracker({
 
   const getUrgencyColor = (deadlineStr: string): string => {
     const days = Math.ceil((new Date(deadlineStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days <= 7) return 'text-red-500 animate-pulse';
-    if (days <= 30) return 'text-orange-500';
-    return 'text-green-500';
+    if (days <= 7) return 'text-red-600 bg-red-50 border-red-200 animate-pulse';
+    if (days <= 30) return 'text-amber-600 bg-amber-50 border-amber-200';
+    return 'text-emerald-600 bg-emerald-50 border-emerald-200';
   };
 
   const handleAdvanceClick = () => {
@@ -118,14 +122,19 @@ export default function CaseStageTracker({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-bold tracking-tight flex items-center gap-2">
-          <Clock size={20} weight="duotone" />
-          Case Flow Timeline
-        </CardTitle>
+    <Card className="shadow-premium border-none rounded-3xl overflow-hidden bg-white">
+      <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3">
+            <Clock size={24} weight="duotone" className="text-primary" />
+            Case Flow Timeline
+          </CardTitle>
+          <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-black uppercase tracking-widest text-[10px]">
+            {currentIndex + 1} / {STAGES.length} Stages
+          </Badge>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-8 space-y-10">
         {showModal && (
           <StageActionModal
             isOpen={showModal}
@@ -135,67 +144,109 @@ export default function CaseStageTracker({
             nextStage={STAGES[currentIndex + 1]?.key}
           />
         )}
-        <div className="bg-primary/10 border border-primary/20 p-4">
-          <div className="text-xs font-bold tracking-wider text-primary mb-1">
-            Current stage
-          </div>
-          <div className="flex items-center gap-3">
+        
+        {/* Active Stage Card */}
+        <div className="relative overflow-hidden bg-primary/5 border border-primary/20 rounded-2xl p-8 group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none">
             {(() => {
               const StageIcon = STAGES[currentIndex]?.icon || FileText;
-              return (
-                <div className="flex h-10 w-10 items-center justify-center bg-primary text-white">
-                  <StageIcon size={20} weight="duotone" />
-                </div>
-              );
+              return <StageIcon size={120} weight="duotone" />;
             })()}
-            <div>
-              <div className="text-base font-bold">
-                {STAGES[currentIndex]?.label}
+          </div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              {(() => {
+                const StageIcon = STAGES[currentIndex]?.icon || FileText;
+                return (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform duration-500">
+                    <StageIcon size={32} weight="duotone" />
+                  </div>
+                );
+              })()}
+              <div>
+                <div className="text-[10px] font-black tracking-[0.2em] text-primary uppercase mb-1">Active lifecycle stage</div>
+                <Typography.h3 className="text-2xl font-black tracking-tight mb-1 text-primary">
+                  {STAGES[currentIndex]?.label}
+                </Typography.h3>
+                <div className="text-sm font-medium text-muted-foreground/80">
+                  {STAGES[currentIndex]?.description}
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {STAGES[currentIndex]?.description}
-              </div>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              {getStageDeadline(currentStage) && (
+                <div className={cn(
+                  "px-4 py-2.5 rounded-xl border text-sm font-black flex items-center gap-3 shadow-sm",
+                  getUrgencyColor(getStageDeadline(currentStage)!)
+                )}>
+                  <Calendar size={18} weight="duotone" />
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider opacity-70">Regulatory Deadline</div>
+                    {new Date(getStageDeadline(currentStage)!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <span className="ml-2 opacity-70 font-bold">
+                      ({Math.ceil((new Date(getStageDeadline(currentStage)!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days)
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {isEditable && currentIndex < STAGES.length - 1 && (
+                <Button 
+                  onClick={handleAdvanceClick} 
+                  disabled={isAdvancing}
+                  className="h-12 px-6 rounded-xl font-black uppercase tracking-wider text-xs shadow-lg shadow-primary/20 hover:shadow-xl transition-all"
+                >
+                  {STAGES[currentIndex]?.actionLabel || 'Advance Stage'}
+                  <ArrowRight size={16} weight="bold" className="ml-2" />
+                </Button>
+              )}
             </div>
           </div>
-          {getStageDeadline(currentStage) && (
-            <div className={`mt-3 text-sm font-medium flex items-center gap-2 ${getUrgencyColor(getStageDeadline(currentStage)!)}`}>
-              <Calendar size={14} />
-              Deadline: {new Date(getStageDeadline(currentStage)!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              <span className="text-xs">
-                ({Math.ceil((new Date(getStageDeadline(currentStage)!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left)
-              </span>
-            </div>
-          )}
         </div>
 
-        <div className="relative pt-12 pb-8 overflow-x-auto">
-          <div className="absolute top-[72px] left-0 right-0 h-1 bg-border" />
-          <div className="flex justify-center relative min-w-[800px] px-8">
+        {/* Visual Progress Line */}
+        <div className="relative py-12 px-4 bg-muted/20 rounded-3xl border border-border/50">
+          <div className="absolute top-[84px] left-10 right-10 h-1 bg-border/50 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+              style={{ width: `${(currentIndex / (STAGES.length - 1)) * 100}%` }}
+            />
+          </div>
+          
+          <div className="flex justify-between relative min-w-[800px] px-1">
             {STAGES.map((stage, index) => {
               const isCompleted = index < currentIndex;
               const isCurrent = index === currentIndex;
               const deadline = getStageDeadline(stage.key);
 
               return (
-                <div key={stage.key} className="flex flex-col items-center justify-center relative z-10 w-20 mx-1">
+                <div key={stage.key} className="flex flex-col items-center relative z-10 w-24">
                   <div
-                    className={`h-10 w-10 flex items-center justify-center rounded-full border-4 transition-all duration-500 scale-100 mb-4 cursor-default ${isCurrent
-                      ? 'border-primary bg-background text-primary shadow-lg shadow-primary/20'
-                      : isCompleted
-                        ? 'border-green-500 bg-green-500 text-white'
-                        : 'border-border bg-background text-muted-foreground opacity-50'
-                      }`}
+                    className={cn(
+                      "h-12 w-12 flex items-center justify-center rounded-2xl border-4 transition-all duration-700 mb-4 shadow-sm",
+                      isCurrent
+                        ? "border-primary bg-white text-primary shadow-lg shadow-primary/20 scale-125 z-20"
+                        : isCompleted
+                          ? "border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                          : "border-border bg-white text-muted-foreground/40"
+                    )}
                   >
-                    {isCompleted ? <CheckCircle weight="bold" size={18} /> : <stage.icon size={18} />}
+                    {isCompleted ? <CheckCircle weight="bold" size={24} /> : <stage.icon size={24} weight={isCurrent ? "duotone" : "regular"} />}
                   </div>
 
-                  <div className={`text-xs font-black tracking-tighter text-center line-clamp-2 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <div className={cn(
+                    "text-[10px] font-black tracking-tight text-center leading-tight uppercase",
+                    isCurrent ? "text-primary scale-110" : isCompleted ? "text-foreground" : "text-muted-foreground/60"
+                  )}>
                     {stage.label}
                   </div>
-
-                  {deadline && isCurrent && (
-                    <div className={`absolute -top-10 whitespace-nowrap text-xs font-bold px-2 py-1 bg-background border border-current rounded-sm ${getUrgencyColor(deadline)}`}>
-                      {new Date(deadline).toLocaleDateString()}
+                  
+                  {isCurrent && (
+                    <div className="absolute -bottom-6 flex items-center gap-1">
+                      <div className="h-1 w-1 rounded-full bg-primary animate-ping" />
+                      <div className="text-[8px] font-black text-primary tracking-widest uppercase">Live</div>
                     </div>
                   )}
                 </div>
@@ -204,7 +255,8 @@ export default function CaseStageTracker({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Stage Grid Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {STAGES.map((stage, index) => {
             const isCompleted = index < currentIndex;
             const isCurrent = index === currentIndex;
@@ -218,39 +270,63 @@ export default function CaseStageTracker({
             return (
               <div
                 key={stage.key}
-                className={`p-4 border-2 transition-all ${isCurrent
-                  ? 'border-primary bg-background shadow-md'
-                  : isCompleted
-                    ? 'border-green-500/20 bg-background/30'
-                    : 'border-dashed border-border opacity-60'
-                  }`}
+                className={cn(
+                  "group p-6 rounded-2xl border-2 transition-all duration-500 overflow-hidden relative",
+                  isCurrent
+                    ? "border-primary bg-white shadow-premium ring-4 ring-primary/5"
+                    : isCompleted
+                      ? "border-emerald-500/10 bg-emerald-50/20 grayscale-[0.5] opacity-80"
+                      : "border-dashed border-border/60 bg-muted/10 opacity-60"
+                )}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className={`h-8 w-8 flex items-center justify-center ${isCompleted ? 'text-green-500' : 'text-primary'}`}>
-                    {isCompleted ? <CheckCircle size={20} weight="bold" /> : <Icon size={20} />}
+                {isCompleted && (
+                  <div className="absolute top-0 right-0 p-4">
+                    <CheckCircle size={48} weight="duotone" className="text-emerald-500/10" />
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-start mb-6">
+                  <div className={cn(
+                    "h-12 w-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 shadow-sm",
+                    isCompleted ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
+                  )}>
+                    {isCompleted ? <CheckCircle size={28} weight="duotone" /> : <Icon size={28} weight="duotone" />}
                   </div>
                   {(isCurrent || (isNext && isEditable)) && (
                     <Button
                       onClick={() => isCurrent ? handleAdvanceClick() : onStageChange(stage.key)}
                       disabled={isAdvancing}
                       size="sm"
+                      variant={isCurrent ? "default" : "outline"}
+                      className={cn(
+                        "rounded-lg font-black text-[10px] uppercase tracking-wider h-9",
+                        isCurrent ? "shadow-md shadow-primary/20" : "border-border/50 hover:bg-white"
+                      )}
                     >
-                      {isAdvancing ? '...' : (isCurrent ? (stage.actionLabel || 'Next Stage') : `Start ${stage.label}`)}
+                      {isAdvancing ? '...' : (isCurrent ? (stage.actionLabel || 'Proceed') : `Start Phase`)}
                     </Button>
                   )}
                 </div>
 
-                <div className={`text-sm font-bold ${isCurrent ? '' : 'text-muted-foreground'}`}>
-                  {stage.label}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {stage.description}
+                <div>
+                  <div className={cn(
+                    "text-sm font-black tracking-tight uppercase mb-1",
+                    isCurrent ? "text-primary" : "text-foreground"
+                  )}>
+                    {stage.label}
+                  </div>
+                  <div className="text-xs font-medium text-muted-foreground leading-relaxed">
+                    {stage.description}
+                  </div>
                 </div>
 
                 {deadline && (isCurrent || isCompleted) && (
-                  <div className={`text-xs mt-2 font-bold flex items-center gap-1 ${getUrgencyColor(deadline)}`}>
-                    <Calendar size={12} />
-                    {new Date(deadline).toLocaleDateString()}
+                  <div className={cn(
+                    "mt-4 pt-4 border-t border-border/40 flex items-center gap-2 text-[11px] font-black uppercase tracking-tighter",
+                    isCurrent ? "text-primary" : "text-muted-foreground"
+                  )}>
+                    <Calendar size={14} weight="duotone" />
+                    Target: {new Date(deadline).toLocaleDateString()}
                   </div>
                 )}
               </div>
@@ -258,23 +334,31 @@ export default function CaseStageTracker({
           })}
         </div>
 
-        <div className="mt-8 border-t border-border pt-6">
-          <h4 className="text-xs font-black tracking-widest text-muted-foreground mb-4">Special Actions & Exceptions</h4>
-          <div className="flex flex-wrap gap-2">
+        {/* Special Actions */}
+        <div className="mt-12 pt-10 border-t border-border/50">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-8 w-1 bg-primary rounded-full" />
+            <h4 className="text-[10px] font-black tracking-[0.3em] text-muted-foreground uppercase">Lifecycle Exceptions & Manual Actions</h4>
+          </div>
+          <div className="flex flex-wrap gap-3">
              {SPECIAL_ACTIONS.map((action, index) => {
-               const colorClasses = [
-                 'bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20',
-                 'bg-green-500/10 border-green-500/30 text-green-500 hover:bg-green-500/20',
-                 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20'
+               const variants = [
+                 'border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 hover:border-orange-300',
+                 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300',
+                 'border-sky-200 bg-sky-50 text-sky-600 hover:bg-sky-100 hover:border-sky-300',
+                 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300'
                ];
                return (
                  <Button
                    key={action.key}
                    variant="outline"
                    onClick={() => onStageChange(action.key)}
-                   className={colorClasses[index]}
+                   className={cn(
+                     "h-11 px-5 border rounded-xl font-bold text-xs transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                     variants[index % variants.length]
+                   )}
                  >
-                   <action.icon size={16} />
+                   <action.icon size={18} weight="duotone" className="mr-2" />
                    {action.label}
                  </Button>
                );

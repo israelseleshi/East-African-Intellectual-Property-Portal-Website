@@ -264,10 +264,10 @@ export default function TrashPage() {
   );
 
   return (
-    <div className="w-full p-4 md:p-8 space-y-6">
+    <div className="w-full p-4 md:p-8 space-y-6 bg-[#F8F9FA] min-h-screen">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <Typography.h1a className="flex items-center gap-2">
+          <Typography.h1a className="flex items-center gap-2 font-black">
             <Trash2 className="h-8 w-8 text-muted-foreground" />
             Trash
           </Typography.h1a>
@@ -315,7 +315,7 @@ export default function TrashPage() {
         {/* Trademarks Tab */}
         <TabsContent value="trademarks" className="space-y-4">
           {loading.trademarks ? (
-            <Card className="p-6 space-y-4">
+            <Card className="p-6 space-y-4 shadow-premium rounded-3xl border-none">
               {[1, 2, 3].map(i => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
@@ -323,7 +323,7 @@ export default function TrashPage() {
           ) : trademarks.length === 0 ? (
             renderEmptyState('No deleted trademark cases.')
           ) : (
-            <Card className="overflow-x-auto">
+            <Card className="overflow-x-auto shadow-premium rounded-3xl border-none">
               <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -343,7 +343,7 @@ export default function TrashPage() {
         {/* Clients Tab */}
         <TabsContent value="clients" className="space-y-4">
           {loading.clients ? (
-            <Card className="p-6 space-y-4">
+            <Card className="p-6 space-y-4 shadow-premium rounded-3xl border-none">
               {[1, 2, 3].map(i => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
@@ -351,7 +351,7 @@ export default function TrashPage() {
           ) : clients.length === 0 ? (
             renderEmptyState('No deleted clients.')
           ) : (
-            <Card className="overflow-x-auto">
+            <Card className="overflow-x-auto shadow-premium rounded-3xl border-none">
               <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -371,7 +371,7 @@ export default function TrashPage() {
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="space-y-4">
           {loading.invoices ? (
-            <Card className="p-6 space-y-4">
+            <Card className="p-6 space-y-4 shadow-premium rounded-3xl border-none">
               {[1, 2, 3].map(i => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
@@ -379,7 +379,7 @@ export default function TrashPage() {
           ) : invoices.length === 0 ? (
             renderEmptyState('No deleted invoices.')
           ) : (
-            <Card className="overflow-x-auto">
+            <Card className="overflow-x-auto shadow-premium rounded-3xl border-none">
               <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -447,17 +447,17 @@ export default function TrashPage() {
 
       {/* Restore Confirmation Dialog */}
       <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore this item?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will restore "{selectedItem?.name}" and make it visible again in its original location.
+        <AlertDialogContent className="max-w-md border-none shadow-2xl rounded-[2.5rem] p-0 overflow-hidden bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="p-8 border-b border-border/50 bg-[#F8F9FA]">
+            <AlertDialogTitle className="text-xl font-black tracking-tight">Restore this item?</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-muted-foreground pt-1">
+              This will restore &quot;{selectedItem?.name}&quot; and make it visible again in its original location.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="p-6 gap-3">
             <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRestore} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700 text-white">
-              {isProcessing ? 'Restoring...' : 'Restore'}
+            <AlertDialogAction onClick={handleRestore} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm h-12 px-8 shadow-lg shadow-blue-600/20">
+              {isProcessing ? 'Restoring...' : 'Confirm Restore'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -465,23 +465,23 @@ export default function TrashPage() {
 
       {/* Purge Confirmation Dialog */}
       <AlertDialog open={showPurgeDialog} onOpenChange={setShowPurgeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Permanently Delete?</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="max-w-md border-none shadow-2xl rounded-[2.5rem] p-0 overflow-hidden bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="p-8 border-b border-border/50 bg-[#F8F9FA]">
+            <AlertDialogTitle className="text-xl font-black tracking-tight text-destructive">Permanent Purge Protocol</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-muted-foreground pt-1">
               This will permanently remove "{selectedItem?.name}". This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="p-6 gap-3">
             <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePermanentDelete} disabled={isProcessing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isProcessing ? 'Deleting...' : 'Delete Permanently'}
+            <AlertDialogAction onClick={handlePermanentDelete} disabled={isProcessing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-black text-sm h-12 px-8 shadow-lg shadow-destructive/20">
+              {isProcessing ? 'Deleting...' : 'Execute Purge'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="bg-muted/30 border rounded-lg p-4 text-sm text-muted-foreground flex gap-3 items-start">
+      <div className="bg-white/80 rounded-2xl p-6 text-sm text-muted-foreground flex gap-3 items-start shadow-premium border border-border/10">
         <Info className="h-5 w-5 shrink-0 mt-0.5" />
         <ul className="space-y-2 list-disc list-inside">
           <li>Items in trash are not visible in main lists but their data is preserved.</li>

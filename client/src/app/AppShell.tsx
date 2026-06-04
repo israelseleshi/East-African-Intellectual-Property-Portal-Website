@@ -188,7 +188,7 @@ export default function AppShell() {
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
-      <div className="flex h-screen w-full light">
+      <div className="flex min-h-screen w-full light">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-h-0">
           {/* <TopBar

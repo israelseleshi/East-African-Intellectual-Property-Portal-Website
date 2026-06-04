@@ -31,7 +31,7 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
        FROM deadlines d
        JOIN trademark_cases tc ON d.case_id = tc.id
        LEFT JOIN clients c ON tc.client_id = c.id
-       WHERE d.is_completed = FALSE
+       WHERE d.status = 'PENDING' AND d.is_completed = FALSE
        AND d.due_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
        ORDER BY d.due_date ASC`,
       [days]

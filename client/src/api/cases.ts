@@ -10,8 +10,8 @@ export interface CasesQuery {
   includeDeadlines?: boolean;
 }
 
-export interface CasesListResponse<T = any> {
-  data: T[];
+export interface CasesListResponse<T = unknown> {
+  rows: T[];
   total: number;
   page: number;
   pageSize: number;
@@ -19,7 +19,7 @@ export interface CasesListResponse<T = any> {
 }
 
 export const casesApi = {
-  async list(query?: CasesQuery) {
+  async list<T = unknown>(query?: CasesQuery): Promise<CasesListResponse<T>> {
     const response = await apiClient.get('/cases', {
       params: {
         page: 1,
@@ -28,10 +28,19 @@ export const casesApi = {
         ...query
       }
     });
-    return Array.isArray(response.data) ? response.data : (response.data?.data || []);
+    if (Array.isArray(response.data)) {
+      return {
+        rows: response.data as T[],
+        total: response.data.length,
+        page: 1,
+        pageSize: response.data.length || 200,
+        hasMore: false
+      };
+    }
+    return response.data as CasesListResponse<T>;
   },
 
-  async listPage<T = any>(query?: CasesQuery): Promise<CasesListResponse<T>> {
+  async listPage<T = unknown>(query?: CasesQuery): Promise<CasesListResponse<T>> {
     const response = await apiClient.get('/cases', {
       params: {
         page: 1,
@@ -43,14 +52,14 @@ export const casesApi = {
     });
     if (Array.isArray(response.data)) {
       return {
-        data: response.data as T[],
+        rows: response.data as T[],
         total: response.data.length,
         page: 1,
         pageSize: response.data.length || 25,
         hasMore: false
       };
     }
-    return response.data;
+    return response.data as CasesListResponse<T>;
   },
 
   async getById(id: string) {

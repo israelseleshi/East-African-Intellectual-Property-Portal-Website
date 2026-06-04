@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, CaretDown, Globe, Trash, CheckSquare, Square, Table } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, CaretUp, CaretDown, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, Globe, Trash, CheckSquare, Square, Table } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { ColumnCustomizerModal } from '@/components/ColumnCustomizerModal'
 import JurisdictionBadge from '@/components/JurisdictionBadge'
+import { DeadlineAlertPill } from '@/components/trademarks/DeadlineAlertPill'
+import { deriveAlertInfo, type AlertSeverity } from '@/utils/alertHelpers'
 import {
   loadColumnPreferences,
   saveColumnPreferences,
@@ -193,7 +195,18 @@ export default function TrademarksPage() {
   const { toast: addToast } = useToast()
   const [searchParams] = useSearchParams()
 
-  const [cases, setCases] = useState<Array<{ id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_number?: string; filingDate?: string; filing_date?: string; client?: { name?: string; type?: string }; client_name?: string; client_type?: string; jurisdiction?: string; status?: string; created_at?: string; updated_at?: string; registration_dt?: string; registrationDt?: string; next_action_date?: string; nextActionDate?: string; priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string; registration_number?: string }>>([])
+  type CaseRow = {
+    id: string; markName?: string; mark_name?: string; filingNumber?: string; filing_number?: string;
+    filingDate?: string; filing_date?: string; client?: { name?: string; type?: string }; client_name?: string;
+    client_type?: string; jurisdiction?: string; status?: string; type?: string; created_at?: string; updated_at?: string;
+    registration_dt?: string; registrationDt?: string; registration_number?: string; registrationNumber?: string;
+    next_action_date?: string; nextActionDate?: string; expiry_date?: string; expiryDate?: string;
+    next_renewal_date?: string; nextRenewalDate?: string; publication_date?: string; publicationDate?: string;
+    priority?: string; markType?: string; colorIndication?: string; mark_image?: string; markImage?: string;
+  }
+
+  const [cases, setCases] = useState<CaseRow[]>([])
+  const [allCases, setAllCases] = useState<CaseRow[]>([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [q, setQ] = useState('')
@@ -201,6 +214,9 @@ export default function TrademarksPage() {
   const [status, setStatus] = useState<string | 'ALL'>('ALL')
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
+  const [alertFilter, setAlertFilter] = useState<AlertSeverity | 'all'>('all')
+  const [sortKey, setSortKey] = useState<'markName' | 'nextActionDate' | 'alert' | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const pageSize = 20
 
   // Column visibility customization
@@ -216,6 +232,28 @@ export default function TrademarksPage() {
 
   useEffect(() => { fetchCases() }, [q, status, jurisdiction, currentPage])
 
+  useEffect(() => { fetchAllCasesForAlerts() }, [q, status, jurisdiction])
+
+  const fetchAllCasesForAlerts = async () => {
+    try {
+      const response = await casesApi.listPage({
+        q,
+        page: 1,
+        pageSize: 10000,
+        sort: 'created_at_desc',
+        status: status === 'ALL' ? undefined : status,
+        jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
+        includeDeadlines: false
+      })
+      if (response.total > response.pageSize) {
+        console.warn('[cases.list] total exceeds pageSize; using hybrid pagination fallback')
+      }
+      setAllCases(Array.isArray(response?.rows) ? (response.rows as CaseRow[]) : [])
+    } catch {
+      setAllCases([])
+    }
+  }
+
   const fetchCases = async () => {
     try {
       setLoading(true)
@@ -228,7 +266,7 @@ export default function TrademarksPage() {
         jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
         includeDeadlines: false
       })
-      setCases(Array.isArray(response?.data) ? response.data : [])
+      setCases(Array.isArray(response?.rows) ? (response.rows as CaseRow[]) : [])
       setTotalCount(Number(response?.total || 0))
     } catch {
       setCases([])
@@ -257,26 +295,101 @@ export default function TrademarksPage() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return
-    
+
+    const idsToDelete = Array.from(selectedIds)
+    const count = idsToDelete.length
+    const idSet = new Set(idsToDelete)
+
+    const casesSnapshot = cases
+    const allCasesSnapshot = allCases
+    const countSnapshot = totalCount
+
     setIsDeleting(true)
     try {
-      await casesApi.bulkDelete(Array.from(selectedIds))
-      toast.success(`${selectedIds.size} trademark(s) moved to trash.`)
+      setCases(prev => prev.filter(c => !idSet.has(c.id)))
+      setAllCases(prev => prev.filter(c => !idSet.has(c.id)))
+      setTotalCount(prev => Math.max(0, prev - count))
       setSelectedIds(new Set())
       setShowDeleteDialog(false)
-      fetchCases()
+
+      await casesApi.bulkDelete(idsToDelete)
+
+      toast.success(`${count} trademark(s) moved to trash.`)
     } catch (error) {
+      setCases(casesSnapshot)
+      setAllCases(allCasesSnapshot)
+      setTotalCount(countSnapshot)
       console.error('Bulk delete failed:', error)
-      toast.error('Failed to delete trademarks. Please try again.')
+      toast.error('Failed to delete trademarks.', {
+        description: 'Your selection has been restored. Please try again.',
+        action: {
+          label: 'Retry',
+          onClick: () => { handleBulkDelete() }
+        }
+      })
     } finally {
       setIsDeleting(false)
     }
   }
 
-  const filteredRows = useMemo(() => cases, [cases])
+  const alertFilteredAll = useMemo(() => {
+    if (alertFilter === 'all') return null
+    return allCases.filter(c => deriveAlertInfo(c).severity === alertFilter)
+  }, [allCases, alertFilter])
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
-  const paginatedRows = useMemo(() => filteredRows, [filteredRows])
+  const totalPages = useMemo(() => {
+    if (alertFilter === 'all') {
+      return Math.max(1, Math.ceil(totalCount / pageSize))
+    }
+    if (!alertFilteredAll) return 1
+    return Math.max(1, Math.ceil(alertFilteredAll.length / pageSize))
+  }, [alertFilter, totalCount, alertFilteredAll, pageSize])
+
+  const filteredRows = useMemo(() => {
+    if (alertFilter === 'all') return allCases
+    if (!alertFilteredAll) return allCases
+    return alertFilteredAll
+  }, [allCases, alertFilteredAll, alertFilter])
+
+  const handleSort = (key: 'markName' | 'nextActionDate' | 'alert') => {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedRows = useMemo(() => {
+    if (!sortKey) return filteredRows
+    const arr = [...filteredRows]
+    if (sortKey === 'markName') {
+      arr.sort((a, b) => {
+        const av = markLabel(a).toLowerCase()
+        const bv = markLabel(b).toLowerCase()
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      })
+    } else if (sortKey === 'nextActionDate') {
+      arr.sort((a, b) => {
+        const ad = new Date(a.nextActionDate || a.next_action_date || '').getTime() || 0
+        const bd = new Date(b.nextActionDate || b.next_action_date || '').getTime() || 0
+        return sortDir === 'asc' ? ad - bd : bd - ad
+      })
+    } else if (sortKey === 'alert') {
+      const order: Record<string, number> = { overdue: 4, urgent: 3, warning: 2, ok: 1, none: 0 }
+      arr.sort((a, b) => {
+        const av = order[deriveAlertInfo(a).severity]
+        const bv = order[deriveAlertInfo(b).severity]
+        return sortDir === 'asc' ? av - bv : bv - av
+      })
+    }
+    return arr
+  }, [filteredRows, sortKey, sortDir])
+
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return sortedRows.slice(start, start + pageSize)
+  }, [sortedRows, currentPage, pageSize])
 
   const visibleColumnDefs = useMemo(() => {
     const visibleSet = new Set(colPrefs.visibleColumns)
@@ -287,9 +400,9 @@ export default function TrademarksPage() {
       .filter((d): d is ColumnDef => d !== undefined)
   }, [colPrefs])
 
-  useEffect(() => { setCurrentPage(1) }, [q, jurisdiction, status])
+  useEffect(() => { setCurrentPage(1) }, [q, jurisdiction, status, alertFilter, sortKey, sortDir])
 
-  const handleDownloadForm = async (e: React.MouseEvent, t: any) => {
+  const handleDownloadForm = async (e: React.MouseEvent, t: CaseRow) => {
     e.stopPropagation()
     try {
       const caseData = await casesApi.getById(t.id)
@@ -305,7 +418,8 @@ export default function TrademarksPage() {
       const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
       
       // Merge top-level case data into eipaForm to ensure PDF engine gets the latest DB values
-      const resolvedImage = caseData.mark_image || caseData.markImage || (caseData.eipaForm as any)?.image_field || (caseData.eipaForm as any)?.mark_image || ''
+      const eipaForm = (caseData.eipaForm ?? null) as Record<string, unknown> | null
+      const resolvedImage = caseData.mark_image || caseData.markImage || eipaForm?.image_field as string || eipaForm?.mark_image as string || ''
 
       const mergedData = {
         ...(caseData.eipaForm as Record<string, unknown> || {}),
@@ -339,7 +453,10 @@ export default function TrademarksPage() {
       
       const { fillPdfForm } = await import('@/utils/pdfUtils')
       const pdfBytes = await fillPdfForm(pdfUrl, mergedData)
-      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
+      const pdfArrayBuffer: ArrayBuffer = pdfBytes instanceof ArrayBuffer
+        ? pdfBytes
+        : (pdfBytes as unknown as ArrayBuffer)
+      const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' })
 
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -371,7 +488,7 @@ export default function TrademarksPage() {
         jurisdiction: jurisdiction === 'ALL' ? undefined : jurisdiction,
         includeDeadlines: false
       })
-      const exportRows = Array.isArray(exportResponse?.data) ? exportResponse.data : []
+      const exportRows = Array.isArray(exportResponse?.rows) ? (exportResponse.rows as CaseRow[]) : []
       if (!exportRows.length) return
 
       const ExcelJS = (await import('exceljs')).default
@@ -493,7 +610,7 @@ export default function TrademarksPage() {
         markName: markLabel(c),
         markType: c.markType || 'Word',
         filingNumber: c.filing_number || c.filingNumber || 'PENDING',
-        regNumber: c.registration_number || (c as any).registrationNumber || '—',
+        regNumber: c.registration_number || (c as CaseRow).registrationNumber || '—',
         jurisdiction: JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction || 'Ethiopia',
         status: STATUS_NAMES[c.status || 'DRAFT'] || c.status || 'Draft',
         filingDate: (c.filingDate || c.filing_date) ? new Date(c.filingDate || c.filing_date!).toISOString().split('T')[0] : '—',
@@ -530,7 +647,8 @@ export default function TrademarksPage() {
 
         if (imagePayload) {
           const imageId = workbook.addImage({
-            buffer: imagePayload.bytes as any,
+            // @ts-expect-error - exceljs expects Node Buffer; Uint8Array is structurally compatible at runtime
+            buffer: imagePayload.bytes,
             extension: imagePayload.extension,
           })
 
@@ -572,7 +690,7 @@ export default function TrademarksPage() {
     }
   }
 
-  const renderCell = useCallback((row: any, col: ColumnDef) => {
+  const renderCell = useCallback((row: CaseRow, col: ColumnDef) => {
     switch (col.render) {
       case 'mark':
         return (
@@ -590,7 +708,7 @@ export default function TrademarksPage() {
         )
       }
       case 'jurisdictionBadge':
-        return <JurisdictionBadge jurisdiction={row.jurisdiction || 'ET'} />
+        return <JurisdictionBadge jurisdiction={(row.jurisdiction || 'ET') as 'ET'} />
       case 'filingBadge':
         return <Badge>{row.filing_number || row.filingNumber || 'PENDING'}</Badge>
       case 'actions':
@@ -600,7 +718,8 @@ export default function TrademarksPage() {
           </Button>
         )
       default: {
-        let value = row[col.fieldKey] ?? row[col.id] ?? '—'
+        const record = row as unknown as Record<string, unknown>
+        let value = record[col.fieldKey] ?? record[col.id] ?? '—'
         if (value === '—' && col.id === 'nextRenewalDate') {
           value = row.expiry_date || row.expiryDate || '—'
         }
@@ -608,7 +727,8 @@ export default function TrademarksPage() {
           return value.split('T')[0]
         }
         if (typeof value === 'object' && value !== null) {
-          return value.name || value.type || '—'
+          const obj = value as Record<string, unknown>
+          return String(obj.name ?? obj.type ?? '—')
         }
         return String(value)
       }
@@ -616,35 +736,38 @@ export default function TrademarksPage() {
   }, [handleDownloadForm])
 
   return (
-    <div className="w-full max-w-[100vw] mx-auto p-4 md:p-8 space-y-6 min-h-screen bg-[#E8E8ED]">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <Typography.h1a>Trademarks</Typography.h1a>
-          <Typography.muted className="hidden sm:block">Manage and track your trademark portfolio across East Africa.</Typography.muted>
+    <div className="w-full max-w-[100vw] mx-auto p-4 md:p-10 space-y-8 min-h-screen bg-[#F8F9FA] overflow-x-hidden">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <Typography.h1 className="tracking-tight font-bold">Trademark Registry</Typography.h1>
+          <Typography.p className="text-muted-foreground text-lg font-medium opacity-80 hidden sm:block">Manage and track your intellectual property portfolio across East Africa.</Typography.p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-2 mr-2">
               <Button
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={isDeleting}
                 variant="destructive"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all"
               >
-                <Trash size={16} />
-                <span>Delete {selectedIds.size}</span>
+                <Trash size={20} weight="bold" />
+                <span className="font-bold">Delete {selectedIds.size}</span>
               </Button>
             </div>
           )}
-          <Button variant="outline" onClick={() => setShowColumnModal(true)} className="bg-white" title="Customize columns">
-            <Table size={18} className="mr-1" />
+          <Button variant="outline" onClick={() => setShowColumnModal(true)} className="bg-white hover:shadow-md transition-all h-12 px-5 rounded-xl border-none shadow-sm font-semibold" title="Customize columns">
+            <Table size={20} className="mr-2" />
             <span className="hidden sm:inline">Columns</span>
           </Button>
-          <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white">
-            <DownloadSimple size={18} className="mr-1" />
+          <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white hover:shadow-md transition-all h-12 px-5 rounded-xl border-none shadow-sm font-semibold">
+            <DownloadSimple size={20} className="mr-2" />
             <span className="hidden sm:inline">Export Excel</span>
           </Button>
-          <Button onClick={() => navigate('/eipa-forms/application-form')}><Plus size={18} className="mr-1" /><span className="hidden sm:inline">New Application</span></Button>
+          <Button onClick={() => navigate('/eipa-forms/application-form')} className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold">
+            <Plus size={20} weight="bold" className="mr-2" />
+            <span className="hidden sm:inline">New Application</span>
+          </Button>
         </div>
       </header>
 
@@ -670,38 +793,54 @@ export default function TrademarksPage() {
       )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will move {selectedIds.size} trademark(s) to the trash. You can restore them later from the Trash page.
-            </AlertDialogDescription>
+        <AlertDialogContent className="max-w-md border-none shadow-2xl rounded-[2.5rem] p-0 overflow-hidden bg-white/95 backdrop-blur-xl">
+          <AlertDialogHeader className="p-10 border-b border-border/50 bg-destructive/5">
+            <div className="flex items-center gap-5">
+              <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive shadow-inner">
+                <Trash size={32} weight="duotone" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-2xl font-black tracking-tight uppercase">Purge Protocol</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm font-bold text-destructive/80 mt-1">
+                  SYSTEMIC TRADEMARK DECOMMISSIONING
+                </AlertDialogDescription>
+              </div>
+            </div>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isDeleting ? "Deleting..." : "Delete"}
+          <div className="p-10">
+            <p className="text-base font-medium text-muted-foreground leading-relaxed">
+              You are about to move <span className="text-foreground font-black underline decoration-destructive/30 decoration-2 underline-offset-4">{selectedIds.size} trademark(s)</span> to the trash repository. This action will suspend systemic tracking but can be reversed via security protocols.
+            </p>
+          </div>
+          <AlertDialogFooter className="p-10 border-t border-border/50 bg-muted/20 gap-3">
+            <AlertDialogCancel className="h-14 px-8 rounded-2xl font-bold border-none bg-white hover:bg-muted/50 shadow-sm transition-all">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete} 
+              className="h-14 px-10 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-destructive text-white hover:bg-destructive/90 shadow-xl shadow-destructive/20 transition-all"
+            >
+              {isDeleting ? "Processing..." : "Confirm Purge"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <Card className="p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1 w-full lg:max-w-md">
-            <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search..." />
+      <Card className="p-6 border-none shadow-sm bg-white rounded-2xl">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1 w-full lg:max-w-xl relative">
+            <MagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={20} />
+            <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by mark name, filing number, or client..." className="pl-12 bg-muted/30 border-none h-12 rounded-xl focus-visible:ring-primary/20" />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2 flex-1 sm:flex-none">
+                <Button variant="ghost" className="h-12 justify-between bg-muted/30 border-none rounded-xl px-5 hover:bg-muted/50 font-semibold min-w-[180px]">
                   <span className="truncate">{JURISDICTION_NAMES[jurisdiction]}</span>
-                  <CaretDown size={14} />
+                  <CaretDown size={14} className="ml-2 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-56 rounded-xl border-none shadow-premium p-2">
                 {Object.entries(JURISDICTION_NAMES).map(([code, name]) => (
-                  <DropdownMenuItem key={code} onClick={() => setJurisdiction(code)} className={jurisdiction === code ? 'bg-accent' : ''}>
+                  <DropdownMenuItem key={code} onClick={() => setJurisdiction(code)} className={`rounded-lg py-2.5 font-medium ${jurisdiction === code ? 'bg-primary/5 text-primary' : ''}`}>
                     {name}
                   </DropdownMenuItem>
                 ))}
@@ -709,23 +848,27 @@ export default function TrademarksPage() {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
+                <Button variant="ghost" className="h-12 justify-between bg-muted/30 border-none rounded-xl px-5 hover:bg-muted/50 font-semibold min-w-[160px]">
                   <span className="truncate">{STATUS_NAMES[status]}</span>
-                  <CaretDown size={14} />
+                  <CaretDown size={14} className="ml-2 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-56 rounded-xl border-none shadow-premium p-2">
                 {Object.entries(STATUS_NAMES).map(([code, name]) => (
-                  <DropdownMenuItem key={code} onClick={() => setStatus(code)} className={status === code ? 'bg-accent' : ''}>
+                  <DropdownMenuItem key={code} onClick={() => setStatus(code)} className={`rounded-lg py-2.5 font-medium ${status === code ? 'bg-primary/5 text-primary' : ''}`}>
                     {name}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <span className="text-sm text-muted-foreground w-full text-center sm:w-auto">{totalCount} records</span>
-            <div className="flex items-center gap-1 border rounded-lg h-9 w-full sm:w-auto justify-center">
-              <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')}><List size={18} /></Button>
-              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')}><SquaresFour size={18} /></Button>
+            <div className="h-12 px-4 flex items-center bg-primary/5 rounded-xl border border-primary/10">
+              <span className="text-sm font-bold text-primary tracking-tight">
+                {alertFilter === 'all' ? totalCount : (alertFilteredAll?.length ?? 0)} RECORDS
+              </span>
+            </div>
+            <div className="flex items-center gap-1 bg-muted/30 rounded-xl p-1 h-12">
+              <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="icon" className={`h-10 w-10 rounded-lg transition-all ${viewMode === 'table' ? 'shadow-md' : 'hover:bg-white/50'}`} onClick={() => setViewMode('table')}><List size={20} weight="bold" /></Button>
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="icon" className={`h-10 w-10 rounded-lg transition-all ${viewMode === 'grid' ? 'shadow-md' : 'hover:bg-white/50'}`} onClick={() => setViewMode('grid')}><SquaresFour size={20} weight="bold" /></Button>
             </div>
           </div>
         </div>
@@ -742,29 +885,33 @@ export default function TrademarksPage() {
       />
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-48 rounded-3xl border-none shadow-sm" />)}
         </div>
       ) : totalCount === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center border rounded-xl">
-          <MagnifyingGlass size={48} className="text-muted-foreground opacity-30 mb-4" />
-          <Typography.h3a>No records found</Typography.h3a>
-          <Typography.muted>Try adjusting your search or filters.</Typography.muted>
+        <div className="flex flex-col items-center justify-center py-32 text-center border-2 border-dashed border-muted rounded-3xl bg-white/50">
+          <MagnifyingGlass size={64} className="text-muted-foreground/20 mb-6" weight="duotone" />
+          <Typography.h3 className="text-primary font-bold tracking-tight">No trademarks found</Typography.h3>
+          <Typography.p className="text-muted-foreground font-medium mt-2">Try adjusting your search query or filters.</Typography.p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedRows.map(t => (
-              <Card key={t.id} className="p-4 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate(`/trademarks/${t.id}`)}>
-                <div className="flex items-start gap-3">
-                  <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
+              <Card key={t.id} className="p-6 cursor-pointer border-none shadow-sm hover:shadow-premium hover:-translate-y-1 transition-all duration-500 bg-white rounded-3xl group" onClick={() => navigate(`/trademarks/${t.id}`)}>
+                <div className="flex items-start gap-5">
+                  <div className="group-hover:scale-110 transition-transform duration-500">
+                    <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
+                  </div>
                   <div className="flex-1 min-w-0">
-                      <Typography.h4a className="truncate">{markLabel(t)}</Typography.h4a>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline">{t.jurisdiction || 'ET'}</Badge>
-                      <Badge className={STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}>{t.status || 'DRAFT'}</Badge>
+                      <Typography.h4 className="truncate font-bold tracking-tight text-primary group-hover:text-accent transition-colors text-lg">{markLabel(t)}</Typography.h4>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <Badge variant="outline" className="bg-muted/30 border-none font-bold text-[10px] px-2 py-0.5">{t.jurisdiction || 'ET'}</Badge>
+                      <Badge className={`${STATUS_COLORS[t.status || 'DRAFT'] || 'bg-primary'} border-none shadow-sm font-bold text-[10px] px-2 py-0.5 tracking-wider`}>
+                        {STATUS_NAMES[t.status || 'DRAFT'] || t.status || 'DRAFT'}
+                      </Badge>
                     </div>
-                    <div className="mt-2 text-sm text-muted-foreground">{t.client_name || t.client?.name || '—'}</div>
+                    <div className="mt-4 text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">{t.client_name || t.client?.name || '—'}</div>
                   </div>
                 </div>
               </Card>
@@ -809,69 +956,108 @@ export default function TrademarksPage() {
           )}
         </div>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto max-w-full">
-            <table className="w-full min-w-[600px] md:min-w-[800px]">
+        <Card className="overflow-hidden border-none shadow-sm bg-white rounded-3xl">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[600px] md:min-w-[800px] text-black">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-semibold w-10">
+                <tr className="border-b border-muted/30 bg-muted/10 sticky top-0 z-30">
+                  <th className="sticky left-0 z-40 bg-muted/10 px-6 py-5 text-left text-sm font-bold tracking-wide text-black w-12 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                     <button
                       onClick={toggleSelectAll}
-                      className="flex items-center justify-center"
+                      className="flex items-center justify-center hover:scale-110 transition-transform"
                     >
                       {selectedIds.size === filteredRows.length && filteredRows.length > 0 ? (
-                        <CheckSquare size={18} className="text-primary" weight="fill" />
+                        <CheckSquare size={20} className="text-primary" weight="fill" />
                       ) : (
-                        <Square size={18} className="text-muted-foreground" />
+                        <Square size={20} className="text-muted-foreground/40" />
                       )}
                     </button>
                   </th>
-                  {visibleColumnDefs.map(col => (
-                    <th
-                      key={col.id}
-                      className={`px-4 py-3 text-sm font-semibold ${
-                        col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction'
-                          ? 'text-left'
-                          : col.id === 'actions'
-                          ? 'text-right'
-                          : 'text-center'
-                      }`}
-                    >
-                      {col.label}
-                    </th>
-                  ))}
+                  <th
+                    className="sticky left-12 z-40 bg-muted/10 px-4 py-5 text-left text-sm font-bold tracking-wide text-black w-28 cursor-pointer select-none hover:text-primary transition-colors shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
+                    onClick={() => handleSort('alert')}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      Alert
+                      {sortKey === 'alert' ? (
+                        sortDir === 'asc'
+                          ? <CaretUp size={12} weight="bold" className="text-primary" />
+                          : <CaretDown size={12} weight="bold" className="text-primary" />
+                      ) : (
+                        <CaretUp size={12} weight="bold" className="opacity-30" />
+                      )}
+                    </div>
+                  </th>
+                  {visibleColumnDefs.map(col => {
+                    const isSortable = col.id === 'markName' || col.id === 'nextActionDate'
+                    const isSorted = sortKey === col.id
+                    const isSticky = col.id === 'markName'
+                    return (
+                      <th
+                        key={col.id}
+                        className={`px-6 py-5 text-sm font-bold tracking-wide text-black ${
+                          col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction'
+                            ? 'text-left'
+                            : col.id === 'actions'
+                            ? 'text-right'
+                            : 'text-center'
+                        } ${isSortable ? 'cursor-pointer select-none hover:text-primary transition-colors' : ''} ${isSticky ? 'sticky left-40 z-20 bg-muted/10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]' : ''}`}
+                        onClick={isSortable ? () => handleSort(col.id as 'markName' | 'nextActionDate') : undefined}
+                      >
+                        <div className={`flex items-center gap-1.5 ${col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction' ? '' : 'justify-center'}`}>
+                          {col.label}
+                          {isSortable && (
+                            isSorted
+                              ? (sortDir === 'asc'
+                                  ? <CaretUp size={12} weight="bold" className="text-primary" />
+                                  : <CaretDown size={12} weight="bold" className="text-primary" />)
+                              : <CaretUp size={12} weight="bold" className="opacity-30" />
+                          )}
+                        </div>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-muted/20">
                 {paginatedRows.map(t => (
-                  <tr key={t.id} className="hover:bg-muted/50">
-                    <td className="px-4 py-3">
+                  <tr key={t.id} className="hover:bg-primary/[0.02] transition-colors group">
+                    <td className="sticky left-0 z-10 bg-white px-6 py-5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-primary/[0.02]">
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSelect(t.id) }}
-                        className="flex items-center justify-center"
+                        className="flex items-center justify-center hover:scale-110 transition-transform"
                       >
                         {selectedIds.has(t.id) ? (
-                          <CheckSquare size={18} className="text-primary" weight="fill" />
+                          <CheckSquare size={20} className="text-primary" weight="fill" />
                         ) : (
-                          <Square size={18} className="text-muted-foreground" />
+                          <Square size={20} className="text-muted-foreground/20 group-hover:text-muted-foreground/40 transition-colors" />
                         )}
                       </button>
                     </td>
+                    <td className="sticky left-12 z-10 bg-white px-4 py-5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-primary/[0.02]">
+                      <DeadlineAlertPill row={t} />
+                    </td>
                     {visibleColumnDefs.map(col => {
                       const isClickable = !['actions', 'markImage', 'colorIndication'].includes(col.id)
+                      const isSticky = col.id === 'markName'
                       return (
                         <td
                           key={col.id}
-                          className={`px-4 py-3 ${
+                          className={`px-6 py-5 text-black ${
                             col.id === 'markName' || col.id === 'clientName'
                               ? 'text-left'
                               : col.id === 'actions'
                               ? 'text-right'
                               : 'text-center'
-                          } ${isClickable ? 'cursor-pointer' : ''} ${col.id === 'clientName' ? 'truncate max-w-[150px]' : ''}`}
+                          } ${isClickable ? 'cursor-pointer' : ''} ${col.id === 'clientName' ? 'truncate max-w-[200px]' : ''} ${isSticky ? 'sticky left-40 z-10 bg-white shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-primary/[0.02]' : ''}`}
                           onClick={isClickable ? () => navigate(`/trademarks/${t.id}`) : undefined}
                         >
-                          {renderCell(t, col)}
+                          {col.id === 'markName' ? (
+                            <div className="flex items-center gap-4">
+                              <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
+                              <span className="font-bold text-primary group-hover:text-accent transition-colors tracking-tight text-base">{markLabel(t)}</span>
+                            </div>
+                          ) : renderCell(t, col)}
                         </td>
                       )
                     })}
@@ -881,10 +1067,10 @@ export default function TrademarksPage() {
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="flex flex-col items-center justify-center gap-4 border-t px-4 py-6">
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={16} /></Button>
-                <div className="flex items-center gap-1">
+            <div className="flex flex-col items-center justify-center gap-6 border-t border-muted/30 px-6 py-10 bg-muted/5">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={20} weight="bold" /></Button>
+                <div className="flex items-center gap-2">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                     // Show first page, last page, and pages around current page
                     if (
@@ -897,6 +1083,7 @@ export default function TrademarksPage() {
                           key={page} 
                           variant={currentPage === page ? 'default' : 'ghost'} 
                           size="sm" 
+                          className={`min-w-[40px] h-10 rounded-xl font-bold ${currentPage === page ? 'shadow-lg' : 'hover:bg-white hover:shadow-sm'}`}
                           onClick={() => setCurrentPage(page)}
                         >
                           {page}
@@ -906,14 +1093,14 @@ export default function TrademarksPage() {
                       page === currentPage - 2 || 
                       page === currentPage + 2
                     ) {
-                      return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                      return <span key={page} className="px-2 text-muted-foreground/40 font-bold">•••</span>;
                     }
                     return null;
                   })}
                 </div>
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><CaretRight size={16} /></Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><CaretRight size={20} weight="bold" /></Button>
               </div>
-              <span className="text-sm text-muted-foreground font-medium">
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
                 Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} records
               </span>
             </div>

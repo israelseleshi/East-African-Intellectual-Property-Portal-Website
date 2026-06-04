@@ -62,11 +62,13 @@ export default function DeadlineDetailPage() {
       if (!id) return
       try {
         setLoading(true)
-        const cases = await trademarkService.getCases()
+        const response = await trademarkService.getCases()
+        type CaseWithDeadlines = { id: string; deadlines?: DeadlineDetail[]; mark_name?: string; markName?: string; jurisdiction?: string; client_name?: string; mark_image?: string; status?: string }
+        const cases = (Array.isArray(response?.rows) ? response.rows : []) as CaseWithDeadlines[]
         let found: DeadlineDetail | null = null
         
         for (const c of cases) {
-          const dl = (c.deadlines || []).find((d: any) => d.id === id)
+          const dl = (c.deadlines || []).find((d: DeadlineDetail) => d.id === id)
           if (dl) {
             found = {
               ...dl,
@@ -107,23 +109,23 @@ export default function DeadlineDetailPage() {
   const currentContext = strategicContexts[deadline.type.toUpperCase()] || strategicContexts.GENERIC
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500 bg-[#F8F9FA] min-h-screen">
       <header className="flex items-center gap-4 mb-8">
-        <Button variant="outline" size="icon" onClick={() => navigate('/deadlines')} className="rounded-full shadow-sm">
-          <ArrowLeft size={20} />
+        <Button variant="outline" size="icon" onClick={() => navigate('/deadlines')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
+          <ArrowLeft size={24} weight="bold" />
         </Button>
         <div>
-          <Typography.h1a>Deadline Intelligence</Typography.h1a>
+          <Typography.h1a className="font-black">Deadline Intelligence</Typography.h1a>
           <Typography.muted>Detailed analysis for {deadline.mark_name}</Typography.muted>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 border-border shadow-md overflow-hidden bg-card">
-          <CardHeader className="bg-primary/5 border-b">
+        <Card className="md:col-span-2 border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white">
+          <CardHeader className="bg-[#F8F9FA] border-b py-6 px-8">
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle><Typography.h3a>{DEADLINE_TYPE_LABELS[deadline.type.toUpperCase()] || deadline.type}</Typography.h3a></CardTitle>
+                <CardTitle className="text-xl font-black tracking-tight">{DEADLINE_TYPE_LABELS[deadline.type.toUpperCase()] || deadline.type}</CardTitle>
                 <Typography.muted>Critical Action Required</Typography.muted>
               </div>
               <Badge variant={isOverdue ? 'destructive' : 'default'} className="px-4 py-1 rounded-full">
@@ -177,20 +179,20 @@ export default function DeadlineDetailPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-border shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+          <Card className="border-none shadow-premium rounded-3xl overflow-hidden group hover:shadow-xl transition-shadow bg-white">
             <CardContent className="p-8 space-y-6">
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Trademark Entity</p>
                 <Typography.h2a>{deadline.mark_name}</Typography.h2a>
                 <Typography.muted>{deadline.client_name}</Typography.muted>
               </div>
-              <Button className="w-full font-bold h-12 rounded-xl text-base shadow-sm hover:shadow-md transition-all" onClick={() => navigate(`/trademarks/${deadline.case_id}`)}>
+              <Button className="w-full font-black h-12 rounded-xl text-sm shadow-premium hover:shadow-xl transition-all" onClick={() => navigate(`/trademarks/${deadline.case_id}`)}>
                 View Full Case Profile
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="bg-muted/30 border-none shadow-inner">
+          <Card className="bg-white border-none shadow-premium rounded-3xl">
             <CardContent className="p-6 space-y-4">
                <div className="flex items-center gap-3">
                  <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center shadow-sm text-xl">

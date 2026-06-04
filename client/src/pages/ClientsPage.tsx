@@ -290,81 +290,25 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
-          <div className="space-y-2">
-            <Typography.h1a data-tour="page-title">Clients</Typography.h1a>
-            <Typography.muted>Manage and organize your client database across jurisdictions.</Typography.muted>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {selectedIds.size > 0 && (
-              <div className="flex items-center gap-2 mr-2">
-                {selectedIds.size === 2 && (
-                  <Button
-                    onClick={() => setShowMergeDialog(true)}
-                    disabled={isMerging}
-                    variant="secondary"
-                    className="flex items-center gap-2"
-                  >
-                    <ArrowsMerge size={16} />
-                    <span>Merge</span>
-                  </Button>
-                )}
-                <Button
-                  onClick={() => setShowDeleteDialog(true)}
-                  disabled={isDeleting}
-                  variant="destructive"
-                  className="flex items-center gap-2"
-                >
-                <Trash size={16} />
-                <span>Delete {selectedIds.size}</span>
-              </Button>
-            </div>
-          )}
-          <Button
-            onClick={handleExportExcel}
-            variant="outline"
-            className="flex items-center gap-2 bg-white"
-          >
-            <FileArrowDown size={16} />
-            <span>Export Excel</span>
-          </Button>
-            <Button
-              onClick={() => navigate('/clients/new')}
-              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus size={16} weight="bold" />
-              <span>New Client</span>
-            </Button>
-          </div>
+      <div className="w-full p-4 md:p-10 space-y-8 bg-[#F8F9FA] text-foreground min-h-screen">
+        <header className="flex items-center justify-between">
+          <Skeleton className="h-12 w-64" />
+          <Skeleton className="h-10 w-48" />
         </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="border shadow-sm">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-12 w-12 rounded-lg" />
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-6 md:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
         </div>
+        <Card className="border-none shadow-premium"><CardContent className="p-10"><Skeleton className="h-96 w-full rounded-2xl" /></CardContent></Card>
       </div>
     )
   }
 
   return (
-    <div className="w-full space-y-8 bg-[#E8E8ED] text-foreground min-h-screen">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-8 pt-4 md:pt-8">
+    <div className="w-full space-y-8 bg-[#F8F9FA] text-foreground min-h-screen">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-10 pt-4 md:pt-10">
         <div className="space-y-2">
-          <Typography.h1a data-tour="page-title">Clients</Typography.h1a>
-          <Typography.muted>Manage and organize your client database across jurisdictions.</Typography.muted>
+          <Typography.h1 className="tracking-tight font-bold">Client Portfolio</Typography.h1>
+          <Typography.p className="text-muted-foreground text-lg font-medium opacity-80">Manage and organize your regional client database with ease.</Typography.p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <HelpButton pageId="clients" />
@@ -375,19 +319,19 @@ export default function ClientsPage() {
                   onClick={() => setShowMergeDialog(true)}
                   disabled={isMerging}
                   variant="secondary"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
                 >
-                  <ArrowsMerge size={16} />
-                  <span>Merge</span>
+                  <ArrowsMerge size={20} weight="bold" />
+                  <span>Merge Records</span>
                 </Button>
               )}
               <Button
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={isDeleting}
                 variant="destructive"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
               >
-                <Trash size={16} />
+                <Trash size={20} weight="bold" />
                 <span>Delete {selectedIds.size}</span>
               </Button>
             </div>
@@ -395,18 +339,18 @@ export default function ClientsPage() {
           <Button
             onClick={handleExportExcel}
             variant="outline"
-            className="flex items-center gap-2 bg-white"
+            className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold"
           >
-            <FileArrowDown size={16} />
-            <span>Export Excel</span>
+            <FileArrowDown size={20} className="mr-2" />
+            <span>Export CSV Report</span>
           </Button>
           <Button
             onClick={() => navigate('/clients/new')}
-            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
             data-tour="new-client-btn"
           >
-            <Plus size={16} weight="bold" />
-            <span>New Client</span>
+            <Plus size={20} weight="bold" className="mr-2" />
+            <span>New Client Record</span>
           </Button>
         </div>
       </header>
@@ -476,9 +420,9 @@ export default function ClientsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm mx-4 md:mx-8">
-        <div className="relative flex-1 max-w-md group">
-          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/80 backdrop-blur-md p-6 rounded-2xl border-none shadow-premium mx-4 md:mx-10">
+        <div className="relative flex-1 max-w-xl group">
+          <MagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
           <Input
             value={searchQuery}
             onChange={(e) => {
@@ -487,74 +431,74 @@ export default function ClientsPage() {
                 setSearchQuery(value)
               })
             }}
-            placeholder="Search clients..."
-            className="pl-10 bg-white border-muted hover:border-border transition-colors"
+            placeholder="Search by client name, email or location..."
+            className="pl-12 h-12 bg-[#F8F9FA] border-none rounded-xl focus-visible:ring-primary/20 transition-all text-base"
             data-tour="search-input"
           />
           {isFiltering && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Select value={selectedType} onValueChange={(val) => startFilterTransition(() => setSelectedType(val as any))}>
-            <SelectTrigger className="w-[160px] bg-white" data-tour="filter-type">
+            <SelectTrigger className="w-[180px] h-12 bg-[#F8F9FA] border-none rounded-xl font-medium focus:ring-primary/20" data-tour="filter-type">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Types</SelectItem>
+            <SelectContent className="rounded-xl border-none shadow-xl">
+              <SelectItem value="ALL">All Client Types</SelectItem>
               <SelectItem value="INDIVIDUAL">Individual</SelectItem>
               <SelectItem value="COMPANY">Company</SelectItem>
               <SelectItem value="PARTNERSHIP">Partnership</SelectItem>
             </SelectContent>
           </Select>
           
-          <div className="flex items-center bg-muted/50 p-1 rounded-lg border" data-tour="view-toggle">
+          <div className="flex items-center bg-[#F8F9FA] p-1.5 rounded-xl border-none shadow-inner" data-tour="view-toggle">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-white/50'}`}
+              className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               title="Grid View"
             >
-              <SquaresFour size={18} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+              <SquaresFour size={22} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-white/50'}`}
+              className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               title="Table View"
             >
-              <List size={18} weight={viewMode === 'table' ? 'fill' : 'regular'} />
+              <List size={22} weight={viewMode === 'table' ? 'fill' : 'regular'} />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 mx-4 md:mx-8 pb-8">
+      <div className="mt-8 mx-4 md:px-10 pb-12">
         {(clients || []).length === 0 ? (
-          <Card className="flex flex-col items-center justify-center py-24 text-center border-dashed">
-            <div className="p-4 rounded-full bg-muted/50 mb-4">
-              <Building size={48} weight="duotone" className="text-muted-foreground opacity-50" />
+          <Card className="flex flex-col items-center justify-center py-32 text-center border-none shadow-premium rounded-3xl bg-white">
+            <div className="p-6 rounded-full bg-primary/5 mb-6">
+              <Building size={64} weight="duotone" className="text-primary/40" />
             </div>
-            <Typography.h3a className="mb-2">No clients found</Typography.h3a>
-              <Typography.muted className="max-w-sm mx-auto">
+            <Typography.h3 className="mb-2 font-bold">No clients found</Typography.h3>
+              <Typography.p className="max-w-md mx-auto text-muted-foreground text-lg">
                 {searchQuery ? "We couldn't find any clients matching your search or filters." : 'Add your first client to start managing their intellectual property portfolio.'}
-              </Typography.muted>
+              </Typography.p>
             {!searchQuery && (
-              <Button onClick={() => navigate('/clients/new')} className="mt-6">
-                <Plus className="mr-2" size={16} /> Add Client
+              <Button onClick={() => navigate('/clients/new')} className="mt-8 h-12 px-8 rounded-xl shadow-lg">
+                <Plus className="mr-2" size={20} weight="bold" /> Add Client
               </Button>
             )}
           </Card>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {sortedClients.map((client) => {
               const Icon = CLIENT_TYPE_ICONS[client.type] || Building;
               const isSelected = selectedIds.has(client.id);
               return (
                 <Card
                   key={client.id}
-                  className={`group relative flex flex-col cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50 overflow-hidden ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border bg-card'}`}
+                  className={`group relative flex flex-col cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 rounded-3xl overflow-hidden border-none ${isSelected ? 'ring-2 ring-primary bg-primary/5 shadow-xl' : 'bg-white shadow-premium'}`}
                   onClick={() => navigate(`/clients/${client.id}`)}
                   data-tour="client-card"
                 >
@@ -563,35 +507,37 @@ export default function ClientsPage() {
                       e.stopPropagation();
                       toggleSelect(client.id);
                     }}
-                    className={`absolute top-3 right-3 z-10 p-1 rounded-md bg-white/80 backdrop-blur-sm transition-opacity ${isSelected ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground'}`}
+                    className={`absolute top-4 right-4 z-10 p-1.5 rounded-xl bg-white/90 backdrop-blur-sm transition-all shadow-sm ${isSelected ? 'opacity-100 text-primary scale-110' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:scale-110'}`}
                   >
-                    {isSelected ? <CheckSquare size={22} weight="fill" /> : <Square size={22} />}
+                    {isSelected ? <CheckSquare size={24} weight="fill" /> : <Square size={24} />}
                   </button>
 
-                  <CardContent className="flex-1 p-5 pt-6">
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className={`p-3 rounded-xl transition-colors ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
-                        <Icon size={24} weight="duotone" />
+                  <CardContent className="flex-1 p-8 pt-10">
+                    <div className="flex flex-col items-center text-center mb-6">
+                      <div className={`p-5 rounded-2xl transition-all duration-300 mb-4 ${isSelected ? 'bg-primary text-primary-foreground shadow-lg scale-110' : 'bg-[#F8F9FA] text-primary group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:scale-110'}`}>
+                        <Icon size={32} weight="duotone" />
                       </div>
-                      <div className="flex-1 min-w-0 pt-1">
-                        <Typography.h4a className="truncate group-hover:text-primary transition-colors">
-                          {client.name}
-                        </Typography.h4a>
-                        <Badge variant="secondary" className="mt-1 text-xs font-medium">
-                          {CLIENT_TYPE_LABELS[client.type]}
-                        </Badge>
-                      </div>
+                      <Typography.h3 className="line-clamp-2 font-bold mb-2 group-hover:text-primary transition-colors h-14 flex items-center justify-center">
+                        {client.name}
+                      </Typography.h3>
+                      <Badge variant="secondary" className="bg-[#F8F9FA] text-primary border-none font-bold tracking-wider uppercase text-[10px] px-3 py-1 rounded-full">
+                        {CLIENT_TYPE_LABELS[client.type]}
+                      </Badge>
                     </div>
 
-                    <div className="space-y-3 mt-auto pt-4 border-t border-border/50">
+                    <div className="space-y-4 pt-6 border-t border-[#F8F9FA]">
                       {client.email && (
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <Envelope size={16} className="shrink-0" />
+                        <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                          <div className="p-2 rounded-lg bg-[#F8F9FA]">
+                            <Envelope size={18} className="text-primary/60" />
+                          </div>
                           <span className="truncate">{client.email}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <MapPin size={16} className="shrink-0" />
+                      <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                        <div className="p-2 rounded-lg bg-[#F8F9FA]">
+                          <MapPin size={18} className="text-primary/60" />
+                        </div>
                         <span className="truncate">
                           {[client.city, client.nationality].filter(Boolean).join(', ') || 'No location provided'}
                         </span>
@@ -603,74 +549,74 @@ export default function ClientsPage() {
             })}
           </div>
         ) : (
-          <Card className="overflow-hidden border shadow-sm">
+          <Card className="overflow-hidden border-none shadow-premium rounded-3xl bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase bg-muted/50 border-b">
+              <table className="w-full text-left">
+                <thead className="text-[11px] uppercase tracking-widest bg-[#F8F9FA] text-muted-foreground font-bold border-none">
                   <tr>
-                    <th className="px-4 py-3 w-12">
-                      <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground">
+                    <th className="px-8 py-5 w-16">
+                      <button onClick={toggleSelectAll} className="hover:text-primary transition-colors">
                         {selectedIds.size === (clients || []).length && (clients || []).length > 0 ? (
-                          <CheckSquare size={18} weight="fill" className="text-primary" />
+                          <CheckSquare size={22} weight="fill" className="text-primary" />
                         ) : (
-                          <Square size={18} />
+                          <Square size={22} />
                         )}
                       </button>
                     </th>
-                    <th className="px-4 py-3 font-semibold">
-                      <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-primary transition-colors">
-                        Client {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
+                    <th className="px-6 py-5">
+                      <button onClick={() => handleSort('name')} className="flex items-center gap-2 hover:text-primary transition-colors">
+                        Client Name {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
                       </button>
                     </th>
-                    <th className="px-4 py-3 font-semibold">
-                      <button onClick={() => handleSort('type')} className="flex items-center gap-1 hover:text-primary transition-colors">
-                        Type {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
+                    <th className="px-6 py-5">
+                      <button onClick={() => handleSort('type')} className="flex items-center gap-2 hover:text-primary transition-colors">
+                        Category {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
                       </button>
                     </th>
-                    <th className="px-4 py-3 font-semibold">
-                      <button onClick={() => handleSort('email')} className="flex items-center gap-1 hover:text-primary transition-colors">
-                        Email {sortConfig?.key === 'email' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
+                    <th className="px-6 py-5">
+                      <button onClick={() => handleSort('email')} className="flex items-center gap-2 hover:text-primary transition-colors">
+                        Contact Email {sortConfig?.key === 'email' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
                       </button>
                     </th>
-                    <th className="px-4 py-3 font-semibold">
-                      <button onClick={() => handleSort('location')} className="flex items-center gap-1 hover:text-primary transition-colors">
-                        Location {sortConfig?.key === 'location' && (sortConfig.direction === 'asc' ? <CaretUp size={12} /> : <CaretDown size={12} />)}
+                    <th className="px-6 py-5">
+                      <button onClick={() => handleSort('location')} className="flex items-center gap-2 hover:text-primary transition-colors">
+                        Headquarters {sortConfig?.key === 'location' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
                       </button>
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-[#F8F9FA]">
                   {sortedClients.map((client) => {
                     const Icon = CLIENT_TYPE_ICONS[client.type] || Building;
                     const isSelected = selectedIds.has(client.id);
                     return (
                       <tr
                         key={client.id}
-                        className={`group cursor-pointer transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : 'bg-white'}`}
+                        className={`group cursor-pointer transition-all hover:bg-[#F8F9FA] ${isSelected ? 'bg-primary/5' : 'bg-white'}`}
                         onClick={() => navigate(`/clients/${client.id}`)}
                       >
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => toggleSelect(client.id)} className="text-muted-foreground hover:text-foreground">
-                            {isSelected ? <CheckSquare size={18} weight="fill" className="text-primary" /> : <Square size={18} />}
+                        <td className="px-8 py-5" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => toggleSelect(client.id)} className="text-muted-foreground hover:text-primary transition-colors">
+                            {isSelected ? <CheckSquare size={22} weight="fill" className="text-primary" /> : <Square size={22} />}
                           </button>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                              <Icon size={16} weight="duotone" />
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2.5 rounded-xl bg-[#F8F9FA] text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                              <Icon size={20} weight="duotone" />
                             </div>
-                            <span className="font-medium">{client.name}</span>
+                            <span className="font-bold text-base text-[#1A1A1A] group-hover:text-primary transition-colors">{client.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className="font-normal bg-white">
+                        <td className="px-6 py-5">
+                          <Badge variant="outline" className="font-bold text-[10px] tracking-wider uppercase bg-[#F8F9FA] border-none px-3 py-1 rounded-full text-primary">
                             {CLIENT_TYPE_LABELS[client.type]}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-6 py-5 font-medium text-[#4A4A4A]">
                           {client.email || '—'}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-6 py-5 font-medium text-[#4A4A4A]">
                           {[client.city, client.nationality].filter(Boolean).join(', ') || '—'}
                         </td>
                       </tr>
@@ -684,41 +630,40 @@ export default function ClientsPage() {
 
         {/* Pagination Controls */}
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 px-1">
-            <p className="text-sm text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, totalRecords)}</span> of <span className="font-medium text-foreground">{totalRecords}</span> clients
+          <div className="flex flex-col md:flex-row items-center justify-between mt-10 gap-6">
+            <p className="text-sm font-semibold text-muted-foreground order-2 md:order-1">
+              Showing <span className="text-foreground">{(currentPage - 1) * pageSize + 1}</span> to <span className="text-foreground">{Math.min(currentPage * pageSize, totalRecords)}</span> of <span className="text-foreground">{totalRecords}</span> clients
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 order-1 md:order-2">
               <Button
-                variant="outline"
-                size="icon"
+                variant="ghost"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="h-8 w-8"
+                className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
               >
-                <CaretLeft size={16} />
+                <CaretLeft size={20} weight="bold" className="mr-2" />
+                Previous
               </Button>
-              <div className="flex items-center gap-1 px-2">
+              <div className="flex items-center gap-1.5 px-2">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                   <Button
                     key={page}
                     variant={currentPage === page ? 'default' : 'ghost'}
-                    size="sm"
                     onClick={() => setCurrentPage(page)}
-                    className={`h-8 w-8 p-0 ${currentPage === page ? '' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`h-11 w-11 p-0 rounded-xl font-bold transition-all ${currentPage === page ? 'shadow-lg shadow-primary/20 scale-110' : 'hover:bg-white hover:shadow-premium'}`}
                   >
                     {page}
                   </Button>
                 ))}
               </div>
               <Button
-                variant="outline"
-                size="icon"
+                variant="ghost"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="h-8 w-8"
+                className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
               >
-                <CaretRight size={16} />
+                Next
+                <CaretRight size={20} weight="bold" className="ml-2" />
               </Button>
             </div>
           </div>

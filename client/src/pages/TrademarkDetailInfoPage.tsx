@@ -228,13 +228,22 @@ function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: st
   const current = candidates[candidateIndex]
 
   return (
-    <div className="flex h-24 sm:h-32 md:h-40 w-24 sm:w-32 md:w-40 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-muted-foreground shadow-sm border border-border">
+    <div className="flex h-32 sm:h-40 md:h-56 w-32 sm:w-40 md:w-56 shrink-0 items-center justify-center overflow-hidden rounded-[2.5rem] bg-white text-muted-foreground shadow-premium border-none transition-transform hover:scale-105 duration-500">
       {!failed && current ? (
-        <img src={current} alt={`${label} logo`} className="h-full w-full object-contain" onError={() => {
+        <img src={current} alt={`${label} logo`} className="h-full w-full object-contain p-6" onError={() => {
           if (candidateIndex < candidates.length - 1) setCandidateIndex(idx => idx + 1)
           else setFailed(true)
         }} />
-      ) : <Buildings size={40} className="sm:w-12 md:w-16" />}
+      ) : <Buildings size={64} weight="duotone" className="opacity-20" />}
+    </div>
+  )
+}
+
+function Field({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+      <div className="text-sm font-medium">{value || '—'}</div>
     </div>
   )
 }
@@ -268,7 +277,7 @@ export default function TrademarkDetailInfoPage() {
         const data = await trademarkService.getCase(id)
         if (!active) return
         setTm(data)
-        setOverrideTitle(data.markName || data.mark_name || 'Trademark')
+        setOverrideTitle(data.markName || data.mark_name || 'Trademark Record')
       } catch { if (!active) return; setTm(null) }
       finally { if (active) setLoading(false) }
     }
@@ -497,9 +506,6 @@ export default function TrademarkDetailInfoPage() {
           setFormData({})
           setMarkImagePreview(null)
         }
-      } else {
-        setIsEditing(false)
-        setFormData({})
       }
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } }
@@ -514,7 +520,7 @@ export default function TrademarkDetailInfoPage() {
     try {
       const data = await trademarkService.getCase(id)
       setTm(data)
-      setOverrideTitle(data.markName || data.mark_name || 'Trademark')
+      setOverrideTitle(data.markName || data.mark_name || 'Trademark Record')
     } catch {
       setTm(null)
     }
@@ -522,7 +528,7 @@ export default function TrademarkDetailInfoPage() {
 
   const handleDownloadForm = async () => {
     if (!tm) return
-    const loadingToastId = toast.loading('Preparing PDF...')
+    const loadingToastId = toast.loading('Preparing regional form PDF...')
     try {
       const isRenewal = (tm.status || '').toUpperCase() === 'RENEWAL' || (tm.markType || tm.mark_type || '').toUpperCase() === 'RENEWAL'
       const pdfUrl = isRenewal ? '/renewal_form.pdf' : '/application_form.pdf'
@@ -572,10 +578,10 @@ export default function TrademarkDetailInfoPage() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast.success('Download Started', { id: loadingToastId })
+      toast.success('Regional Form Exported', { id: loadingToastId })
     } catch (err) {
       console.error('Download error:', err)
-      toast.error('Download Failed: Could not generate PDF form', { id: loadingToastId })
+      toast.error('Export Failed: PDF engine error', { id: loadingToastId })
     }
   }
 
@@ -588,13 +594,18 @@ export default function TrademarkDetailInfoPage() {
 
   if (loading) {
     return (
-      <div className="w-full mx-auto p-3 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
-        <header className="flex items-center gap-3 sm:gap-4 mb-6">
-          <Skeleton className="h-10 w-10 rounded-lg" />
-          <div><Skeleton className="h-6 sm:h-8 w-48 sm:w-64" /><Skeleton className="h-4 w-32 sm:w-48 mt-2" /></div>
+      <div className="w-full mx-auto p-4 md:p-10 space-y-8 bg-[#F8F9FA] min-h-screen">
+        <header className="flex items-center gap-6 mb-8">
+          <Skeleton className="h-12 w-12 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-4 w-48 rounded-lg" />
+          </div>
         </header>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-36 sm:h-40 md:h-48 rounded-lg" />)}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <Skeleton className="lg:col-span-6 h-96 rounded-3xl" />
+          <Skeleton className="lg:col-span-6 h-96 rounded-3xl" />
+          <Skeleton className="lg:col-span-12 h-64 rounded-3xl" />
         </div>
       </div>
     )
@@ -602,271 +613,290 @@ export default function TrademarkDetailInfoPage() {
 
   if (!tm) {
     return (
-      <div className="w-full mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-12 sm:py-24">
-        <div className="text-lg sm:text-xl font-bold">Trademark not found</div>
-        <Button onClick={() => navigate('/trademarks')} className="mt-4">Back to Trademarks</Button>
+      <div className="w-full mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-24 bg-[#F8F9FA] min-h-screen text-center">
+        <div className="p-6 rounded-full bg-primary/5 mb-6">
+          <WarningCircle size={64} weight="duotone" className="text-primary/40" />
+        </div>
+        <Typography.h2 className="font-black mb-2">Record Not Found</Typography.h2>
+        <Typography.p className="text-muted-foreground mb-8 text-lg">We couldn't locate the trademark record you're looking for.</Typography.p>
+        <Button onClick={() => navigate('/trademarks')} className="h-12 px-8 rounded-xl shadow-lg">Back to Registry</Button>
       </div>
     )
   }
 
   const isRegistered = tm.status === 'REGISTERED'
-  const isPublished = tm.status === 'PUBLISHED'
 
   return (
-    <div className="w-full mx-auto p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 bg-[#E8E8ED] text-foreground min-h-screen">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="flex items-center gap-3 sm:gap-4 w-full">
-          <Button variant="outline" size="icon" onClick={() => navigate('/trademarks')} className="h-10 w-10 shrink-0">
-            <ArrowLeft size={20} />
+    <div className="w-full mx-auto p-4 md:px-10 pb-12 bg-[#F8F9FA] text-foreground min-h-screen space-y-10">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-6">
+        <div className="flex items-center gap-6 w-full">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/trademarks')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
+            <ArrowLeft size={24} weight="bold" />
           </Button>
-          <div className="min-w-0 flex-1">
-            <Typography.h2a className="truncate text-lg sm:text-xl">{markName}</Typography.h2a>
-            <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-2">
-              <Badge variant="default" className="text-xs">{filingNo}</Badge>
-              <Badge variant="outline" className="text-xs">{JURISDICTION_NAMES[tm.jurisdiction || 'ET'] || tm.jurisdiction}</Badge>
-              <Badge className={`text-xs ${STATUS_COLORS[tm.status || 'DRAFT'] || 'bg-primary text-primary-foreground'}`}>
+          <div className="min-w-0 flex-1 space-y-1">
+            <Typography.h1 className="truncate font-black tracking-tight">{markName}</Typography.h1>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <Badge className="bg-[#1A1A1A] text-white border-none font-bold tracking-widest uppercase text-[10px] px-3 py-1 rounded-full shadow-sm">{filingNo}</Badge>
+              <Badge variant="outline" className="bg-white border-none shadow-sm text-primary font-bold tracking-wider uppercase text-[10px] px-3 py-1 rounded-full">{JURISDICTION_NAMES[tm.jurisdiction || 'ET'] || tm.jurisdiction}</Badge>
+              <Badge className={`font-bold tracking-widest uppercase text-[10px] px-3 py-1 rounded-full border-none shadow-sm ${STATUS_COLORS[tm.status || 'DRAFT'] || 'bg-primary text-white'}`}>
                 {STATUS_NAMES[tm.status || 'DRAFT'] || tm.status}
               </Badge>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
+        <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto md:overflow-visible pb-2 md:pb-0">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={cancelEditing} disabled={isSaving} className="flex-1 sm:flex-none text-xs sm:text-sm">
-                <X size={16} className="sm:w-5" /><span className="hidden xs:inline">Cancel</span>
+              <Button variant="ghost" onClick={cancelEditing} disabled={isSaving} className="h-12 px-6 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl">
+                <X size={20} weight="bold" className="mr-2" />Cancel
               </Button>
-              <Button onClick={saveCase} disabled={isSaving} className="flex-1 sm:flex-none text-xs sm:text-sm">
-                <PencilSimpleLine size={16} className="sm:w-5" /><span className="hidden xs:inline">{isSaving ? 'Saving...' : 'Save'}</span>
+              <Button onClick={saveCase} disabled={isSaving} className="h-12 px-8 rounded-xl font-black shadow-lg shadow-primary/20">
+                <PencilSimpleLine size={20} weight="bold" className="mr-2" />{isSaving ? 'Processing...' : 'Commit Changes'}
               </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => navigate(`/case-flow/${tm.id}`)} disabled={fromTrash} title={fromTrash ? 'Cannot manage lifecycle of deleted items' : undefined} className="text-xs sm:text-sm px-2 sm:px-3">
-                <ClockCounterClockwise size={16} className="sm:w-5" /><span className="hidden sm:inline">Lifecycle</span>
+              <Button variant="ghost" onClick={() => navigate(`/case-flow/${tm.id}`)} disabled={fromTrash} title={fromTrash ? 'Cannot manage lifecycle of deleted items' : undefined} className="h-12 px-5 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl whitespace-nowrap">
+                <ClockCounterClockwise size={20} weight="bold" className="mr-2" />Record Lifecycle
               </Button>
               {isRegistered && !fromTrash && (
-                <Button variant="default" onClick={() => navigate(`/eipa-forms/renewal-form?caseId=${tm.id}`)} className="text-xs sm:text-sm px-2 sm:px-3">
-                  <FileText size={16} className="sm:w-5" /><span className="hidden sm:inline">Renew</span>
+                <Button variant="default" onClick={() => navigate(`/eipa-forms/renewal-form?caseId=${tm.id}`)} className="h-12 px-5 rounded-xl font-black shadow-lg shadow-primary/20 whitespace-nowrap">
+                  <FileText size={20} weight="bold" className="mr-2" />Process Renewal
                 </Button>
               )}
-              <Button variant="outline" onClick={handleDownloadForm} className="text-xs sm:text-sm px-2 sm:px-3">
-                <DownloadSimple size={16} className="sm:w-5" /><span className="hidden sm:inline">Export</span>
+              <Button variant="ghost" onClick={handleDownloadForm} className="h-12 px-5 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl whitespace-nowrap">
+                <DownloadSimple size={20} weight="bold" className="mr-2" />Export Form
               </Button>
-              <Button variant="outline" onClick={startEditing} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} className="text-xs sm:text-sm px-2 sm:px-3">
-                <PencilSimple size={16} className="sm:w-5" /><span className="hidden sm:inline">Edit</span>
+              <Button variant="ghost" onClick={startEditing} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} className="h-12 px-5 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl whitespace-nowrap">
+                <PencilSimple size={20} weight="bold" className="mr-2" />Edit Case
               </Button>
             </>
           )}
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* I. Applicant Summary (Condensed) */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-6">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
+        <Card className="border-none shadow-premium bg-white lg:col-span-6 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-5 px-8">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <User size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-                <CardTitle className="text-sm sm:text-base truncate">Applicant</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <User size={24} weight="duotone" />
+                </div>
+                <CardTitle className="text-lg font-black tracking-tight">Applicant Details</CardTitle>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-7 text-xs sm:text-sm text-primary hover:text-primary/80 hover:bg-primary/5 gap-1 shrink-0"
+                className="h-10 px-4 rounded-xl text-primary font-bold hover:bg-primary/5 gap-2"
                 onClick={() => navigate(`/clients/${tm.client?.id || ''}`)}
                 disabled={!tm.client}
               >
-                <span className="hidden sm:inline">Profile</span><ArrowLeft size={12} className="rotate-180 w-3.5 sm:w-4" />
+                View Profile <ArrowLeft size={16} weight="bold" className="rotate-180" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
-            <div className="space-y-2 sm:space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
-                <IdentificationCard size={12} className="sm:w-3.5" /> <span className="hidden xs:inline">Identity & Type</span>
+          <CardContent className="p-8 space-y-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-60">
+                <IdentificationCard size={16} weight="bold" /> Identity & Type
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                <Field label="Name" value={tm.client?.name || eipaField('applicant_name_english')} />
-                <Field label="Local" value={tm.client?.localName || eipaField('applicant_name_amharic')} />
-                <Field label="Type" value={eipaField('chk_company') ? 'Company' : (eipaField('chk_male') || eipaField('chk_female') ? 'Individual' : '—')} />
-                <Field label="Gender" value={eipaField('chk_male') ? 'Male' : (eipaField('chk_female') ? 'Female' : '—')} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Field label="Legal Entity Name" value={tm.client?.name || eipaField('applicant_name_english')} />
+                <Field label="Localized Name" value={tm.client?.localName || eipaField('applicant_name_amharic')} />
+                <Field label="Entity Category" value={eipaField('chk_company') ? 'Company' : (eipaField('chk_male') || eipaField('chk_female') ? 'Individual' : '—')} />
+                <Field label="Gender Indication" value={eipaField('chk_male') ? 'Male' : (eipaField('chk_female') ? 'Female' : '—')} />
               </div>
             </div>
             
-            <div className="pt-2 sm:pt-3 border-t border-border space-y-2 sm:space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
-                <Envelope size={12} className="sm:w-3.5" /> <span className="hidden xs:inline">Contact</span>
+            <div className="pt-8 border-t border-[#F8F9FA] space-y-4">
+              <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-60">
+                <Envelope size={16} weight="bold" /> Communication
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                <Field label="Email" value={tm.client?.email || eipaField('email')} />
-                <Field label="Phone" value={tm.client?.phone || eipaField('telephone')} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Field label="Primary Email" value={tm.client?.email || eipaField('email')} />
+                <Field label="Telephone Number" value={tm.client?.phone || eipaField('telephone')} />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* III. Agent Details */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-6">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-            <div className="flex items-center gap-2">
-              <Buildings size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base truncate">Agent</CardTitle>
+        <Card className="border-none shadow-premium bg-white lg:col-span-6 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Buildings size={24} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Legal Representative</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <EditableField label="Name" value={getDisplayValue('agent.name', tm.agent?.name || eipaField('agent_name'))} name={isEditing ? 'agent.name' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Country" type="country" value={getDisplayValue('agent.country', tm.agent?.country || eipaField('agent_country'))} name={isEditing ? 'agent.country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="City" value={getDisplayValue('agent.city', tm.agent?.city || eipaField('agent_city'))} name={isEditing ? 'agent.city' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Sub-City" value={getDisplayValue('agent.subcity', tm.agent?.subcity || eipaField('agent_subcity'))} name={isEditing ? 'agent.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Wereda" value={getDisplayValue('agent.woreda', eipaField('agent_woreda'))} name={isEditing ? 'agent.woreda' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="House No." value={getDisplayValue('agent.house_no', eipaField('agent_house_no'))} name={isEditing ? 'agent.house_no' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+          <CardContent className="p-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              <EditableField label="Agent Name" value={getDisplayValue('agent.name', tm.agent?.name || eipaField('agent_name'))} name={isEditing ? 'agent.name' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Agent Jurisdiction" type="country" value={getDisplayValue('agent.country', tm.agent?.country || eipaField('agent_country'))} name={isEditing ? 'agent.country' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Professional City" value={getDisplayValue('agent.city', tm.agent?.city || eipaField('agent_city'))} name={isEditing ? 'agent.city' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Sub-City / District" value={getDisplayValue('agent.subcity', tm.agent?.subcity || eipaField('agent_subcity'))} name={isEditing ? 'agent.subcity' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Agent Phone" value={getDisplayValue('agent.telephone', tm.agent?.telephone || eipaField('agent_telephone'))} name={isEditing ? 'agent.telephone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Professional Email" value={getDisplayValue('agent.email', tm.agent?.email || eipaField('agent_email'))} name={isEditing ? 'agent.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="P.O. Box" value={getDisplayValue('agent.poBox', tm.agent?.poBox || eipaField('agent_po_box'))} name={isEditing ? 'agent.poBox' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Phone" value={getDisplayValue('agent.telephone', tm.agent?.telephone || eipaField('agent_telephone'))} name={isEditing ? 'agent.telephone' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Email" value={getDisplayValue('agent.email', tm.agent?.email || eipaField('agent_email'))} name={isEditing ? 'agent.email' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Fax" value={getDisplayValue('agent.fax', eipaField('agent_fax'))} name={isEditing ? 'agent.fax' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Agent Fax" value={getDisplayValue('agent.fax', eipaField('agent_fax'))} name={isEditing ? 'agent.fax' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
           </CardContent>
         </Card>
 
         {/* IV. Mark Specification */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-12">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-            <div className="flex items-center gap-2">
-              <FileText size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base">IV. Mark Specification</CardTitle>
+        <Card className="border-none shadow-premium bg-white lg:col-span-12 rounded-[2.5rem] overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-6 px-10">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                <FileText size={28} weight="duotone" />
+              </div>
+              <CardTitle className="text-xl font-black tracking-tight">Technical Specification</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+          <CardContent className="p-10 space-y-10">
             {isEditing ? (
-              <div className="space-y-2 sm:space-y-3 mb-4">
-                <Label className="text-xs font-semibold text-muted-foreground">Mark Logo / Image</Label>
+              <div className="space-y-4 mb-8">
+                <Label className="text-xs font-black uppercase tracking-widest text-primary opacity-60 ml-2">Digital Mark Asset</Label>
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative aspect-video w-full max-w-xs mx-auto rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-primary transition-all"
+                  className="relative aspect-video w-full max-w-lg mx-auto rounded-[2.5rem] border-2 border-dashed border-primary/20 bg-[#F8F9FA] flex flex-col items-center justify-center gap-4 cursor-pointer group hover:border-primary/50 transition-all shadow-inner"
                 >
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                   {(markImagePreview || getDisplayValue('mark_image', tm.mark_image)) ? (
-                    <div className="relative w-full h-full p-2 sm:p-4">
-                      <img src={markImagePreview || resolveMarkImageUrl(getDisplayValue('mark_image', tm.mark_image))} alt="Mark preview" className="w-full h-full object-contain" />
-                      <button onClick={(e) => { e.stopPropagation(); removeImage(); }} className="absolute top-1 right-1 sm:top-2 sm:right-2 p-1 bg-white rounded-full shadow-md text-destructive">
-                        <XCircle size={18} className="w-4 sm:w-5" />
+                    <div className="relative w-full h-full p-8">
+                      <img src={markImagePreview || resolveMarkImageUrl(getDisplayValue('mark_image', tm.mark_image))} alt="Mark asset preview" className="w-full h-full object-contain" />
+                      <button onClick={(e) => { e.stopPropagation(); removeImage(); }} className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl text-destructive hover:scale-110 transition-transform">
+                        <XCircle size={24} weight="fill" />
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center text-center space-y-2 px-2">
-                      <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-full bg-background flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors"><Upload size={18} className="w-4 sm:w-5" /></div>
+                    <div className="flex flex-col items-center text-center space-y-3 px-6">
+                      <div className="h-16 w-16 rounded-3xl bg-white flex items-center justify-center text-primary/30 group-hover:text-primary transition-all shadow-sm group-hover:scale-110"><Upload size={32} weight="bold" /></div>
                       <div className="space-y-1">
-                        <p className="text-xs sm:text-sm font-bold">Click to upload</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">PNG, JPG up to 2MB</p>
+                        <p className="text-lg font-black text-[#1A1A1A]">Upload Visual Asset</p>
+                        <p className="text-sm font-bold text-muted-foreground">High-resolution PNG or JPG up to 2MB</p>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
             ) : tm.mark_image && (
-              <div className="flex justify-center mb-3 sm:mb-4">
+              <div className="flex justify-center mb-10">
                 <MarkInfoThumbnail markImage={tm.mark_image} label={markName} />
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-              <EditableField label="Mark Name" value={getDisplayValue('markName', markName)} name={isEditing ? 'markName' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Mark Type" value={getDisplayValue('markType', tm.markType || tm.mark_type || eipaField('mark_type'))} name={isEditing ? 'markType' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Color" value={getDisplayValue('colorIndication', tm.colorIndication || tm.color_indication || eipaField('mark_color_indication'))} name={isEditing ? 'colorIndication' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <EditableField label="Full Mark Name" value={getDisplayValue('markName', markName)} name={isEditing ? 'markName' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Mark Classification" value={getDisplayValue('markType', tm.markType || tm.mark_type || eipaField('mark_type'))} name={isEditing ? 'markType' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Color Limitations" value={getDisplayValue('colorIndication', tm.colorIndication || tm.color_indication || eipaField('mark_color_indication'))} name={isEditing ? 'colorIndication' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 border-t pt-3 sm:pt-4">
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 bg-[#F8F9FA] p-8 rounded-[2rem] shadow-inner">
               <EditableField label="Goods" type="checkbox" value={getDisplayValue('chk_goods', !!tm.chk_goods || !!eipaField('chk_goods'))} name={isEditing ? 'chk_goods' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Services" type="checkbox" value={getDisplayValue('chk_services', !!tm.chk_services || !!eipaField('chk_services'))} name={isEditing ? 'chk_services' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Collective" type="checkbox" value={getDisplayValue('chk_collective', !!tm.chk_collective || !!eipaField('chk_collective'))} name={isEditing ? 'chk_collective' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Word" type="checkbox" value={getDisplayValue('type_word', !!tm.is_word || !!eipaField('type_word'))} name={isEditing ? 'type_word' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Word Only" type="checkbox" value={getDisplayValue('type_word', !!tm.is_word || !!eipaField('type_word'))} name={isEditing ? 'type_word' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Figurative" type="checkbox" value={getDisplayValue('type_figur', !!tm.is_figurative || !!eipaField('type_figur'))} name={isEditing ? 'type_figur' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="3D" type="checkbox" value={getDisplayValue('type_thre', !!tm.is_three_dim || !!eipaField('type_thre'))} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Mixed" type="checkbox" value={getDisplayValue('k_type_mi', !!tm.is_mixed || !!eipaField('k_type_mi'))} name={isEditing ? 'k_type_mi' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="3D Mark" type="checkbox" value={getDisplayValue('type_thre', !!tm.is_three_dim || !!eipaField('type_thre'))} name={isEditing ? 'type_thre' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Mixed Mark" type="checkbox" value={getDisplayValue('k_type_mi', !!tm.is_mixed || !!eipaField('k_type_mi'))} name={isEditing ? 'k_type_mi' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
-            <EditableField label="Description" type="textarea" value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} name={isEditing ? 'markDescription' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <EditableField label="Translation" value={getDisplayValue('mark_translation', eipaField('mark_translation'))} name={isEditing ? 'mark_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Transliteration" value={getDisplayValue('mark_transliteration', eipaField('mark_transliteration'))} name={isEditing ? 'mark_transliteration' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Language" value={getDisplayValue('mark_language_requiring_traslation', tm.mark_language_requiring_traslation || eipaField('mark_language_requiring_translation') || eipaField('mark_language_requiring_traslation'))} name={isEditing ? 'mark_language_requiring_traslation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="3D Features" value={getDisplayValue('mark_has_three_dim_features', eipaField('mark_has_three_dim_features'))} name={isEditing ? 'mark_has_three_dim_features' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+
+            <div className="space-y-4">
+              <EditableField label="Graphic Description" type="textarea" value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} name={isEditing ? 'markDescription' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-[#F8F9FA]">
+              <EditableField label="Semantic Translation" value={getDisplayValue('mark_translation', eipaField('mark_translation'))} name={isEditing ? 'mark_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Phonetic Transliteration" value={getDisplayValue('mark_transliteration', eipaField('mark_transliteration'))} name={isEditing ? 'mark_transliteration' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Original Language" value={getDisplayValue('mark_language_requiring_traslation', tm.mark_language_requiring_traslation || eipaField('mark_language_requiring_translation') || eipaField('mark_language_requiring_traslation'))} name={isEditing ? 'mark_language_requiring_traslation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              <EditableField label="Dimension Characteristics" value={getDisplayValue('mark_has_three_dim_features', eipaField('mark_has_three_dim_features'))} name={isEditing ? 'mark_has_three_dim_features' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
           </CardContent>
         </Card>
 
         {/* V. Priority / Disclaimer */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-12">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-            <div className="flex items-center gap-2">
-              <WarningCircle size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base">V. Priority / Disclaimer</CardTitle>
+        <Card className="border-none shadow-premium bg-white lg:col-span-12 rounded-[2.5rem] overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-6 px-10">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                <WarningCircle size={28} weight="duotone" />
+              </div>
+              <CardTitle className="text-xl font-black tracking-tight">Priority Claims & Disclaimers</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <EditableField 
-                label="Priority Country" 
-                type="country" 
-                value={getDisplayValue('priority_country', tm.priority_country || eipaField('priority_country'))} 
-                name={isEditing ? 'priority_country' : undefined} 
-                onChange={isEditing ? handleFieldChange : undefined} 
-              />
-              <EditableField 
-                label="Priority Date" 
-                value={isEditing 
-                  ? getDisplayValue('priority_filing_date', tm.priority_filing_date || eipaField('priority_filing_date')) 
-                  : safeDate(tm.priority_filing_date || eipaField('priority_filing_date'))} 
-                name={isEditing ? 'priority_filing_date' : undefined} 
-                onChange={isEditing ? handleFieldChange : undefined} 
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <EditableField 
-                label="Docs Attached" 
-                type="checkbox" 
-                value={getDisplayValue('chk_priority_accompanies', !!tm.chk_priority_accompanies || !!eipaField('chk_priority_accompanies'))} 
-                name={isEditing ? 'chk_priority_accompanies' : undefined} 
-                onChange={isEditing ? handleFieldChange : undefined} 
-              />
-              <EditableField 
-                label="Submit Within 3mo" 
-                type="checkbox" 
-                value={getDisplayValue('chk_priority_submitted_later', !!tm.chk_priority_submitted_later || !!eipaField('chk_priority_submitted_later'))} 
-                name={isEditing ? 'chk_priority_submitted_later' : undefined} 
-                onChange={isEditing ? handleFieldChange : undefined} 
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <EditableField label="Disclaimer (EN)" value={getDisplayValue('disclaimer_text_english', tm.disclaimer_english || eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-              <EditableField label="Disclaimer (AM)" value={getDisplayValue('disclaimer_text_amharic', tm.disclaimer_amharic || eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+          <CardContent className="p-10 space-y-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-6">
+                <EditableField 
+                  label="Convention Country" 
+                  type="country" 
+                  value={getDisplayValue('priority_country', tm.priority_country || eipaField('priority_country'))} 
+                  name={isEditing ? 'priority_country' : undefined} 
+                  onChange={isEditing ? handleFieldChange : undefined} 
+                />
+                <EditableField 
+                  label="First Filing Date" 
+                  value={isEditing 
+                    ? getDisplayValue('priority_filing_date', tm.priority_filing_date || eipaField('priority_filing_date')) 
+                    : safeDate(tm.priority_filing_date || eipaField('priority_filing_date'))} 
+                  name={isEditing ? 'priority_filing_date' : undefined} 
+                  onChange={isEditing ? handleFieldChange : undefined} 
+                />
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <EditableField 
+                    label="Docs Attached" 
+                    type="checkbox" 
+                    value={getDisplayValue('chk_priority_accompanies', !!tm.chk_priority_accompanies || !!eipaField('chk_priority_accompanies'))} 
+                    name={isEditing ? 'chk_priority_accompanies' : undefined} 
+                    onChange={isEditing ? handleFieldChange : undefined} 
+                  />
+                  <EditableField 
+                    label="Delayed Submission" 
+                    type="checkbox" 
+                    value={getDisplayValue('chk_priority_submitted_later', !!tm.chk_priority_submitted_later || !!eipaField('chk_priority_submitted_later'))} 
+                    name={isEditing ? 'chk_priority_submitted_later' : undefined} 
+                    onChange={isEditing ? handleFieldChange : undefined} 
+                  />
+                </div>
+              </div>
+              <div className="space-y-6">
+                <EditableField label="Disclaimer (English)" type="textarea" value={getDisplayValue('disclaimer_text_english', tm.disclaimer_english || eipaField('disclaimer_text_english'))} name={isEditing ? 'disclaimer_text_english' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+                <EditableField label="Disclaimer (Local)" type="textarea" value={getDisplayValue('disclaimer_text_amharic', tm.disclaimer_amharic || eipaField('disclaimer_text_amharic'))} name={isEditing ? 'disclaimer_text_amharic' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* VI. Signature */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-12">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-            <div className="flex items-center gap-2">
-              <IdentificationCard size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base">VI. Signature</CardTitle>
+        <Card className="border-none shadow-premium bg-white lg:col-span-12 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-5 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <IdentificationCard size={24} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Filing Authorization</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+          <CardContent className="p-8">
+            <div className="grid grid-cols-3 gap-8">
               <EditableField 
-                label="Day" 
+                label="Filing Day" 
                 value={getDisplayValue('applicant_sign_day', tm.applicant_sign_day || eipaField('applicant_sign_day'))} 
                 name={isEditing ? 'applicant_sign_day' : undefined} 
                 onChange={isEditing ? handleFieldChange : undefined} 
               />
               <EditableField 
-                label="Month" 
+                label="Filing Month" 
                 value={getDisplayValue('applicant_sign_month', tm.applicant_sign_month || eipaField('applicant_sign_month'))} 
                 name={isEditing ? 'applicant_sign_month' : undefined} 
                 onChange={isEditing ? handleFieldChange : undefined} 
               />
               <EditableField 
-                label="Year" 
+                label="Filing Year" 
                 value={getDisplayValue('applicant_sign_year_en', tm.applicant_sign_year_en || eipaField('applicant_sign_year_en'))} 
                 name={isEditing ? 'applicant_sign_year_en' : undefined} 
                 onChange={isEditing ? handleFieldChange : undefined} 
@@ -876,25 +906,27 @@ export default function TrademarkDetailInfoPage() {
         </Card>
 
         {/* VII. Nice Classification */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-4">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-            <div className="flex items-center gap-2">
-              <List size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base">VII. Nice Classes</CardTitle>
+        <Card className="border-none shadow-premium bg-white lg:col-span-5 rounded-[2.5rem] overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-6 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <List size={24} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Nice Classification</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
-            <div className="flex flex-wrap gap-1 sm:gap-2">
+          <CardContent className="p-8 space-y-6">
+            <div className="flex flex-wrap gap-2">
               {niceClasses.length ? niceClasses.map(c => (
-                <Badge key={c} variant="outline" className="text-xs px-2 py-0.5">Class {c}</Badge>
-              )) : <span className="text-muted-foreground text-sm">—</span>}
+                <Badge key={c} className="bg-primary/5 text-primary border-none font-black text-xs px-4 py-2 rounded-xl shadow-sm hover:bg-primary hover:text-white transition-all cursor-default">Class {c}</Badge>
+              )) : <span className="text-muted-foreground font-bold italic">No classes defined</span>}
             </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <Label className="text-xs font-semibold text-muted-foreground">Goods & Services</Label>
+            <div className="space-y-3 pt-4 border-t border-[#F8F9FA]">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary opacity-60 ml-1">Goods & Services Scope</Label>
               {isEditing ? (
-                <Textarea value={getDisplayValue('goodsServices', tm.goodsServices || tm.goods_services)} onChange={(e) => handleFieldChange('goodsServices', e.target.value)} className="min-h-[100px] sm:min-h-[150px] text-xs sm:text-sm" />
+                <Textarea value={getDisplayValue('goodsServices', tm.goodsServices || tm.goods_services)} onChange={(e) => handleFieldChange('goodsServices', e.target.value)} className="min-h-[200px] bg-[#F8F9FA] border-none rounded-2xl p-4 font-medium leading-relaxed" />
               ) : (
-                <div className="p-2 sm:p-3 bg-muted/30 rounded-md text-xs sm:text-sm leading-relaxed max-h-32 sm:max-h-48 overflow-y-auto">
+                <div className="p-6 bg-[#F8F9FA] rounded-2xl text-sm font-medium leading-relaxed max-h-[300px] overflow-y-auto shadow-inner text-[#4A4A4A]">
                   {tm.goodsServices || tm.goods_services || '—'}
                 </div>
               )}
@@ -903,46 +935,50 @@ export default function TrademarkDetailInfoPage() {
         </Card>
 
         {/* VIII. Key Dates */}
-        <Card className="border-border shadow-sm bg-card lg:col-span-8">
-          <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base">VIII. Lifecycle Dates</CardTitle>
+        <Card className="border-none shadow-premium bg-white lg:col-span-7 rounded-[2.5rem] overflow-hidden">
+          <CardHeader className="bg-[#F8F9FA] border-none py-6 px-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Calendar size={24} weight="duotone" />
+              </div>
+              <CardTitle className="text-lg font-black tracking-tight">Registry Timeline</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4 sm:gap-6">
-              <Field label="Application" value={safeDate(tm.applicationDate || tm.application_date)} />
-              <Field label="Publication" value={safeDate(tm.publicationDate || tm.publication_date)} />
-              <Field label="Registration" value={safeDate(tm.registrationDate || tm.registration_date)} />
-              <Field label="Expiry" value={safeDate(tm.expiryDate || tm.expiry_date)} />
-              <Field label="Next Renewal" value={safeDate(tm.nextRenewalDate || tm.next_renewal_date)} />
+          <CardContent className="p-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-12">
+              <Field label="Application Filing" value={safeDate(tm.applicationDate || tm.application_date)} />
+              <Field label="Gazette Publication" value={safeDate(tm.publicationDate || tm.publication_date)} />
+              <Field label="Official Registration" value={safeDate(tm.registrationDate || tm.registration_date)} />
+              <Field label="Record Expiry" value={safeDate(tm.expiryDate || tm.expiry_date)} />
+              <Field label="Renewal Deadline" value={safeDate(tm.nextRenewalDate || tm.next_renewal_date)} />
             </div>
           </CardContent>
         </Card>
 
         {/* IX. Renewal Information */}
         {(tm.status === 'RENEWAL' || tm.eipaForm && (tm.eipaForm as any)?.renewal_app_no || tm.renewal_app_no) && (
-          <Card className="border-border shadow-sm bg-card lg:col-span-12">
-            <CardHeader className="bg-muted/30 border-b border-border py-2 sm:py-3 px-3 sm:px-4">
-              <div className="flex items-center gap-2">
-<FileText size={16} className="text-primary shrink-0 w-4 sm:w-5" />
-                <CardTitle className="text-sm sm:text-base">IX. Renewal Info</CardTitle>
+          <Card className="border-none shadow-premium bg-white lg:col-span-12 rounded-[2.5rem] overflow-hidden border-t-4 border-emerald-500">
+            <CardHeader className="bg-[#F0FDF4] border-none py-6 px-10">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-600">
+                  <FileText size={28} weight="duotone" />
+                </div>
+                <CardTitle className="text-xl font-black tracking-tight text-emerald-900">Renewal Repository</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 md:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4 sm:gap-6">
-                <Field label="Original App No." value={tm.renewal_app_no || (tm.eipaForm as any)?.renewal_app_no || '—'} />
-                <Field label="Registration No." value={tm.renewal_reg_no || (tm.eipaForm as any)?.renewal_reg_no || '—'} />
-                <Field label="Reg. Date" value={safeDate(tm.renewal_reg_date || (tm.eipaForm as any)?.renewal_reg_date)} />
+            <CardContent className="p-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-8">
+                <Field label="Parent Application No." value={tm.renewal_app_no || (tm.eipaForm as any)?.renewal_app_no || '—'} />
+                <Field label="Base Registration No." value={tm.renewal_reg_no || (tm.eipaForm as any)?.renewal_reg_no || '—'} />
+                <Field label="Original Registration Date" value={safeDate(tm.renewal_reg_date || (tm.eipaForm as any)?.renewal_reg_date)} />
               </div>
               {(tm.renewal_sign_day || (tm.eipaForm as any)?.renewal_sign_day) && (
-                <div className="mt-3 sm:pt-4 border-t">
-                  <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Signature Date</Label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    <Field label="Day" value={tm.renewal_sign_day || (tm.eipaForm as any)?.renewal_sign_day || '—'} />
-                    <Field label="Month" value={tm.renewal_sign_month || (tm.eipaForm as any)?.renewal_sign_month || '—'} />
-                    <Field label="Year" value={tm.renewal_sign_year || (tm.eipaForm as any)?.renewal_sign_year || '—'} />
+                <div className="pt-8 border-t border-emerald-50 space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 opacity-60 ml-1">Renewal Authorization Date</Label>
+                  <div className="grid grid-cols-3 gap-10">
+                    <Field label="Submission Day" value={tm.renewal_sign_day || (tm.eipaForm as any)?.renewal_sign_day || '—'} />
+                    <Field label="Submission Month" value={tm.renewal_sign_month || (tm.eipaForm as any)?.renewal_sign_month || '—'} />
+                    <Field label="Submission Year" value={tm.renewal_sign_year || (tm.eipaForm as any)?.renewal_sign_year || '—'} />
                   </div>
                 </div>
               )}
@@ -950,15 +986,6 @@ export default function TrademarkDetailInfoPage() {
           </Card>
         )}
       </div>
-    </div>
-  )
-}
-
-function Field({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-[10px] sm:text-xs font-semibold text-muted-foreground">{label}</Label>
-      <div className="text-xs sm:text-sm font-medium truncate">{value || '—'}</div>
     </div>
   )
 }
