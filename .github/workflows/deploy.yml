@@ -43,10 +43,7 @@ jobs:
 
           # Configure SSH
           mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-          cat > "$HOME/.ssh/id_a2" << 'SSHKEY'
-${{ secrets.A2_SSH_KEY }}
-SSHKEY
-          sed -i 's/\r$//' "$HOME/.ssh/id_a2" && chmod 600 "$HOME/.ssh/id_a2"
+          echo "$A2_KEY" | base64 -d > "$HOME/.ssh/id_a2" && chmod 600 "$HOME/.ssh/id_a2"
           ls -la "$HOME/.ssh/id_a2"
 
           # Upload via SSH cat
