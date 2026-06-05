@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 import { Typography } from '@/components/ui/typography';
+import HelpButton from '@/components/HelpButton';
 
 interface TrashedItem {
   id: string;
@@ -242,12 +243,13 @@ export default function TrashPage() {
         <div className="flex items-center justify-end gap-2">
           <Button
             size="sm"
-            variant="ghost"
-            className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            onClick={() => handleRestoreClick(item)}
-          >
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Restore
+                    variant="ghost"
+                    className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={() => handleRestoreClick(item)}
+                    data-tour="restore-button"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Restore
           </Button>
           <Button
             size="sm"
@@ -273,11 +275,12 @@ export default function TrashPage() {
           </Typography.h1a>
           <Typography.muted>Deleted items can be restored or permanently removed.</Typography.muted>
         </div>
+          <HelpButton pageId="trash" />
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 h-12 mb-4">
-          <TabsTrigger value="trademarks" className="flex items-center gap-2 text-base">
+          <TabsTrigger data-tour="trademarks-tab" value="trademarks" className="flex items-center gap-2 text-base">
             <FileText className="h-5 w-5" />
             <span className="hidden sm:inline">Trademarks</span>
             {loading.trademarks ? (
@@ -288,7 +291,7 @@ export default function TrashPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="clients" className="flex items-center gap-2 text-base">
+          <TabsTrigger data-tour="clients-tab" value="clients" className="flex items-center gap-2 text-base">
             <Users className="h-5 w-5" />
             <span className="hidden sm:inline">Clients</span>
             {loading.clients ? (
@@ -299,7 +302,7 @@ export default function TrashPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2 text-base">
+          <TabsTrigger data-tour="invoices-tab" value="invoices" className="flex items-center gap-2 text-base">
             <Receipt className="h-5 w-5" />
             <span className="hidden sm:inline">Invoices</span>
             {loading.invoices ? (
@@ -327,7 +330,7 @@ export default function TrashPage() {
               <table className="w-full text-base">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-4 text-left font-semibold text-base">Trademark Name</th>
+                    <th className="px-4 py-4 text-left font-semibold text-base" data-tour="item-list">Trademark Name</th>
                     <th className="px-4 py-4 text-left font-semibold text-base">Deleted At</th>
                     <th className="px-4 py-4 text-right font-semibold text-base">Actions</th>
                   </tr>

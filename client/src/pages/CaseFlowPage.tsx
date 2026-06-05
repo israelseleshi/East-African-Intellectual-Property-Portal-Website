@@ -27,6 +27,7 @@ import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { CaseNotesTab } from '@/components/CaseNotesTab';
 import { useApi } from '@/hooks/useApi';
+import HelpButton from '@/components/HelpButton';
 import { fillPdfForm } from '@/utils/pdfUtils';
 import { cn } from '@/lib/utils';
 import type { Jurisdiction, CaseFlowStage } from '@/shared/database';
@@ -186,7 +187,7 @@ export default function CaseFlowPage() {
 
   return (
     <div className="space-y-8 p-10 max-w-7xl mx-auto animate-in fade-in duration-700">
-      <header className="flex items-center gap-6">
+      <header className="flex items-start gap-6">
         <Button 
           variant="outline" 
           size="icon" 
@@ -195,26 +196,31 @@ export default function CaseFlowPage() {
         >
           <ArrowLeft size={22} weight="bold" />
         </Button>
-        <div>
-          <Typography.h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-            Case Lifecycle
-            <Badge variant="outline" className="ml-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest border-primary/20 bg-primary/5 text-primary">
-              Management
-            </Badge>
-          </Typography.h1>
-          <div className="flex items-center gap-2 mt-1.5">
-            <Typography.muted className="text-base font-medium">
-              {caseData.mark_name}
-            </Typography.muted>
-            <Separator orientation="vertical" className="h-3 mx-1" />
-            <span className="text-xs font-mono bg-muted/50 px-2 py-0.5 rounded text-muted-foreground">
-              {caseData.filing_number || 'REGISTRATION PENDING'}
-            </span>
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Typography.h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+                Case Lifecycle
+                <Badge variant="outline" className="ml-2 px-3 py-1 text-[10px] font-black uppercase tracking-widest border-primary/20 bg-primary/5 text-primary" data-tour="action-buttons">
+                  Management
+                </Badge>
+              </Typography.h1>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Typography.muted className="text-base font-medium">
+                  {caseData.mark_name}
+                </Typography.muted>
+                <Separator orientation="vertical" className="h-3 mx-1" />
+                <span className="text-xs font-mono bg-muted/50 px-2 py-0.5 rounded text-muted-foreground">
+                  {caseData.filing_number || 'REGISTRATION PENDING'}
+                </span>
+              </div>
+            </div>
+            <HelpButton pageId="case-flow" />
           </div>
         </div>
       </header>
 
-      <Card className="border-none shadow-premium rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm group">
+      <Card data-tour="case-status-card" className="border-none shadow-premium rounded-3xl overflow-hidden bg-white/50 backdrop-blur-sm group">
         <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -248,7 +254,7 @@ export default function CaseFlowPage() {
         </CardContent>
       </Card>
 
-      <CaseStageTracker
+      <CaseStageTracker data-tour="stage-tracker"
         currentStage={currentStage}
         jurisdiction={caseData.jurisdiction}
         deadlines={deadlines}
@@ -381,7 +387,7 @@ export default function CaseFlowPage() {
       {id && (
         <Card className="shadow-premium border-none rounded-3xl overflow-hidden bg-white">
           <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
-            <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3">
+            <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3" data-tour="case-notes">
               <FileText size={24} weight="duotone" className="text-primary" />
               Case Notes & Communications
             </CardTitle>

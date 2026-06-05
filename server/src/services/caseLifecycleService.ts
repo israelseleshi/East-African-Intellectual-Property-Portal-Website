@@ -243,6 +243,7 @@ export const caseLifecycleService = {
           renewalDate.setFullYear(renewalDate.getFullYear() + (jurisdictionConfig.renewal_years || 7));
           updates.registration_dt = effectiveDate;
           updates.expiry_date = renewalDate;
+          updates.certificate_issued_date = effectiveDate;
           updates.status = 'REGISTERED';
           if (extraData.certificateNumber) updates.certificate_number = extraData.certificateNumber;
           break;

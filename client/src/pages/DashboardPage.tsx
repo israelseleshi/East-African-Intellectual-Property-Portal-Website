@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/store/authStore"
 import { Typography } from "@/components/ui/typography"
 import DashboardCalendar from "@/components/DashboardCalendar"
+import HelpButton from "@/components/HelpButton"
 
 interface DashboardStats {
   totalCases: number
@@ -206,12 +207,15 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 p-4 md:p-10 min-h-screen bg-[#F8F9FA]">
-      <div className="flex flex-col gap-2">
-        <Typography.h1 className="tracking-tight">Dashboard Overview</Typography.h1>
-        <Typography.p className="text-muted-foreground text-lg">Real-time insights from the East African Intellectual Property Registry.</Typography.p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <Typography.h1 className="tracking-tight">Dashboard Overview</Typography.h1>
+          <Typography.p className="text-muted-foreground text-lg">Real-time insights from the East African Intellectual Property Registry.</Typography.p>
+        </div>
+        <HelpButton pageId="dashboard" />
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4" data-tour="quick-actions">
         <Button onClick={() => navigate('/eipa-forms/application-form')} className="gap-2 text-base px-6 py-6 shadow-sm hover:shadow-md transition-all">
           <FileText className="size-5" />
           New Application
@@ -230,7 +234,7 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-tour="stats-cards">
         {DASHBOARD_CARDS.map((card) => (
           <Card 
             key={card.title} 
@@ -264,13 +268,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-12 gap-6 mt-2">
         {/* Calendar - Large (8 cols) */}
         <div className="col-span-12 lg:col-span-8">
-          <DashboardCalendar />
+          <DashboardCalendar data-tour="calendar-widget" />
         </div>
 
         {/* Right side - Recent Activity and Financial (4 cols) */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
           {/* Recent Activity - Smaller card */}
-          <Card className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white">
+          <Card data-tour="recent-activity" className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white">
             <CardHeader className="pb-2">
               <Typography.h4 className="font-semibold tracking-tight">Recent Activity</Typography.h4>
             </CardHeader>
@@ -316,7 +320,7 @@ export default function DashboardPage() {
 
           {/* Financial Standing - Only for Super Admin */}
           {canViewFinance && (
-            <Card className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white">
+            <Card data-tour="financial-status" className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-bold tracking-tight text-primary">Financial Status</CardTitle>

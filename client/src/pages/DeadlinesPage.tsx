@@ -24,6 +24,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Typography } from '@/components/ui/typography'
 import { deriveAlertInfo, type AlertSeverity } from '@/utils/alertHelpers'
+import { useExcelExport } from '@/hooks/useExcelExport'
+import ExportProgressModal from '@/components/ExportProgressModal'
+import HelpButton from '@/components/HelpButton'
 
 const JURISDICTION_FLAGS: Record<string, string> = {
   ALL: '🌍',
@@ -84,8 +87,8 @@ export default function DeadlinesPage() {
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [isExporting, setIsExporting] = useState(false)
   const [yearFilter, setYearFilter] = useState('ALL')
+  const { isExporting, exportProgress, startExport } = useExcelExport()
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newMonth = new Date(currentMonth)
@@ -210,16 +213,11 @@ export default function DeadlinesPage() {
 
   const handleExportExcel = async () => {
     if (filteredDeadlines.length === 0) return
-    setIsExporting(true)
-    try {
-      const ExcelJS = (await import('exceljs')).default
-      const workbook = new ExcelJS.Workbook()
-      ;(workbook.properties as any).defaultFont = 'Times New Roman'
-      const worksheet = workbook.addWorksheet('Deadlines')
 
-      const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
-
-      worksheet.columns = [
+    startExport({
+      sheetName: 'Deadlines',
+      fileName: 'EAIP_Deadlines',
+      columns: [
         { header: 'Trademark', key: 'mark', width: 30 },
         { header: 'Deadline Type', key: 'type', width: 20 },
         { header: 'Due Date', key: 'dueDate', width: 15 },
@@ -228,20 +226,11 @@ export default function DeadlinesPage() {
         { header: 'Client', key: 'client', width: 25 },
         { header: 'Status', key: 'status', width: 15 },
         { header: 'Priority', key: 'priority', width: 15 },
-      ]
-
-      const headerRow = worksheet.getRow(1)
-      headerRow.height = 25
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
-      headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
-      for (let i = 1; i <= 8; i++) {
-        headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
-        headerRow.getCell(i).border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
-      }
-
-      filteredDeadlines.forEach(d => {
+      ],
+      rows: filteredDeadlines,
+      mapRow: (d) => {
         const daysLeft = getDaysRemaining(d.due_date)
-        const row = worksheet.addRow({
+        return {
           mark: d.mark || '—',
           type: DEADLINE_TYPE_LABELS[d.type || 'GENERIC'] || d.type || 'Other',
           dueDate: d.due_date ? new Date(d.due_date).toISOString().split('T')[0] : '—',
@@ -249,35 +238,42 @@ export default function DeadlinesPage() {
           jurisdiction: JURISDICTION_NAMES[d.jurisdiction || 'ALL'] || d.jurisdiction || '—',
           client: d.client || '—',
           status: d.status || '—',
-          priority: d.priority || '—'
-        })
-
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
-          cell.alignment = { vertical: 'middle', horizontal: 'left' }
-
-          if (Number(cell.row) === 1) return
-          if (daysLeft < 0) {
-            cell.font = { color: { argb: 'FFDC2626' } }
-          } else if (daysLeft <= 7) {
-            cell.font = { color: { argb: 'FFD97706' } }
-          }
-        })
-      })
-
-      const buffer = await workbook.xlsx.writeBuffer()
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = `deadlines_export_${new Date().toISOString().split('T')[0]}.xlsx`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    } catch (err) {
-      console.error('Export error:', err)
-    } finally {
-      setIsExporting(false)
-    }
+          priority: d.priority || '—',
+        }
+      },
+      formatHeader: (ws) => {
+        const worksheet = ws as Record<string, unknown>
+        const bdr = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
+        ;(worksheet as any).spliceRows(1, 0, [])
+        ;(worksheet as any).mergeCells(1, 1, 1, 8)
+        const titleCell = (worksheet as any).getCell(1, 1)
+        titleCell.value = 'EAST AFRICAN INTELLECTUAL PROPERTY PORTAL — DEADLINES MASTER LIST'
+        titleCell.font = { bold: true, size: 14, color: { argb: 'FF1F497D' } }
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center' }
+        titleCell.border = { top: bdr, left: bdr, bottom: bdr, right: bdr }
+        ;(worksheet as any).getRow(1).height = 35
+        const headerRow = (worksheet as any).getRow(2)
+        headerRow.height = 25
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
+        for (let i = 1; i <= 8; i++) {
+          headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+          headerRow.getCell(i).border = { top: bdr, left: bdr, bottom: bdr, right: bdr }
+        }
+        ;(worksheet as any).views = [{ state: 'frozen', ySplit: 2 }]
+        ;(worksheet as any).autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: 8 } }
+      },
+      formatRow: (row, d) => {
+        const daysLeft = getDaysRemaining(d.due_date)
+        if (daysLeft < 0) {
+          ;(row as any).eachCell((cell: any) => { cell.font = { color: { argb: 'FFDC2626' } } })
+        } else if (daysLeft <= 7) {
+          ;(row as any).eachCell((cell: any) => { cell.font = { color: { argb: 'FFD97706' } } })
+        }
+      },
+      successMessage: 'Deadlines report has been downloaded.',
+    })
   }
 
   if (loading) {
@@ -291,9 +287,16 @@ export default function DeadlinesPage() {
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}
         </div>
         <Card className="border-none shadow-premium"><CardContent className="p-10"><Skeleton className="h-96 w-full rounded-2xl" /></CardContent></Card>
-      </div>
-    )
-  }
+      <ExportProgressModal
+        isExporting={isExporting}
+        progress={exportProgress}
+        message="Exporting Deadlines..."
+        subtext="Generating your deadlines report."
+      />
+    </div>
+  )
+}
+
 
   return (
     <div className="w-full space-y-8 bg-[#F8F9FA] text-foreground min-h-screen">
@@ -302,10 +305,13 @@ export default function DeadlinesPage() {
           <Typography.h1 className="tracking-tight font-bold">Statutory Deadlines</Typography.h1>
           <Typography.p className="text-muted-foreground text-lg font-medium opacity-80">Critical tracking for oppositions, renewals, and responses.</Typography.p>
         </div>
-        <Button variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold">
-          <DownloadSimple size={20} className="mr-2" />
-          <span>Export Excel Report</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <HelpButton pageId="deadlines" />
+          <Button data-tour="export-button" variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold">
+            <DownloadSimple size={20} className="mr-2" />
+            <span>Export Excel</span>
+          </Button>
+        </div>
       </header>
 
       <div className="mx-4 md:mx-10 pb-10 space-y-8">
@@ -315,9 +321,9 @@ export default function DeadlinesPage() {
               <div className="flex items-center gap-4">
                 <div className="relative flex-1 md:w-[300px]">
                   <Funnel className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={18} />
-                  <Input placeholder="Search deadlines..." className="pl-12 bg-muted/30 border-none h-12 rounded-xl focus-visible:ring-primary/20" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                  <Input data-tour="search-input" placeholder="Search deadlines..." className="pl-12 bg-muted/30 border-none h-12 rounded-xl focus-visible:ring-primary/20" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
-                <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
+                <Select data-tour="status-filter" value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
                   <SelectTrigger className="w-[160px] border-none bg-muted/30 h-12 rounded-xl font-semibold"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent className="rounded-xl border-none shadow-premium">
                     <SelectItem value="all">All Status</SelectItem>
@@ -330,7 +336,7 @@ export default function DeadlinesPage() {
               <div className="flex items-center gap-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-12 justify-between bg-muted/30 border-none rounded-xl px-4 hover:bg-muted/50 font-semibold">
+                    <Button data-tour="jurisdiction-filter" variant="ghost" className="h-12 justify-between bg-muted/30 border-none rounded-xl px-4 hover:bg-muted/50 font-semibold">
                       <JurisdictionFlag code={filter} className="h-4 w-6 mr-2" />
                       {JURISDICTION_NAMES[filter]}
                       <CaretDown size={14} className="ml-2 opacity-50" />
@@ -370,7 +376,7 @@ export default function DeadlinesPage() {
               <div className="border-r border-muted/30">
                 <div className="p-6 border-b bg-muted/10">
                   <div className="flex items-center justify-between">
-                    <Typography.h4 className="text-primary font-bold flex items-center gap-2 tracking-tight">
+                    <Typography.h4 className="text-primary font-bold flex items-center gap-2 tracking-tight" data-tour="deadline-list">
                       <List size={22} weight="bold" /> 
                       Deadline Registry
                     </Typography.h4>
@@ -469,7 +475,7 @@ export default function DeadlinesPage() {
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-4">
                     <Typography.h3 className="flex items-center gap-3 font-bold text-primary tracking-tight">
-                      <CalendarIcon size={28} className="text-primary/60" weight="duotone" />
+                      <CalendarIcon data-tour="calendar-view" size={28} className="text-primary/60" weight="duotone" />
                       {currentMonth.toLocaleString('en-US', { month: 'long' })}
                     </Typography.h3>
                     <Select

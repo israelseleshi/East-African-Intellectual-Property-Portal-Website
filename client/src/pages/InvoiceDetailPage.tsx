@@ -28,6 +28,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Typography } from '@/components/ui/typography'
+import HelpButton from '@/components/HelpButton'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -458,7 +459,7 @@ export default function InvoiceDetailPage() {
     <div className="flex items-center gap-2">
       {!isEditing ? (
         <>
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} className="rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
+          <Button data-tour="edit-button" variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} className="rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
             <PencilSimple size={16} className="mr-1.5" /> Edit
           </Button>
           <Button variant="outline" size="sm" onClick={() => setIsDeleteOpen(true)} className="text-destructive hover:text-destructive rounded-xl shadow-sm bg-white hover:shadow-md transition-all" disabled={fromTrash}>
@@ -468,7 +469,7 @@ export default function InvoiceDetailPage() {
             <Eye size={16} />
             Preview
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl shadow-sm bg-white hover:shadow-md transition-all" onClick={handleDownload}>
+          <Button data-tour="download-button" variant="outline" size="sm" className="gap-1.5 rounded-xl shadow-sm bg-white hover:shadow-md transition-all" onClick={handleDownload}>
             <DownloadSimple size={16} />
             PDF
           </Button>
@@ -507,7 +508,7 @@ export default function InvoiceDetailPage() {
                   <Receipt size={22} weight="duotone" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-black tracking-tight">Line Items</CardTitle>
+                  <CardTitle className="text-lg font-black tracking-tight" data-tour="line-items-section">Line Items</CardTitle>
                   <CardDescription className="font-medium text-xs text-muted-foreground">Breakdown of charges and fees</CardDescription>
                 </div>
               </div>
@@ -556,7 +557,7 @@ export default function InvoiceDetailPage() {
                 <Wallet size={22} weight="duotone" />
               </div>
               <div>
-                <CardTitle className="text-lg font-black tracking-tight">Summary</CardTitle>
+                <CardTitle className="text-lg font-black tracking-tight" data-tour="payment-section">Summary</CardTitle>
                 <CardDescription className="font-medium text-xs text-muted-foreground">Payment status and due details</CardDescription>
               </div>
             </div>
@@ -826,7 +827,7 @@ export default function InvoiceDetailPage() {
             <ArrowLeft size={24} weight="bold" />
           </Button>
           <div>
-            <Badge className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-3 py-1 mb-3 inline-flex items-center border-none">Invoice</Badge>
+            <Badge data-tour="invoice-status-badge" className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-3 py-1 mb-3 inline-flex items-center border-none">Invoice</Badge>
             <Typography.h1 className="font-black">{invoice.invoice_number}</Typography.h1>
             <Typography.lead className="flex items-center gap-2">
               <Buildings size={20} className="text-primary/70" /> {invoice.client_name} 
@@ -837,7 +838,8 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 self-end md:self-start">
-           {Actions}
+          <HelpButton pageId="invoice-detail" />
+          {Actions}
         </div>
       </header>
 

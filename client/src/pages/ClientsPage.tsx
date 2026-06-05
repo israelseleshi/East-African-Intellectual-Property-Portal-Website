@@ -31,6 +31,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import HelpButton from '@/components/HelpButton';
 import { Typography } from '@/components/ui/typography';
+import { useExcelExport } from '@/hooks/useExcelExport';
+import ExportProgressModal from '@/components/ExportProgressModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -219,51 +221,41 @@ export default function ClientsPage() {
     return (clients || []).filter(c => selectedIds.has(c.id));
   }, [clients, selectedIds]);
 
+  const { isExporting, exportProgress, startExport } = useExcelExport()
+
   const handleExportExcel = async () => {
-    if ((clients || []).length === 0) return;
-    const ExcelJS = (await import('exceljs')).default
-    
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Clients')
+    const result = await clientService.getClients({
+      q: debouncedSearch,
+      type: selectedType === 'ALL' ? undefined : selectedType,
+      page: 1,
+      limit: 500,
+    })
+    const exportData = result?.data || sortedClients
 
-    worksheet.columns = [
-      { header: 'Client Name', key: 'name', width: 25 },
-      { header: 'Local Name', key: 'localName', width: 25 },
-      { header: 'Type', key: 'type', width: 15 },
-      { header: 'Gender', key: 'gender', width: 12 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Telephone', key: 'telephone', width: 20 },
-      { header: 'Nationality', key: 'nationality', width: 15 },
-      { header: 'City', key: 'city', width: 15 },
-      { header: 'Street Address', key: 'street', width: 30 },
-      { header: 'Wereda/Zone', key: 'zone', width: 20 },
-      { header: 'PO Box', key: 'poBox', width: 12 },
-      { header: 'Created Date', key: 'createdAt', width: 15 }
-    ]
+    if (exportData.length === 0) return
 
-    const headerRow = worksheet.getRow(1)
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-    
-    // Group 1: Identity (Blue)
-    for (let i = 1; i <= 4; i++) {
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
-    }
-    // Group 2: Contact (Green)
-    for (let i = 5; i <= 6; i++) {
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
-    }
-    // Group 3: Address (Orange)
-    for (let i = 7; i <= 11; i++) {
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
-    }
-    // Group 4: System (Gray)
-    headerRow.getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
-
-    clients.forEach(c => {
-      worksheet.addRow({
+    startExport({
+      sheetName: 'Clients',
+      fileName: 'EAIP_Clients',
+      columns: [
+        { header: 'Client Name', key: 'name', width: 25 },
+        { header: 'Local Name', key: 'localName', width: 25 },
+        { header: 'Type', key: 'type', width: 15 },
+        { header: 'Gender', key: 'gender', width: 12 },
+        { header: 'Email', key: 'email', width: 25 },
+        { header: 'Telephone', key: 'telephone', width: 20 },
+        { header: 'Nationality', key: 'nationality', width: 15 },
+        { header: 'City', key: 'city', width: 15 },
+        { header: 'Street Address', key: 'street', width: 30 },
+        { header: 'Wereda/Zone', key: 'zone', width: 20 },
+        { header: 'PO Box', key: 'poBox', width: 12 },
+        { header: 'Created Date', key: 'createdAt', width: 15 },
+      ],
+      rows: exportData,
+      mapRow: (c) => ({
         name: c.name,
         localName: (c as any).local_name || '',
-        type: c.type,
+        type: CLIENT_TYPE_LABELS[c.type] || c.type,
         gender: (c as any).gender || 'N/A',
         email: c.email || '—',
         telephone: (c as any).telephone || '—',
@@ -272,20 +264,40 @@ export default function ClientsPage() {
         street: c.address_street || '—',
         zone: `${(c as any).address_zone || ''} ${(c as any).wereda || ''}`.trim() || '—',
         poBox: (c as any).po_box || '—',
-        createdAt: new Date(c.created_at).toLocaleDateString()
-      })
+        createdAt: new Date(c.created_at).toLocaleDateString(),
+      }),
+      formatHeader: (ws) => {
+        const worksheet = ws as Record<string, unknown>
+        const bdr = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
+        ;(worksheet as any).spliceRows(1, 0, [])
+        ;(worksheet as any).mergeCells(1, 1, 1, 12)
+        const titleCell = (worksheet as any).getCell(1, 1)
+        titleCell.value = 'EAST AFRICAN INTELLECTUAL PROPERTY PORTAL — CLIENTS MASTER LIST'
+        titleCell.font = { bold: true, size: 14, color: { argb: 'FF1F497D' } }
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center' }
+        titleCell.border = { top: bdr, left: bdr, bottom: bdr, right: bdr }
+        ;(worksheet as any).getRow(1).height = 35
+
+        const headerRow = (worksheet as any).getRow(2)
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
+        for (let i = 1; i <= 4; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+        for (let i = 5; i <= 6; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
+        for (let i = 7; i <= 11; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
+        headerRow.getCell(12).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+        ;(worksheet as any).views = [{ state: 'frozen', ySplit: 2 }]
+        ;(worksheet as any).autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: 12 } }
+        ;(worksheet as any).dataValidations.add('G3:G5000', {
+          type: 'list',
+          formulae: ['"Austria, Belgium, China, Denmark, France, Germany, India, Indonesia, Italy, Kenya, Netherlands, Rwanda, Singapore, South Korea, Spain, Switzerland, Thailand, Turkey, UAE, UK, USA"'],
+          allowBlank: true,
+          showErrorMessage: true,
+          errorTitle: 'Invalid Nationality',
+          error: 'Please select a nationality from the dropdown list.',
+        })
+      },
     })
-
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `clients_export_${new Date().toISOString().split('T')[0]}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    toast.success('Excel file has been downloaded.');
   };
 
   if (loading) {
@@ -342,7 +354,7 @@ export default function ClientsPage() {
             className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold"
           >
             <FileArrowDown size={20} className="mr-2" />
-            <span>Export CSV Report</span>
+            <span>Export Excel</span>
           </Button>
           <Button
             onClick={() => navigate('/clients/new')}
@@ -668,6 +680,12 @@ export default function ClientsPage() {
             </div>
           </div>
         )}
+        <ExportProgressModal
+          isExporting={isExporting}
+          progress={exportProgress}
+          message="Exporting Clients..."
+          subtext="Generating your client report."
+        />
       </div>
     </div>
   );

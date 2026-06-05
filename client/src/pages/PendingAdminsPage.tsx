@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Typography } from "@/components/ui/typography"
 import { toast } from "sonner"
 import { Check, X, UserPlus, Search, Clock, Mail, Building, AlertTriangle } from "lucide-react"
+import HelpButton from "@/components/HelpButton"
 
 interface PendingAdmin {
   id: string
@@ -98,6 +99,7 @@ export default function PendingAdminsPage() {
             Review and approve new administrator accounts.
           </Typography.muted>
         </div>
+        <HelpButton pageId="pending-admins" />
       </header>
 
       <Card className="border-none shadow-premium rounded-3xl">
@@ -106,6 +108,7 @@ export default function PendingAdminsPage() {
             <div className="relative flex-1 md:w-[250px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input 
+                data-tour="search-input"
                 placeholder="Search administrators..." 
                 className="pl-9 bg-[#E8E8ED]"
                 value={searchQuery}
@@ -133,7 +136,7 @@ export default function PendingAdminsPage() {
               </Typography.muted>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4" data-tour="admin-list">
               {filteredAdmins.map((admin) => (
                 <div
                   key={admin.id}
@@ -199,6 +202,7 @@ export default function PendingAdminsPage() {
                           onClick={() => handleApprove(admin.id)}
                           disabled={processing === admin.id}
                           className="bg-green-600 hover:bg-green-700"
+                          data-tour="approve-button"
                         >
                           <Check size={16} className="mr-1" />
                           Approve
@@ -207,6 +211,7 @@ export default function PendingAdminsPage() {
                           onClick={() => handleReject(admin.id)}
                           disabled={processing === admin.id}
                           variant="destructive"
+                          data-tour="reject-button"
                         >
                           <X size={16} className="mr-1" />
                           Reject

@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import HelpButton from '@/components/HelpButton'
 
 export default function ProfilePage() {
   const { user, login } = useAuthStore()
@@ -403,13 +404,14 @@ export default function ProfilePage() {
             Manage your professional identity, firm credentials and systemic security protocols.
           </Typography.muted>
         </div>
+        <HelpButton pageId="profile" />
       </header>
 
-      <Tabs defaultValue="profile" className="w-full space-y-8">
+      <Tabs defaultValue="profile" className="w-full space-y-8" data-tour="tabs-container">
         <TabsList className="bg-muted/40 p-1.5 rounded-2xl border border-border/50 h-auto flex-wrap justify-start gap-1">
-          <TabsTrigger value="profile" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Profile</TabsTrigger>
-          <TabsTrigger value="company" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Company</TabsTrigger>
-          <TabsTrigger value="security" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Security</TabsTrigger>
+          <TabsTrigger data-tour="profile-tab" value="profile" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Profile</TabsTrigger>
+          <TabsTrigger data-tour="company-tab" value="company" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Company</TabsTrigger>
+          <TabsTrigger data-tour="security-tab" value="security" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Security</TabsTrigger>
           {isUserSuperAdmin && <TabsTrigger value="agents" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Agents</TabsTrigger>}
           {isUserSuperAdmin && <TabsTrigger value="pending" className="rounded-xl px-6 py-2.5 font-black text-[11px] uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all">Pending Admins</TabsTrigger>}
         </TabsList>
@@ -428,7 +430,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-xl font-black text-[11px] uppercase tracking-widest px-6 h-11 border-border/50 shadow-sm hover:shadow-md transition-all">
+                  <Button data-tour="edit-button" onClick={() => setIsEditing(true)} variant="outline" className="rounded-xl font-black text-[11px] uppercase tracking-widest px-6 h-11 border-border/50 shadow-sm hover:shadow-md transition-all">
                     <Edit2 className="mr-2 size-4" />
                     Edit Profile
                   </Button>

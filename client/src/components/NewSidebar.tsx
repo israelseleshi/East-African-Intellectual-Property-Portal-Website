@@ -145,34 +145,21 @@ function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <NavLink 
             to="/profile" 
             onClick={handleLinkClick}
-            className={({ isActive }) => 
-              `flex items-center gap-3 px-4 py-3 transition-all relative group ${
-                isActive 
-                  ? 'bg-primary/5 text-primary font-semibold' 
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-primary'
-              } ${isCollapsed ? 'justify-center' : 'justify-start'}`
-            }
+            className={`flex items-center gap-3 px-4 py-3 transition-all bg-blue-600 text-white hover:bg-blue-700 group ${isCollapsed ? 'justify-center' : 'justify-start'}`}
           >
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
-                )}
-                <User className={`h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-primary' : ''}`} />
-                {!isCollapsed && (
-                  <div className="flex flex-col items-start truncate overflow-hidden">
-                    <span className="text-sm font-medium leading-none">{user?.full_name || 'Profile'}</span>
-                    <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">{user?.email}</span>
-                  </div>
-                )}
-              </>
+            <User className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+            {!isCollapsed && (
+              <div className="flex flex-col items-start truncate overflow-hidden">
+                <span className="text-sm font-medium leading-none">{user?.full_name || 'Profile'}</span>
+                <span className="text-[10px] text-white/70 truncate w-full mt-0.5">{user?.email}</span>
+              </div>
             )}
           </NavLink>
 
           {/* Logout Button */}
           <button 
             onClick={() => setLogoutDialogOpen(true)}
-            className={`flex items-center gap-3 px-4 py-3 transition-all text-muted-foreground hover:bg-destructive/5 hover:text-destructive group ${isCollapsed ? 'justify-center' : 'justify-start'}`}
+            className={`flex items-center gap-3 px-4 py-3 transition-all bg-red-700 text-white hover:bg-red-800 group ${isCollapsed ? 'justify-center' : 'justify-start'}`}
           >
             <LogOut className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:-translate-x-1" />
             {!isCollapsed && <span className="text-sm font-medium">Logout</span>}

@@ -62,7 +62,7 @@ export interface ClientRow {
   deleted_at?: Date | null;
 }
 
-export type Jurisdiction = 'ER' | 'DJ' | 'SO' | 'SL' | 'KE' | 'TZ' | 'UG' | 'RW' | 'BI' | 'SD' | 'ET';
+export type Jurisdiction = string;
 
 // Complete 9-Stage Case Flow System
 export const CASE_FLOW_STAGES = [
@@ -244,7 +244,7 @@ export function getStageDeadlines(
   jurisdiction: Jurisdiction, 
   triggerDate: Date
 ): Record<string, Date | null> {
-  const config = JURISDICTION_CONFIG[jurisdiction];
+  const config = JURISDICTION_CONFIG[jurisdiction] || JURISDICTION_CONFIG.ET;
   
   switch (stage) {
     case 'FILED':

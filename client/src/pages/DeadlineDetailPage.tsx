@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { trademarkService } from '@/utils/api'
+import HelpButton from '@/components/HelpButton'
 
 type DeadlineDetail = {
   id: string
@@ -110,18 +111,23 @@ export default function DeadlineDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500 bg-[#F8F9FA] min-h-screen">
-      <header className="flex items-center gap-4 mb-8">
+      <header className="flex items-start gap-4 mb-8">
         <Button variant="outline" size="icon" onClick={() => navigate('/deadlines')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
           <ArrowLeft size={24} weight="bold" />
         </Button>
-        <div>
-          <Typography.h1a className="font-black">Deadline Intelligence</Typography.h1a>
-          <Typography.muted>Detailed analysis for {deadline.mark_name}</Typography.muted>
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Typography.h1a className="font-black">Deadline Intelligence</Typography.h1a>
+              <Typography.muted>Detailed analysis for {deadline.mark_name}</Typography.muted>
+            </div>
+            <HelpButton pageId="deadline-detail" />
+          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white">
+        <Card data-tour="deadline-info-card" className="md:col-span-2 border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white">
           <CardHeader className="bg-[#F8F9FA] border-b py-6 px-8">
             <div className="flex justify-between items-start">
               <div>
@@ -152,7 +158,7 @@ export default function DeadlineDetailPage() {
             <div className="p-6 bg-muted/30 rounded-2xl border border-dashed">
               <div className="flex items-center gap-2 mb-2 text-primary">
                 <Info size={18} weight="bold" />
-                <span className="text-sm font-bold uppercase tracking-wider">Strategic Context</span>
+                <span className="text-sm font-bold uppercase tracking-wider" data-tour="strategic-context">Strategic Context</span>
               </div>
               <p className="text-foreground leading-relaxed italic text-sm">
                 {currentContext}
@@ -183,10 +189,10 @@ export default function DeadlineDetailPage() {
             <CardContent className="p-8 space-y-6">
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Trademark Entity</p>
-                <Typography.h2a>{deadline.mark_name}</Typography.h2a>
+                <Typography.h2a data-tour="trademark-link">{deadline.mark_name}</Typography.h2a>
                 <Typography.muted>{deadline.client_name}</Typography.muted>
               </div>
-              <Button className="w-full font-black h-12 rounded-xl text-sm shadow-premium hover:shadow-xl transition-all" onClick={() => navigate(`/trademarks/${deadline.case_id}`)}>
+              <Button className="w-full font-black h-12 rounded-xl text-sm shadow-premium hover:shadow-xl transition-all" onClick={() => navigate(`/trademarks/${deadline.case_id}`)} data-tour="actions-section">
                 View Full Case Profile
               </Button>
             </CardContent>

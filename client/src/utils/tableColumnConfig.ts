@@ -63,7 +63,7 @@ export const PRESETS: Preset[] = [
 ]
 
 export const DEFAULT_VISIBLE_COLUMNS: string[] = [
-  'markName', 'clientName', 'jurisdiction', 'status', 'filingNumber', 'actions',
+  'markName', 'clientName', 'jurisdiction', 'status', 'filingNumber', 'certificateNumber', 'actions',
 ]
 
 export const ALL_COLUMNS: ColumnDef[] = [
@@ -72,7 +72,7 @@ export const ALL_COLUMNS: ColumnDef[] = [
   { id: 'markType', label: 'Mark Type', group: 'markInfo', defaultVisible: false, fieldKey: 'mark_type' },
   { id: 'filingNumber', label: 'Filing Number', group: 'markInfo', defaultVisible: true, fieldKey: 'filing_number', render: 'filingBadge' },
   { id: 'registrationNumber', label: 'Reg. Number', group: 'markInfo', defaultVisible: false, fieldKey: 'registration_number' },
-  { id: 'certificateNumber', label: 'Certificate No.', group: 'markInfo', defaultVisible: false, fieldKey: 'certificate_number' },
+  { id: 'certificateNumber', label: 'Certificate No.', group: 'markInfo', defaultVisible: true, fieldKey: 'certificate_number' },
   { id: 'colorIndication', label: 'Color Indication', group: 'markInfo', defaultVisible: false, fieldKey: 'color_indication' },
 
   // Dates

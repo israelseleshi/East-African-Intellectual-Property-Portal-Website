@@ -51,6 +51,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Typography } from '@/components/ui/typography'
 import { InvoiceSharePopover } from '@/components/InvoiceSharePopover'
+import { useExcelExport } from '@/hooks/useExcelExport'
+import ExportProgressModal from '@/components/ExportProgressModal'
+import HelpButton from '@/components/HelpButton'
 
 const EIPO_FEES = [
   { code: 'FILED', description: 'Application For Registration Of Trade Mark', amount: 1750 },
@@ -460,52 +463,28 @@ export default function BillingPage() {
     }
   }
 
+  const { isExporting, exportProgress, startExport } = useExcelExport()
+
   const handleExportExcel = async () => {
-    if (filteredTransactions.length === 0) return;
-    const ExcelJS = (await import('exceljs')).default
-    
-    const workbook = new ExcelJS.Workbook()
-    ;(workbook.properties as any).defaultFont = 'Times New Roman'
-    const worksheet = workbook.addWorksheet('Invoices')
+    if (filteredTransactions.length === 0) return
 
-    // Professional borders and fonts
-    const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
-
-    worksheet.columns = [
-      { header: 'Invoice Number', key: 'number', width: 20 },
-      { header: 'Client Name', key: 'client', width: 25 },
-      { header: 'Trademark', key: 'mark', width: 25 },
-      { header: 'Fee Type', key: 'type', width: 20 },
-      { header: 'Issue Date', key: 'issueDate', width: 15 },
-      { header: 'Due Date', key: 'dueDate', width: 15 },
-      { header: 'Amount', key: 'amount', width: 15 },
-      { header: 'Currency', key: 'currency', width: 10 },
-      { header: 'Status', key: 'status', width: 15 },
-      { header: 'Method', key: 'method', width: 15 }
-    ]
-
-    const headerRow = worksheet.getRow(1)
-    headerRow.height = 25
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
-    
-    // Group 1: Invoice/Client (Blue)
-    for (let i = 1; i <= 3; i++) {
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
-    }
-    // Group 2: Fee Info (Orange)
-    for (let i = 4; i <= 6; i++) {
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
-    }
-    // Group 3: Financials (Green)
-    for (let i = 7; i <= 9; i++) {
-      headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
-    }
-    // Group 4: Payment (Gray)
-    headerRow.getCell(10).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
-
-    filteredTransactions.forEach(tx => {
-      const row = worksheet.addRow({
+    startExport({
+      sheetName: 'Invoices',
+      fileName: 'EAIP_Billing',
+      columns: [
+        { header: 'Invoice Number', key: 'number', width: 20 },
+        { header: 'Client Name', key: 'client', width: 25 },
+        { header: 'Trademark', key: 'mark', width: 25 },
+        { header: 'Fee Type', key: 'type', width: 20 },
+        { header: 'Issue Date', key: 'issueDate', width: 15 },
+        { header: 'Due Date', key: 'dueDate', width: 15 },
+        { header: 'Amount', key: 'amount', width: 15 },
+        { header: 'Currency', key: 'currency', width: 10 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Method', key: 'method', width: 15 },
+      ],
+      rows: filteredTransactions,
+      mapRow: (tx) => ({
         number: tx.invoiceNumber || tx.id,
         client: tx.clientName,
         mark: tx.markName || '—',
@@ -515,36 +494,38 @@ export default function BillingPage() {
         amount: Number(tx.amount || 0),
         currency: tx.currency,
         status: tx.status,
-        method: tx.method || '—'
-      })
+        method: tx.method || '—',
+      }),
+      formatHeader: (ws) => {
+        const worksheet = ws as Record<string, unknown>
+        const bdr = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
+        ;(worksheet as any).spliceRows(1, 0, [])
+        ;(worksheet as any).mergeCells(1, 1, 1, 10)
+        const titleCell = (worksheet as any).getCell(1, 1)
+        titleCell.value = 'EAST AFRICAN INTELLECTUAL PROPERTY PORTAL — BILLING MASTER LIST'
+        titleCell.font = { bold: true, size: 14, color: { argb: 'FF1F497D' } }
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center' }
+        titleCell.border = { top: bdr, left: bdr, bottom: bdr, right: bdr }
+        ;(worksheet as any).getRow(1).height = 35
 
-      // Styling Amount column as Currency
-      const amountCell = row.getCell(7)
-      amountCell.numFmt = '"$"#,##0.00;[Red]("$"#,##0.00)'
-      if (tx.currency === 'ETB') amountCell.numFmt = '"ETB "#,##0.00'
-
-      // Apply borders to row cells
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
-        cell.alignment = { vertical: 'middle', horizontal: 'left' }
-      })
+        const headerRow = (worksheet as any).getRow(2)
+        headerRow.height = 25
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' }
+        for (let i = 1; i <= 3; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+        for (let i = 4; i <= 6; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } }
+        for (let i = 7; i <= 9; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF16A34A' } }
+        headerRow.getCell(10).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } }
+        ;(worksheet as any).views = [{ state: 'frozen', ySplit: 2 }]
+        ;(worksheet as any).autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: 10 } }
+      },
+      formatRow: (r, tx) => {
+        const row = r as any
+        const amountCell = row.getCell(7)
+        amountCell.numFmt = tx.currency === 'ETB' ? '"ETB "#,##0.00' : '"$"#,##0.00;[Red]("$"#,##0.00)'
+      },
     })
-
-    // Header borders
-    headerRow.eachCell({ includeEmpty: true }, (cell) => {
-      cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
-    })
-
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `billing_export_${new Date().toISOString().split('T')[0]}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    
-    toast.success('Professional Excel file with bordered data and currency formatting downloaded.');
   }
 
   if (loading) {
@@ -587,6 +568,7 @@ export default function BillingPage() {
           <Typography.p className="text-muted-foreground text-lg font-medium opacity-80">Professional invoicing and regional fee management system.</Typography.p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <HelpButton pageId="billing" />
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-2 mr-2">
               <Button
@@ -600,15 +582,17 @@ export default function BillingPage() {
               </Button>
             </div>
           )}
-          <Button
+            <Button
+            data-tour="export-button"
             onClick={handleExportExcel}
             variant="outline"
             className="bg-white hover:shadow-md transition-all h-12 px-6 rounded-xl border-none shadow-sm font-semibold"
           >
             <FileArrowDown size={20} className="mr-2" />
-            <span>Export CSV Report</span>
+            <span>Export Excel</span>
           </Button>
           <Button
+            data-tour="create-invoice-button"
             onClick={() => setIsCreateInvoiceModalOpen(true)}
             className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
           >
@@ -620,7 +604,7 @@ export default function BillingPage() {
 
       <div className="mx-4 md:px-10 space-y-10">
         {/* Stats Cards */}
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-3" data-tour="stats-cards">
           <Card className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-[#1A1A1A] to-[#404040] text-white rounded-3xl transform hover:scale-[1.02] transition-all duration-300">
             <CardContent className="p-8 relative">
               <div className="absolute -top-6 -right-6 p-4 opacity-5 rotate-12">
@@ -702,7 +686,7 @@ export default function BillingPage() {
         <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl border-none shadow-premium space-y-6">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
             <div className="flex flex-wrap items-center gap-4">
-              <CardTitle className="text-xl font-bold mr-4">Transaction Ledger</CardTitle>
+              <CardTitle className="text-xl font-bold mr-4" data-tour="invoice-list">Transaction Ledger</CardTitle>
               <div className="flex flex-wrap items-center gap-2">
                 {filters.status !== '__all__' && (
                   <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
@@ -741,7 +725,7 @@ export default function BillingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            <DateRangePicker
+            <DateRangePicker data-tour="date-range-filter"
               fromDate={filters.dateFrom}
               toDate={filters.dateTo}
               onDateChange={(from, to) => setFilters(prev => ({ ...prev, dateFrom: from, dateTo: to }))}
@@ -773,7 +757,7 @@ export default function BillingPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
+            <Select data-tour="status-filter" value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
               <SelectTrigger className="h-12 bg-[#F8F9FA] border-none rounded-xl font-medium focus:ring-primary/20">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -1288,6 +1272,13 @@ export default function BillingPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <ExportProgressModal
+          isExporting={isExporting}
+          progress={exportProgress}
+          message="Exporting Billing..."
+          subtext="Generating your invoice report."
+        />
       </div>
     </div>
   )

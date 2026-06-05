@@ -17,6 +17,7 @@ import { getMarkImageCandidates, resolveMarkImageUrl } from '@/utils/markImage'
 import { usePageTitleStore } from '@/store/pageTitleStore'
 import { toast } from 'sonner'
 import { fillPdfForm } from '@/utils/pdfUtils'
+import HelpButton from '@/components/HelpButton'
 
 type NiceMapping = { id: string; classNo: number; description?: string }
 
@@ -50,6 +51,8 @@ type TrademarkCaseDetail = {
   expiry_date?: string
   nextRenewalDate?: string
   next_renewal_date?: string
+  certificateNumber?: string
+  certificate_number?: string
   priority_country?: string
   priority_filing_date?: string
   disclaimer_english?: string
@@ -637,6 +640,11 @@ export default function TrademarkDetailInfoPage() {
             <Typography.h1 className="truncate font-black tracking-tight">{markName}</Typography.h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <Badge className="bg-[#1A1A1A] text-white border-none font-bold tracking-widest uppercase text-[10px] px-3 py-1 rounded-full shadow-sm">{filingNo}</Badge>
+              {(tm.certificateNumber || tm.certificate_number) && (
+                <Badge className="bg-emerald-600 text-white border-none font-bold tracking-widest uppercase text-[10px] px-3 py-1 rounded-full shadow-sm">
+                  {tm.certificateNumber || tm.certificate_number}
+                </Badge>
+              )}
               <Badge variant="outline" className="bg-white border-none shadow-sm text-primary font-bold tracking-wider uppercase text-[10px] px-3 py-1 rounded-full">{JURISDICTION_NAMES[tm.jurisdiction || 'ET'] || tm.jurisdiction}</Badge>
               <Badge className={`font-bold tracking-widest uppercase text-[10px] px-3 py-1 rounded-full border-none shadow-sm ${STATUS_COLORS[tm.status || 'DRAFT'] || 'bg-primary text-white'}`}>
                 {STATUS_NAMES[tm.status || 'DRAFT'] || tm.status}
@@ -645,6 +653,7 @@ export default function TrademarkDetailInfoPage() {
           </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+          <HelpButton pageId="trademark-detail" />
           {isEditing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing} disabled={isSaving} className="h-12 px-6 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl">
