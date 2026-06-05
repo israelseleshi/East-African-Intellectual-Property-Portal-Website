@@ -20,46 +20,48 @@ jobs:
         run: |
           cd server && npm ci && npm run build && cd ..
 
-      - name: Configure SSH
+      - name: Package artifacts
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.A2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_a2
-          chmod 600 ~/.ssh/id_a2
-          ssh-keyscan -p ${{ secrets.A2_PORT || '7822' }} ${{ secrets.A2_HOST || 'eastafricanip.com' }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Package and deploy frontend
-        run: |
-          cd client/dist
-          zip -r ../../deploy_frontend.zip .
-          cd ../..
-          scp -i ~/.ssh/id_a2 -P ${{ secrets.A2_PORT || '7822' }} -o ConnectTimeout=12 deploy_frontend.zip ${{ secrets.A2_USER || 'falolega' }}@${{ secrets.A2_HOST || 'eastafricanip.com' }}:/home/${{ secrets.A2_USER || 'falolega' }}/${{ secrets.A2_FRONTEND_DEPLOY_PATH || 'eastafricanip.com' }}/
-          ssh -i ~/.ssh/id_a2 -p ${{ secrets.A2_PORT || '7822' }} -o ConnectTimeout=12 ${{ secrets.A2_USER || 'falolega' }}@${{ secrets.A2_HOST || 'eastafricanip.com' }} "
-            cd /home/${{ secrets.A2_USER || 'falolega' }}/${{ secrets.A2_FRONTEND_DEPLOY_PATH || 'eastafricanip.com' }}
-            if [ -d 'assets' ]; then find assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' -o -name '*.map' \) -delete; fi
-            unzip -oq deploy_frontend.zip
-            rm -f deploy_frontend.zip
-          "
-
-      - name: Package and deploy backend
-        run: |
-          cd server/dist
-          zip -r ../../deploy_backend.zip .
-          cd ../..
+          cd client/dist && zip -r ../../deploy_frontend.zip . && cd ../..
+          cd server/dist && zip -r ../../deploy_backend.zip . && cd ../..
           cp server/package.json deploy_backend_pkg.json
           zip -j deploy_backend.zip deploy_backend_pkg.json
           if [ -f scripts/deployment/server.htaccess ]; then
             cp scripts/deployment/server.htaccess ./deploy_htaccess
             zip -j deploy_backend.zip deploy_htaccess
           fi
-          scp -i ~/.ssh/id_a2 -P ${{ secrets.A2_PORT || '7822' }} -o ConnectTimeout=12 deploy_backend.zip ${{ secrets.A2_USER || 'falolega' }}@${{ secrets.A2_HOST || 'eastafricanip.com' }}:/home/${{ secrets.A2_USER || 'falolega' }}/${{ secrets.A2_BACKEND_DEPLOY_PATH || 'eastafricanip.com/api' }}/
-          ssh -i ~/.ssh/id_a2 -p ${{ secrets.A2_PORT || '7822' }} -o ConnectTimeout=12 ${{ secrets.A2_USER || 'falolega' }}@${{ secrets.A2_HOST || 'eastafricanip.com' }} "
-            cd /home/${{ secrets.A2_USER || 'falolega' }}/${{ secrets.A2_BACKEND_DEPLOY_PATH || 'eastafricanip.com/api' }}
-            if [ -d 'uploads' ]; then rm -rf ../uploads_backup && mv uploads ../uploads_backup; fi
-            if [ -d 'forms-upload' ]; then rm -rf ../forms-upload_backup && mv forms-upload ../forms-upload_backup; fi
-            unzip -oq deploy_backend.zip
-            if [ -d '../uploads_backup' ]; then rm -rf uploads && mv ../uploads_backup uploads; fi
-            if [ -d '../forms-upload_backup' ]; then rm -rf forms-upload && mv ../forms-upload_backup forms-upload; fi
+
+      - name: Configure SSH and deploy
+        env:
+          SSH_KEY: ${{ secrets.A2_SSH_KEY }}
+          SSH_HOST: ${{ secrets.A2_HOST || 'eastafricanip.com' }}
+          SSH_PORT: ${{ secrets.A2_PORT || '7822' }}
+          SSH_USER: ${{ secrets.A2_USER || 'falolega' }}
+          FE_PATH: ${{ secrets.A2_FRONTEND_DEPLOY_PATH || 'eastafricanip.com' }}
+          BE_PATH: ${{ secrets.A2_BACKEND_DEPLOY_PATH || 'eastafricanip.com/api' }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_a2 && chmod 600 ~/.ssh/id_a2
+          SSH_OPTS="-i ~/.ssh/id_a2 -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -o ServerAliveInterval=30"
+          scp $SSH_OPTS deploy_frontend.zip deploy_backend.zip "$SSH_USER@$SSH_HOST:~/"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "
+            set -e
+            echo '=== Deploying frontend ==='
+            cd ~/$FE_PATH
+            [ -d assets ] && find assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' -o -name '*.map' \) -delete
+            mv ~/deploy_frontend.zip .
+            unzip -oq deploy_frontend.zip && rm -f deploy_frontend.zip
+
+            echo '=== Deploying backend ==='
+            cd ~/$BE_PATH
+            [ -d uploads ] && mv uploads ~/uploads_backup
+            [ -d forms-upload ] && mv forms-upload ~/forms-upload_backup
+            mv ~/deploy_backend.zip .
+            unzip -oq deploy_backend.zip && rm -f deploy_backend.zip
+            [ -d ~/uploads_backup ] && rm -rf uploads && mv ~/uploads_backup uploads
+            [ -d ~/forms-upload_backup ] && rm -rf forms-upload && mv ~/forms-upload_backup forms-upload
             mkdir -p uploads/marks forms-upload
-            rm -f deploy_backend.zip
+            npm install --omit=dev
             mkdir -p tmp && touch tmp/restart.txt
+            echo '=== Deploy complete ==='
           "
