@@ -230,7 +230,7 @@ export default function ClientsPage() {
       page: 1,
       limit: 500,
     })
-    const exportData = result?.data || sortedClients
+    const exportData = (result?.data || sortedClients) as Client[]
 
     if (exportData.length === 0) return
 
