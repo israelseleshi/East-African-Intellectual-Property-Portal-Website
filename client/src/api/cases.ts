@@ -28,16 +28,23 @@ export const casesApi = {
         ...query
       }
     });
-    if (Array.isArray(response.data)) {
+    const resData = response.data;
+    if (Array.isArray(resData)) {
       return {
-        rows: response.data as T[],
-        total: response.data.length,
+        rows: resData as T[],
+        total: resData.length,
         page: 1,
-        pageSize: response.data.length || 200,
+        pageSize: resData.length || 200,
         hasMore: false
       };
     }
-    return response.data as CasesListResponse<T>;
+    return {
+      rows: (resData.data || []) as T[],
+      total: resData.total || 0,
+      page: resData.page || 1,
+      pageSize: resData.pageSize || 200,
+      hasMore: resData.hasMore || false
+    };
   },
 
   async listPage<T = unknown>(query?: CasesQuery): Promise<CasesListResponse<T>> {
@@ -50,16 +57,23 @@ export const casesApi = {
         ...query
       }
     });
-    if (Array.isArray(response.data)) {
+    const resData = response.data;
+    if (Array.isArray(resData)) {
       return {
-        rows: response.data as T[],
-        total: response.data.length,
+        rows: resData as T[],
+        total: resData.length,
         page: 1,
-        pageSize: response.data.length || 25,
+        pageSize: resData.length || 25,
         hasMore: false
       };
     }
-    return response.data as CasesListResponse<T>;
+    return {
+      rows: (resData.data || []) as T[],
+      total: resData.total || 0,
+      page: resData.page || 1,
+      pageSize: resData.pageSize || 25,
+      hasMore: resData.hasMore || false
+    };
   },
 
   async getById(id: string) {

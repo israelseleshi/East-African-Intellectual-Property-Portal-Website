@@ -186,6 +186,34 @@ export const caseQueryService = {
         acc.set(key, existing);
         return acc;
       }, new Map<string, DeadlineRow[]>());
+
+      for (const c of cases) {
+        if (groupedDeadlines.has(c.id)) continue;
+        const derived: DeadlineRow[] = [];
+        if (c.expiry_date) {
+          derived.push({
+            case_id: c.id,
+            id: `derived-${c.id}-renewal`,
+            due_date: c.expiry_date instanceof Date ? c.expiry_date.toISOString().split('T')[0] : String(c.expiry_date).split('T')[0],
+            type: 'RENEWAL',
+            status: 'PENDING',
+            priority: 'MEDIUM',
+          } as DeadlineRow);
+        }
+        if (c.next_action_date) {
+          derived.push({
+            case_id: c.id,
+            id: `derived-${c.id}-action`,
+            due_date: c.next_action_date instanceof Date ? c.next_action_date.toISOString().split('T')[0] : String(c.next_action_date).split('T')[0],
+            type: 'GENERIC',
+            status: 'PENDING',
+            priority: 'LOW',
+          } as DeadlineRow);
+        }
+        if (derived.length > 0) {
+          groupedDeadlines.set(c.id, derived);
+        }
+      }
     }
 
     return {

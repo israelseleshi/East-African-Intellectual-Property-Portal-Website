@@ -28,18 +28,7 @@ const routeSteps: Record<string, Step[]> = {
     { target: 'nav aside', title: 'Module Selector', content: 'Switch to the Application Form to start a fresh filing for a new mark.' },
     { target: 'body', placement: 'center', title: 'Case Documents', content: 'Remember that you can upload POAs, Certificates, and Images directly into each case file.' }
   ],
-  '/clients': [
-    { target: 'body', placement: 'center', title: 'Client Relationships', content: 'Manage all your clients and their associated intellectual property portfolios.' },
-    { target: 'h1', title: 'Client Directory', content: 'A centralized list of all companies and individuals you represent.' },
-    { target: 'table', title: 'Client List', content: 'View contact details, total cases, and billing status for every client.' },
-    { target: 'button:contains("Add")', title: 'Onboard Client', content: 'Create a new client profile before starting their first trademark application.' },
-    { target: 'tr:first-child', title: 'Client Profile', content: 'Clicking a client allows you to see their specific trademark portfolio and documents.' },
-    { target: 'input', title: 'Filter Clients', content: 'Quickly find a client by name or email address.' },
-    { target: 'th:contains("Cases")', title: 'Portfolio Size', content: 'Easily see which clients have the largest IP footprint in your system.' },
-    { target: 'th:contains("Status")', title: 'Account Status', content: 'Identify active, inactive, or priority clients at a glance.' },
-    { target: 'td:last-child', title: 'Quick Actions', content: 'Edit details or view specific case reports directly from the list.' },
-    { target: 'body', placement: 'center', title: 'Next Steps', content: 'Once a client is added, you can select them from the Application Form to auto-fill fields.' }
-  ],
+
   '/eipa-forms': [
     { target: 'body', placement: 'center', title: 'Smart Filing Assistant', content: 'Automate the generation of official EIPA (Ethiopia IP Authority) application forms.' },
     { target: 'h1', title: 'Application Form', content: 'This dynamic form mirrors the official government requirements.' },
