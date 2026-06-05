@@ -334,7 +334,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     >
                       <Button 
                         type="submit" 
-                        className="w-full" 
+                      className="w-full text-base font-bold" 
                         disabled={isLoading || totpCode.length !== 6}
                       >
                         {isLoading ? (
