@@ -12,59 +12,48 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build frontend
+      - name: Build, package, and deploy
+        env:
+          A2_KEY: ${{ secrets.A2_SSH_KEY }}
+          A2_PORT: ${{ secrets.A2_PORT || '7822' }}
+          A2_HOST: ${{ secrets.A2_HOST || 'eastafricanip.com' }}
+          A2_USER: ${{ secrets.A2_USER || 'falolega' }}
+          A2_FE_PATH: ${{ secrets.A2_FRONTEND_DEPLOY_PATH || 'eastafricanip.com' }}
+          A2_BE_PATH: ${{ secrets.A2_BACKEND_DEPLOY_PATH || 'eastafricanip.com/api' }}
         run: |
-          cd client && npm ci && npm run build && cd ..
+          # Build
+          cd "$GITHUB_WORKSPACE/client" && npm ci && npm run build
+          cd "$GITHUB_WORKSPACE/server" && npm ci && npm run build
 
-      - name: Build backend
-        run: |
-          cd server && npm ci && npm run build && cd ..
-
-      - name: Package artifacts
-        run: |
-          ROOT="$GITHUB_WORKSPACE"
-          (cd client/dist && zip -r "$ROOT/deploy_frontend.zip" .)
-          (cd server/dist && zip -r "$ROOT/deploy_backend.zip" .)
-          cd "$ROOT"
+          # Package zips at known absolute path
+          cd "$GITHUB_WORKSPACE/client/dist" && zip -r "$GITHUB_WORKSPACE/deploy_frontend.zip" .
+          cd "$GITHUB_WORKSPACE/server/dist" && zip -r "$GITHUB_WORKSPACE/deploy_backend.zip" .
+          cd "$GITHUB_WORKSPACE"
           cp server/package.json deploy_backend_pkg.json
-          zip -j deploy_backend.zip deploy_backend_pkg.json
+          zip -j "$GITHUB_WORKSPACE/deploy_backend.zip" deploy_backend_pkg.json
           if [ -f scripts/deployment/server.htaccess ]; then
-            cp scripts/deployment/server.htaccess ./deploy_htaccess
-            zip -j deploy_backend.zip deploy_htaccess
+            cp scripts/deployment/server.htaccess deploy_htaccess
+            zip -j "$GITHUB_WORKSPACE/deploy_backend.zip" deploy_htaccess
           fi
 
-      - name: List artifacts (debug)
-        run: ls -la "$GITHUB_WORKSPACE"/*.zip
-
-      - name: Configure SSH and deploy
-        run: |
+          # Configure SSH
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          echo "${{ secrets.A2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_a2 && chmod 600 ~/.ssh/id_a2
-          PORT="${{ secrets.A2_PORT || '7822' }}"
-          HOST="${{ secrets.A2_HOST || 'eastafricanip.com' }}"
-          USER="${{ secrets.A2_USER || 'falolega' }}"
-          FE_PATH="${{ secrets.A2_FRONTEND_DEPLOY_PATH || 'eastafricanip.com' }}"
-          BE_PATH="${{ secrets.A2_BACKEND_DEPLOY_PATH || 'eastafricanip.com/api' }}"
-          SSH_OPTS="-i ~/.ssh/id_a2 -p $PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -o ServerAliveInterval=30"
-          scp $SSH_OPTS "$GITHUB_WORKSPACE/deploy_frontend.zip" "$GITHUB_WORKSPACE/deploy_backend.zip" "$USER@$HOST:~/"
-          ssh $SSH_OPTS "$USER@$HOST" "
-            set -e
-            echo '=== Deploying frontend ==='
-            cd ~/$FE_PATH
-            [ -d assets ] && find assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' -o -name '*.map' \) -delete
-            mv ~/deploy_frontend.zip .
-            unzip -oq deploy_frontend.zip && rm -f deploy_frontend.zip
+          printf '%s' "$A2_KEY" | tr -d '\r' > ~/.ssh/id_a2 && chmod 600 ~/.ssh/id_a2
 
-            echo '=== Deploying backend ==='
-            cd ~/$BE_PATH
+          # Deploy
+          OPTS="-i ~/.ssh/id_a2 -p $A2_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -o ServerAliveInterval=30"
+          scp $OPTS "$GITHUB_WORKSPACE/deploy_frontend.zip" "$GITHUB_WORKSPACE/deploy_backend.zip" "$A2_USER@$A2_HOST:~/"
+          ssh $OPTS "$A2_USER@$A2_HOST" "
+            set -e
+            cd ~/$A2_FE_PATH
+            [ -d assets ] && find assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' -o -name '*.map' \) -delete
+            mv ~/deploy_frontend.zip . && unzip -oq deploy_frontend.zip && rm -f deploy_frontend.zip
+            cd ~/$A2_BE_PATH
             [ -d uploads ] && mv uploads ~/uploads_backup
             [ -d forms-upload ] && mv forms-upload ~/forms-upload_backup
-            mv ~/deploy_backend.zip .
-            unzip -oq deploy_backend.zip && rm -f deploy_backend.zip
+            mv ~/deploy_backend.zip . && unzip -oq deploy_backend.zip && rm -f deploy_backend.zip
             [ -d ~/uploads_backup ] && rm -rf uploads && mv ~/uploads_backup uploads
             [ -d ~/forms-upload_backup ] && rm -rf forms-upload && mv ~/forms-upload_backup forms-upload
             mkdir -p uploads/marks forms-upload
-            npm install --omit=dev
-            mkdir -p tmp && touch tmp/restart.txt
-            echo '=== Deploy complete ==='
+            npm install --omit=dev && mkdir -p tmp && touch tmp/restart.txt
           "
