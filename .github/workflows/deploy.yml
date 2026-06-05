@@ -42,12 +42,15 @@ jobs:
           ls -la "$GITHUB_WORKSPACE"/*.zip
 
           # Configure SSH
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s' "$A2_KEY" | tr -d '\r' > ~/.ssh/id_a2 && chmod 600 ~/.ssh/id_a2
-          ls -la ~/.ssh/id_a2
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          cat > "$HOME/.ssh/id_a2" << 'SSHKEY'
+${{ secrets.A2_SSH_KEY }}
+SSHKEY
+          sed -i 's/\r$//' "$HOME/.ssh/id_a2" && chmod 600 "$HOME/.ssh/id_a2"
+          ls -la "$HOME/.ssh/id_a2"
 
           # Upload via SSH cat
-          OPTS="-i ~/.ssh/id_a2 -p $A2_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -o ServerAliveInterval=30"
+          OPTS="-i $HOME/.ssh/id_a2 -p $A2_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -o ServerAliveInterval=30"
           ssh $OPTS "$A2_USER@$A2_HOST" "cat > ~/deploy_frontend.zip" < "$GITHUB_WORKSPACE/deploy_frontend.zip"
           ssh $OPTS "$A2_USER@$A2_HOST" "cat > ~/deploy_backend.zip" < "$GITHUB_WORKSPACE/deploy_backend.zip"
 
