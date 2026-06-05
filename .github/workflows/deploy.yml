@@ -23,7 +23,7 @@ jobs:
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.A2_SSH_KEY }}" > ~/.ssh/id_a2
+          echo "${{ secrets.A2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_a2
           chmod 600 ~/.ssh/id_a2
           ssh-keyscan -p ${{ secrets.A2_PORT || '7822' }} ${{ secrets.A2_HOST || 'eastafricanip.com' }} >> ~/.ssh/known_hosts 2>/dev/null
 
