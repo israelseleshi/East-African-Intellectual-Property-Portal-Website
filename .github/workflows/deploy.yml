@@ -22,8 +22,10 @@ jobs:
 
       - name: Package artifacts
         run: |
-          cd client/dist && zip -r ../../deploy_frontend.zip . && cd ../..
-          cd server/dist && zip -r ../../deploy_backend.zip . && cd ../..
+          ROOT="$GITHUB_WORKSPACE"
+          (cd client/dist && zip -r "$ROOT/deploy_frontend.zip" .)
+          (cd server/dist && zip -r "$ROOT/deploy_backend.zip" .)
+          cd "$ROOT"
           cp server/package.json deploy_backend_pkg.json
           zip -j deploy_backend.zip deploy_backend_pkg.json
           if [ -f scripts/deployment/server.htaccess ]; then
