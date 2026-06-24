@@ -37,7 +37,7 @@ console.log('Starting SSH tunnel to a2hosting...');
 killExistingTunnels();
 
 // Use spawn to background the SSH process on Windows
-const ssh = spawn('ssh', ['-L', '3306:127.0.0.1:3306', '-N', 'a2hosting'], {
+const ssh = spawn('ssh', ['-o', 'StrictHostKeyChecking=accept-new', '-L', '3306:127.0.0.1:3306', '-N', 'a2hosting'], {
   detached: true,
   stdio: 'ignore'
 });

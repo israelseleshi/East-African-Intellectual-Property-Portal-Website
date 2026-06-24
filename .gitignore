@@ -81,6 +81,7 @@ $null
 .understand-anything/
 .graphify*/
 *.graphify*
+graphify-out/
 
 # =========================
 # Skills & Local AI

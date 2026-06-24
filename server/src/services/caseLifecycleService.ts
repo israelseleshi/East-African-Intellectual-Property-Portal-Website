@@ -403,6 +403,7 @@ export const caseLifecycleService = {
 
       if (data.disclaimer_english !== undefined) caseUpdates.disclaimer_english = data.disclaimer_english;
       if (data.disclaimer_amharic !== undefined) caseUpdates.disclaimer_amharic = data.disclaimer_amharic;
+      if (data.priority_filing_date !== undefined) caseUpdates.priority_filing_date = data.priority_filing_date;
       if (data.chk_goods !== undefined) caseUpdates.chk_goods = data.chk_goods === true ? 1 : 0;
       if (data.chk_services !== undefined) caseUpdates.chk_services = data.chk_services === true ? 1 : 0;
       if (data.chk_collective !== undefined) caseUpdates.chk_collective = data.chk_collective === true ? 1 : 0;
@@ -460,8 +461,10 @@ export const caseLifecycleService = {
         const priorityCountry = pickOptionalString(eipaForm, ['priority_country']);
         if (priorityCountry !== undefined) caseUpdates.priority_country = priorityCountry;
 
-        const priorityFilingDate = pickDate(eipaForm, ['priority_filing_date', 'priority_application_filing_date']);
-        if (priorityFilingDate !== undefined) caseUpdates.priority_filing_date = priorityFilingDate;
+        if (data.priority_filing_date === undefined) {
+          const priorityFilingDate = pickDate(eipaForm, ['priority_filing_date', 'priority_application_filing_date']);
+          if (priorityFilingDate !== undefined) caseUpdates.priority_filing_date = priorityFilingDate;
+        }
 
         const goodsPrevApplication = pickOptionalString(eipaForm, ['goods_and_services_covered_by_the_previous_application', 'priority_goods_services', 'goods_prev_application']);
         if (goodsPrevApplication !== undefined) caseUpdates.goods_prev_application = goodsPrevApplication;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockwise, DownloadSimple, Info, Buildings, MapPin, Phone, Envelope, Calendar, CheckSquare, List, WarningCircle, X, Upload, XCircle, User, IdentificationCard } from '@phosphor-icons/react'
+import { format } from 'date-fns'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,12 +13,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CountrySelector } from '@/components/CountrySelector'
+import { Calendar as CalendarPicker } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { trademarkService } from '@/utils/api'
 import { getMarkImageCandidates, resolveMarkImageUrl } from '@/utils/markImage'
 import { usePageTitleStore } from '@/store/pageTitleStore'
 import { toast } from 'sonner'
 import { fillPdfForm } from '@/utils/pdfUtils'
 import HelpButton from '@/components/HelpButton'
+import NiceClassPicker from '@/components/NiceClassPicker'
 
 type NiceMapping = { id: string; classNo: number; description?: string }
 
@@ -147,7 +151,7 @@ function EditableField({
   value?: string | boolean | null; 
   onChange?: (name: string, value: any) => void; 
   name?: string;
-  type?: 'text' | 'textarea' | 'checkbox' | 'country';
+  type?: 'text' | 'textarea' | 'checkbox' | 'country' | 'date';
   options?: { label: string; value: string }[]
 }) {
   if (onChange && name) {
@@ -185,6 +189,38 @@ function EditableField({
             onChange={(e) => onChange(name, e.target.value)}
             className="text-sm font-medium min-h-[100px]"
           />
+        </div>
+      )
+    }
+
+    if (type === 'date') {
+      const dateValue = typeof value === 'string' && value ? new Date(value + 'T00:00:00') : undefined
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal h-9"
+              >
+                <Calendar className="mr-2 h-4 w-4 opacity-70" />
+                {dateValue ? format(dateValue, 'PPP') : <span className="text-muted-foreground">Select date...</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarPicker
+                mode="single"
+                selected={dateValue}
+                onSelect={(date) => {
+                  if (date) {
+                    onChange(name, format(date, 'yyyy-MM-dd'))
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       )
     }
@@ -393,6 +429,7 @@ export default function TrademarkDetailInfoPage() {
       // Priority checklist
       chk_priority_accompanies: !!tm.chk_priority_accompanies || !!eipaField('chk_priority_accompanies'),
       chk_priority_submitted_later: !!tm.chk_priority_submitted_later || !!eipaField('chk_priority_submitted_later'),
+      niceClasses: tm?.niceMappings?.map(m => m.classNo) || tm?.niceClasses || [],
     })
     setIsEditing(true)
   }
@@ -410,7 +447,7 @@ export default function TrademarkDetailInfoPage() {
       const payload: Record<string, unknown> = {}
       
       // Base fields
-      const baseFields = ['markName', 'markType', 'colorIndication', 'filingNumber', 'priority', 'goodsServices', 'markDescription', 'mark_image'];
+      const baseFields = ['markName', 'markType', 'colorIndication', 'filingNumber', 'priority', 'goodsServices', 'markDescription', 'mark_image', 'priority_filing_date'];
       baseFields.forEach(field => {
         if (formData[field] !== undefined) payload[field] = formData[field];
       });
@@ -430,6 +467,14 @@ export default function TrademarkDetailInfoPage() {
         agentPayload[subKey] = formData[k];
       });
       if (Object.keys(agentPayload).length > 0) payload.agent = agentPayload;
+
+      // Nice Classes
+      if (formData.niceClasses !== undefined) {
+        const raw = formData.niceClasses
+        payload.niceClasses = Array.isArray(raw)
+          ? raw.filter((n: unknown) => typeof n === 'number' && n > 0)
+          : (raw as string).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n > 0)
+      }
 
       // Mark Type/Form Checkboxes
       const checkboxFields = [
@@ -814,10 +859,6 @@ export default function TrademarkDetailInfoPage() {
               <EditableField label="Mixed Mark" type="checkbox" value={getDisplayValue('k_type_mi', !!tm.is_mixed || !!eipaField('k_type_mi'))} name={isEditing ? 'k_type_mi' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
             </div>
 
-            <div className="space-y-4">
-              <EditableField label="Graphic Description" type="textarea" value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} name={isEditing ? 'markDescription' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-[#F8F9FA]">
               <EditableField label="Semantic Translation" value={getDisplayValue('mark_translation', eipaField('mark_translation'))} name={isEditing ? 'mark_translation' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
               <EditableField label="Phonetic Transliteration" value={getDisplayValue('mark_transliteration', eipaField('mark_transliteration'))} name={isEditing ? 'mark_transliteration' : undefined} onChange={isEditing ? handleFieldChange : undefined} />
@@ -849,6 +890,7 @@ export default function TrademarkDetailInfoPage() {
                 />
                 <EditableField 
                   label="First Filing Date" 
+                  type="date"
                   value={isEditing 
                     ? getDisplayValue('priority_filing_date', tm.priority_filing_date || eipaField('priority_filing_date')) 
                     : safeDate(tm.priority_filing_date || eipaField('priority_filing_date'))} 
@@ -925,18 +967,26 @@ export default function TrademarkDetailInfoPage() {
             </div>
           </CardHeader>
           <CardContent className="p-8 space-y-6">
-            <div className="flex flex-wrap gap-2">
-              {niceClasses.length ? niceClasses.map(c => (
-                <Badge key={c} className="bg-primary/5 text-primary border-none font-black text-xs px-4 py-2 rounded-xl shadow-sm hover:bg-primary hover:text-white transition-all cursor-default">Class {c}</Badge>
-              )) : <span className="text-muted-foreground font-bold italic">No classes defined</span>}
-            </div>
+            {isEditing ? (
+              <NiceClassPicker
+                selectedClasses={getDisplayValue('niceClasses', niceClasses) as number[]}
+                onChange={(classes) => handleFieldChange('niceClasses', classes)}
+                placeholder="Select Nice classes..."
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {niceClasses.length ? niceClasses.map(c => (
+                  <Badge key={c} className="bg-primary/5 text-primary border-none font-black text-xs px-4 py-2 rounded-xl shadow-sm hover:bg-primary hover:text-white transition-all cursor-default">Class {c}</Badge>
+                )) : <span className="text-muted-foreground font-bold italic">No classes defined</span>}
+              </div>
+            )}
             <div className="space-y-3 pt-4 border-t border-[#F8F9FA]">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary opacity-60 ml-1">Goods & Services Scope</Label>
               {isEditing ? (
-                <Textarea value={getDisplayValue('goodsServices', tm.goodsServices || tm.goods_services)} onChange={(e) => handleFieldChange('goodsServices', e.target.value)} className="min-h-[200px] bg-[#F8F9FA] border-none rounded-2xl p-4 font-medium leading-relaxed" />
+                <Textarea value={getDisplayValue('markDescription', tm.mark_description || eipaField('mark_description'))} onChange={(e) => handleFieldChange('markDescription', e.target.value)} className="min-h-[200px] bg-[#F8F9FA] border-none rounded-2xl p-4 font-medium leading-relaxed" />
               ) : (
                 <div className="p-6 bg-[#F8F9FA] rounded-2xl text-sm font-medium leading-relaxed max-h-[300px] overflow-y-auto shadow-inner text-[#4A4A4A]">
-                  {tm.goodsServices || tm.goods_services || '—'}
+                  {tm.mark_description || eipaField('mark_description') || '—'}
                 </div>
               )}
             </div>

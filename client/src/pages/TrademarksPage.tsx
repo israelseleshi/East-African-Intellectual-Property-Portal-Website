@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, CaretUp, CaretDown, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, Globe, Trash, CheckSquare, Square, Table } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, CaretUp, CaretDown, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, Globe, Trash, CheckSquare, Square, Table as TableIcon } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +30,14 @@ import { ColumnCustomizerModal } from '@/components/ColumnCustomizerModal'
 import JurisdictionBadge from '@/components/JurisdictionBadge'
 import { DeadlineAlertPill } from '@/components/trademarks/DeadlineAlertPill'
 import { deriveAlertInfo, type AlertSeverity } from '@/utils/alertHelpers'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   loadColumnPreferences,
   saveColumnPreferences,
@@ -237,6 +245,32 @@ export default function TrademarksPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { isExporting, exportProgress, startExport } = useExcelExport()
+
+  const topScrollRef = useRef<HTMLDivElement>(null)
+  const bottomScrollRef = useRef<HTMLDivElement>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
+  const topSpacerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const bottom = bottomScrollRef.current
+    const spacer = topSpacerRef.current
+    if (!bottom || !spacer) return
+    const ro = new ResizeObserver(() => {
+      spacer.style.width = `${bottom.scrollWidth}px`
+    })
+    ro.observe(bottom)
+    return () => ro.disconnect()
+  }, [])
+
+  const syncScroll = useCallback((source: 'top' | 'bottom') => (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollLeft = e.currentTarget.scrollLeft
+    if (source === 'top' && bottomScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = scrollLeft
+    }
+    if (source === 'bottom' && topScrollRef.current) {
+      topScrollRef.current.scrollLeft = scrollLeft
+    }
+  }, [])
 
   useEffect(() => { fetchCases() }, [q, status, jurisdiction, currentPage, sortKey, sortDir])
 
@@ -730,7 +764,7 @@ export default function TrademarksPage() {
             </div>
           )}
           <Button data-tour="columns-button" variant="outline" onClick={() => setShowColumnModal(true)} className="bg-white hover:shadow-md transition-all h-12 px-5 rounded-xl border-none shadow-sm font-semibold" title="Customize columns">
-            <Table size={20} className="mr-2" />
+            <TableIcon size={20} className="mr-2" />
             <span className="hidden sm:inline">Columns</span>
           </Button>
           <Button data-tour="export-button" variant="outline" onClick={handleExportExcel} disabled={isExporting} className="bg-white hover:shadow-md transition-all h-12 px-5 rounded-xl border-none shadow-sm font-semibold">
@@ -939,25 +973,25 @@ export default function TrademarksPage() {
           )}
         </div>
       ) : (
-        <Card className="overflow-hidden border-none shadow-sm bg-white rounded-3xl">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[600px] md:min-w-[800px] text-black border-collapse">
-              <thead>
-                <tr className="border-b border-muted/30 bg-muted/10 sticky top-0 z-30">
-                  <th className="sticky left-0 z-40 bg-white px-6 py-5 text-left text-sm font-bold tracking-wide text-black w-12 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
+        <Card className="overflow-hidden border-none shadow-sm bg-white p-0">
+          <div ref={bottomScrollRef} className="overflow-x-auto w-full" onScroll={syncScroll('bottom')}>
+            <Table ref={tableRef}>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="sticky left-0 z-20 bg-muted/50 w-12 px-4">
                     <button
                       onClick={toggleSelectAll}
                       className="flex items-center justify-center hover:scale-110 transition-transform"
                     >
                       {selectedIds.size === filteredRows.length && filteredRows.length > 0 ? (
-                        <CheckSquare size={20} className="text-primary" weight="fill" />
+                        <CheckSquare size={18} className="text-primary" weight="fill" />
                       ) : (
-                        <Square size={20} className="text-muted-foreground/40" />
+                        <Square size={18} className="text-muted-foreground/40" />
                       )}
                     </button>
-                  </th>
-                  <th
-                    className="sticky left-12 z-40 bg-white px-4 py-5 text-left text-sm font-bold tracking-wide text-black w-28 cursor-pointer select-none hover:text-primary transition-colors shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
+                  </TableHead>
+                  <TableHead
+                    className="sticky left-12 z-20 bg-muted/50 w-28 cursor-pointer select-none"
                     onClick={() => handleSort('alert')}
                   >
                     <div className="flex items-center gap-1.5">
@@ -970,21 +1004,14 @@ export default function TrademarksPage() {
                         <CaretUp size={12} weight="bold" className="opacity-30" />
                       )}
                     </div>
-                  </th>
+                  </TableHead>
                   {visibleColumnDefs.map(col => {
                     const isSortable = col.id === 'markName' || col.id === 'nextActionDate'
                     const isSorted = sortKey === col.id
-                    const isSticky = col.id === 'markName'
                     return (
-                      <th
+                      <TableHead
                         key={col.id}
-                        className={`px-6 py-5 text-sm font-bold tracking-wide text-black ${
-                          col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction'
-                            ? 'text-left'
-                            : col.id === 'actions'
-                            ? 'text-right'
-                            : 'text-center'
-                         } ${isSortable ? 'cursor-pointer select-none hover:text-primary transition-colors' : ''} ${isSticky ? 'sticky left-40 z-20 bg-white shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]' : ''}`}
+                        className={`${isSortable ? 'cursor-pointer select-none' : ''} ${col.id === 'markName' ? 'sticky left-40 z-20 bg-muted/50' : ''} ${col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction' ? 'text-left' : col.id === 'actions' ? 'text-right' : 'text-center'}`}
                         onClick={isSortable ? () => handleSort(col.id as 'markName' | 'nextActionDate') : undefined}
                       >
                         <div className={`flex items-center gap-1.5 ${col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction' ? '' : 'justify-center'}`}>
@@ -997,57 +1024,50 @@ export default function TrademarksPage() {
                               : <CaretUp size={12} weight="bold" className="opacity-30" />
                           )}
                         </div>
-                      </th>
+                      </TableHead>
                     )
                   })}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-muted/20">
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {paginatedRows.map(t => (
-                  <tr key={t.id} className="hover:bg-primary/[0.02] transition-colors group">
-                    <td className="sticky left-0 z-10 bg-white px-6 py-5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-primary/[0.02]">
+                  <TableRow key={t.id} className="group">
+                    <TableCell className="sticky left-0 z-10 bg-white px-4 py-3 group-hover:bg-muted/50">
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSelect(t.id) }}
                         className="flex items-center justify-center hover:scale-110 transition-transform"
                       >
                         {selectedIds.has(t.id) ? (
-                          <CheckSquare size={20} className="text-primary" weight="fill" />
+                          <CheckSquare size={18} className="text-primary" weight="fill" />
                         ) : (
-                          <Square size={20} className="text-muted-foreground/20 group-hover:text-muted-foreground/40 transition-colors" />
+                          <Square size={18} className="text-muted-foreground/20 group-hover:text-muted-foreground/40 transition-colors" />
                         )}
                       </button>
-                    </td>
-                    <td className="sticky left-12 z-10 bg-white px-4 py-5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-primary/[0.02]">
+                    </TableCell>
+                    <TableCell className="sticky left-12 z-10 bg-white px-4 py-3 group-hover:bg-muted/50">
                       <DeadlineAlertPill row={t} />
-                    </td>
+                    </TableCell>
                     {visibleColumnDefs.map(col => {
                       const isClickable = !['actions', 'markImage', 'colorIndication'].includes(col.id)
-                      const isSticky = col.id === 'markName'
                       return (
-                        <td
+                        <TableCell
                           key={col.id}
-                          className={`px-6 py-5 text-black ${
-                            col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction'
-                              ? 'text-left'
-                              : col.id === 'actions'
-                              ? 'text-right'
-                              : 'text-center'
-                          } ${isClickable ? 'cursor-pointer' : ''} ${col.id === 'clientName' ? 'truncate max-w-[200px]' : ''} ${isSticky ? 'sticky left-40 z-10 bg-white shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-primary/[0.02]' : ''}`}
+                          className={`${col.id === 'markName' ? 'sticky left-40 z-10 bg-white group-hover:bg-muted/50' : ''} ${isClickable ? 'cursor-pointer' : ''} ${col.id === 'clientName' ? 'truncate max-w-[200px]' : ''} ${col.id === 'markName' || col.id === 'clientName' || col.id === 'jurisdiction' ? 'text-left' : col.id === 'actions' ? 'text-right' : 'text-center'}`}
                           onClick={isClickable ? () => navigate(`/trademarks/${t.id}`) : undefined}
                         >
                           {col.id === 'markName' ? (
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
                               <MarkInfoThumbnail markImage={t.mark_image || t.markImage} label={markLabel(t)} />
-                              <span className="font-bold text-primary group-hover:text-accent transition-colors tracking-tight text-base">{markLabel(t)}</span>
+                              <span className="font-medium text-foreground group-hover:text-primary transition-colors">{markLabel(t)}</span>
                             </div>
                           ) : renderCell(t, col)}
-                        </td>
+                        </TableCell>
                       )
                     })}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           {totalPages > 1 && (
             <div className="flex flex-col items-center justify-center gap-6 border-t border-muted/30 px-6 py-10 bg-muted/5">
