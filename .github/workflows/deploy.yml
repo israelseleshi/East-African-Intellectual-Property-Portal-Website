@@ -31,12 +31,12 @@ jobs:
           cd "$GITHUB_WORKSPACE/client/dist" && zip -r "$GITHUB_WORKSPACE/deploy_frontend.zip" .
           cd "$GITHUB_WORKSPACE/server/dist" && zip -r "$GITHUB_WORKSPACE/deploy_backend.zip" .
           cd "$GITHUB_WORKSPACE"
-          cp server/package.json deploy_backend_pkg.json
-          zip -j "$GITHUB_WORKSPACE/deploy_backend.zip" deploy_backend_pkg.json
+          mkdir -p deploy_pkg
+          cp server/package.json deploy_pkg/package.json
           if [ -f scripts/deployment/server.htaccess ]; then
-            cp scripts/deployment/server.htaccess deploy_htaccess
-            zip -j "$GITHUB_WORKSPACE/deploy_backend.zip" deploy_htaccess
+            cp scripts/deployment/server.htaccess deploy_pkg/.htaccess
           fi
+          zip -rj "$GITHUB_WORKSPACE/deploy_backend.zip" deploy_pkg
 
           # Verify zips exist
           ls -la "$GITHUB_WORKSPACE"/*.zip
