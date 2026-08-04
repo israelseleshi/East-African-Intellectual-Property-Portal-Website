@@ -54,6 +54,7 @@ jobs:
           # Remote deploy
           ssh $OPTS "$A2_USER@$A2_HOST" "
             set -e
+            export PATH="/home/falolega/nodevenv/eastafricanip.com/api/20/bin:$PATH"
             echo '=== Deploying frontend ==='
             mkdir -p ~/$A2_FE_PATH && cd ~/$A2_FE_PATH
             [ -d assets ] && find assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' -o -name '*.map' \) -delete
