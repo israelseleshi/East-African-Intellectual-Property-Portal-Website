@@ -55,11 +55,11 @@ jobs:
           ssh $OPTS "$A2_USER@$A2_HOST" "
             set -e
             echo '=== Deploying frontend ==='
-            cd ~/$A2_FE_PATH
+            mkdir -p ~/$A2_FE_PATH && cd ~/$A2_FE_PATH
             [ -d assets ] && find assets -maxdepth 1 -type f \( -name '*.js' -o -name '*.css' -o -name '*.map' \) -delete
             mv ~/deploy_frontend.zip . && unzip -oq deploy_frontend.zip && rm -f deploy_frontend.zip
             echo '=== Deploying backend ==='
-            cd ~/$A2_BE_PATH
+            mkdir -p ~/$A2_BE_PATH && cd ~/$A2_BE_PATH
             [ -d uploads ] && mv uploads ~/uploads_backup
             [ -d forms-upload ] && mv forms-upload ~/forms-upload_backup
             mv ~/deploy_backend.zip . && unzip -oq deploy_backend.zip && rm -f deploy_backend.zip
