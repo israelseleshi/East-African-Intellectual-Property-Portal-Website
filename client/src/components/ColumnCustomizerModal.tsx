@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { CaretDown, CaretRight, DotsSixVertical, ArrowClockwise, Table } from '@phosphor-icons/react'
+import { ChevronDown as CaretDown, ChevronRight as CaretRight, GripVertical as DotsSixVertical, RefreshCw as ArrowClockwise, Table } from 'lucide-react'
 import {
   COLUMN_GROUPS,
   PRESETS,
@@ -47,7 +47,7 @@ function ColumnCheckboxItem({
       draggable={column.id !== 'actions'}
     >
       <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none">
-        <DotsSixVertical size={14} weight="bold" />
+        <DotsSixVertical size={14} />
       </div>
       <Checkbox
         id={`col-${column.id}`}
@@ -225,7 +225,7 @@ export function ColumnCustomizerModal({
         <DialogHeader className="p-8 border-b border-border/50 bg-muted/20">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <Table size={28} weight="duotone" />
+              <Table size={28} />
             </div>
             <div>
               <DialogTitle className="text-2xl font-black tracking-tight uppercase">Registry Protocol</DialogTitle>
@@ -251,7 +251,7 @@ export function ColumnCustomizerModal({
           </div>
           <div className="flex-1" />
           <Button variant="ghost" size="icon" onClick={handleReset} title="Reset to Default" className="h-8 w-8 rounded-lg hover:bg-white hover:shadow-sm">
-            <ArrowClockwise size={16} weight="bold" />
+            <ArrowClockwise size={16} />
           </Button>
         </div>
 

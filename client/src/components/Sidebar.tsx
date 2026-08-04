@@ -1,16 +1,7 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router'
 import type { ThemeMode } from '../app/theme'
 import { useAuthStore, canAccessFinance } from '../store/authStore'
-import {
-  SquaresFour,
-  Archive,
-  Users,
-  CreditCard,
-  ShieldCheck,
-  Question,
-  List,
-  Clock
-} from '@phosphor-icons/react'
+import { LayoutGrid as SquaresFour, Archive, Users, CreditCard, ShieldCheck, HelpCircle as Question, List, Clock } from 'lucide-react'
 
 const allNav = [
   { label: 'Dashboard', to: '/', icon: SquaresFour },
@@ -65,7 +56,7 @@ export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) 
             onClick={onToggleCollapsed}
             className="mb-4 p-2 rounded-md bg-[var(--eai-bg)] hover:bg-[var(--eai-border)] transition-colors duration-200"
           >
-            <List size={24} weight="bold" />
+            <List size={24} />
           </button>
         </div>
 
@@ -92,7 +83,6 @@ export default function Sidebar({ collapsed, onToggleCollapsed, theme }: Props) 
                 >
                   <item.icon
                     size={20}
-                    weight={collapsed ? "bold" : "regular"}
                     className="shrink-0 transition-transform group-active:scale-90"
                   />
                   <span className="text-[10px] md:text-[15px] leading-none text-left truncate w-full md:w-auto">

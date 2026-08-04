@@ -1,27 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { cn } from '@/lib/utils'
-import {
-  ArrowLeft,
-  CheckCircle,
-  PencilSimple,
-  FloppyDisk,
-  Trash,
-  Plus,
-  X,
-  CaretLeft,
-  DownloadSimple,
-  Buildings,
-  Calendar,
-  CurrencyDollar,
-  Receipt,
-  Notebook,
-  Wallet,
-  ClockCounterClockwise,
-  CreditCard,
-  FileText,
-  Eye
-} from '@phosphor-icons/react'
+import { ArrowLeft, CheckCircle, Pencil as PencilSimple, Save as FloppyDisk, Trash2 as Trash, Plus, X, ChevronLeft as CaretLeft, Download as DownloadSimple, Building2 as Buildings, Calendar, DollarSign as CurrencyDollar, Receipt, Notebook, Wallet, RotateCcw as ClockCounterClockwise, CreditCard, FileText, Eye } from 'lucide-react'
 import { financialsApi } from '@/api/financials'
 import { useSettingsStore } from '@/store/settingsStore'
 import { toast } from 'sonner'
@@ -334,7 +314,7 @@ export default function InvoiceDetailPage() {
         <Card className="max-w-md w-full border-none shadow-premium rounded-[2.5rem] bg-white">
           <CardContent className="p-10 text-center space-y-5">
             <div className="p-4 rounded-3xl bg-primary/10 text-primary mx-auto w-fit">
-              <Receipt size={40} weight="duotone" />
+              <Receipt size={40} />
             </div>
             <div>
               <h2 className="text-xl font-black tracking-tight text-foreground">Invoice Not Found</h2>
@@ -505,7 +485,7 @@ export default function InvoiceDetailPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <Receipt size={22} weight="duotone" />
+                  <Receipt size={22} />
                 </div>
                 <div>
                   <CardTitle className="text-lg font-black tracking-tight" data-tour="line-items-section">Line Items</CardTitle>
@@ -529,7 +509,7 @@ export default function InvoiceDetailPage() {
             <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-4 px-8">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <Notebook size={22} weight="duotone" />
+                  <Notebook size={22} />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-black tracking-tight">Client Notes</CardTitle>
@@ -554,7 +534,7 @@ export default function InvoiceDetailPage() {
           <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Wallet size={22} weight="duotone" />
+                <Wallet size={22} />
               </div>
               <div>
                 <CardTitle className="text-lg font-black tracking-tight" data-tour="payment-section">Summary</CardTitle>
@@ -605,7 +585,7 @@ export default function InvoiceDetailPage() {
                   <div key={i} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                        <f.icon size={16} weight="duotone" />
+                        <f.icon size={16} />
                       </div>
                       <span className="text-sm font-medium">{f.label}</span>
                     </div>
@@ -824,7 +804,7 @@ export default function InvoiceDetailPage() {
       <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-2">
         <div className="flex items-start gap-5">
           <Button variant="outline" onClick={() => navigate('/billing')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
-            <ArrowLeft size={24} weight="bold" />
+            <ArrowLeft size={24} />
           </Button>
           <div>
             <Badge data-tour="invoice-status-badge" className="bg-primary/10 text-primary uppercase text-[10px] font-black tracking-widest px-3 py-1 mb-3 inline-flex items-center border-none">Invoice</Badge>
@@ -853,7 +833,7 @@ export default function InvoiceDetailPage() {
         <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-premium backdrop-blur-xl bg-white/95">
           <DialogHeader>
             <div className="mx-auto w-fit p-3 rounded-2xl bg-destructive/10 text-destructive mb-2">
-              <Trash size={24} weight="duotone" />
+              <Trash size={24} />
             </div>
             <DialogTitle className="text-center text-xl font-black tracking-tight">Delete Invoice</DialogTitle>
           </DialogHeader>

@@ -1,7 +1,7 @@
 import * as JoyrideLib from 'react-joyride'
 import type { CallBackProps, Step } from 'react-joyride'
 import { useMemo } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router'
 
 const routeSteps: Record<string, Step[]> = {
   '/': [

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Buildings, User, UsersThree, Info, Envelope, MapPin, Phone } from '@phosphor-icons/react';
+import { useNavigate } from 'react-router';
+import { ArrowLeft, Check, Building2 as Buildings, User, Users as UsersThree, Info, Mail as Envelope, MapPin, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -112,7 +112,7 @@ export default function NewClientPage() {
             onClick={() => navigate('/clients')}
             className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all border-none"
           >
-            <ArrowLeft size={24} weight="bold" />
+            <ArrowLeft size={24} />
           </Button>
           <div>
             <h1 className="text-3xl font-black tracking-tight">New Client</h1>
@@ -127,7 +127,7 @@ export default function NewClientPage() {
           <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Info size={22} weight="duotone" />
+                <Info size={22} />
               </div>
               <div>
                 <CardTitle className="text-lg font-black tracking-tight">Basic Information</CardTitle>
@@ -155,7 +155,7 @@ export default function NewClientPage() {
                               : 'border-border bg-background hover:bg-muted text-muted-foreground hover:border-[#0e3155]/30 hover:text-foreground'
                           }`}
                         >
-                          <Icon size={20} weight={formData.type === type ? "duotone" : "regular"} />
+                          <Icon size={20} />
                           <span className="text-xs font-semibold whitespace-nowrap">
                             {type === 'INDIVIDUAL' ? 'Individual' : type === 'COMPANY' ? 'Company' : 'Partnership'}
                           </span>
@@ -247,7 +247,7 @@ export default function NewClientPage() {
             <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <Envelope size={22} weight="duotone" />
+                  <Envelope size={22} />
                 </div>
                 <CardTitle className="text-lg font-black tracking-tight">Contact Details</CardTitle>
             </div>
@@ -300,7 +300,7 @@ export default function NewClientPage() {
             <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <MapPin size={22} weight="duotone" />
+                  <MapPin size={22} />
                 </div>
                 <CardTitle className="text-lg font-black tracking-tight">Address Information</CardTitle>
               </div>
@@ -438,7 +438,7 @@ export default function NewClientPage() {
             className="px-8 flex items-center gap-2 shadow-sm"
             data-tour="submit-btn"
           >
-            <Check size={18} weight="bold" />
+            <Check size={18} />
             {saving ? 'Creating Client...' : 'Create Client'}
           </Button>
         </div>

@@ -1,26 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Typography } from '@/components/ui/typography';
-import { 
-  FileText, 
-  ClockClockwise, 
-  ArrowLeft, 
-  User, 
-  MapPin, 
-  CaretRight,
-  ShieldCheck,
-  CheckCircle,
-  Archive,
-  CloudArrowUp,
-  Calendar,
-  Clock,
-  Briefcase
-} from '@phosphor-icons/react';
+import { FileText, RefreshCw as ClockClockwise, ArrowLeft, User, MapPin, ChevronRight as CaretRight, ShieldCheck, CheckCircle, Archive, CloudUpload as CloudArrowUp, Calendar, Clock, Briefcase } from 'lucide-react';
 import CaseStageTracker from '@/components/CaseStageTracker';
 import { trademarkService } from '@/utils/api';
 import { useToast } from '@/components/ui/toast';
@@ -194,7 +180,7 @@ export default function CaseFlowPage() {
           onClick={() => navigate('/trademarks')}
           className="rounded-full h-12 w-12 border-border shadow-sm hover:shadow-md transition-all hover:-translate-x-1"
         >
-          <ArrowLeft size={22} weight="bold" />
+          <ArrowLeft size={22} />
         </Button>
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
@@ -226,7 +212,7 @@ export default function CaseFlowPage() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-6">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner transition-transform group-hover:scale-110 duration-500">
-                <Briefcase size={32} weight="duotone" />
+                <Briefcase size={32} />
               </div>
               <div>
                 <Typography.h3 className="text-xl font-black tracking-tight">
@@ -234,11 +220,11 @@ export default function CaseFlowPage() {
                 </Typography.h3>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <User size={16} weight="duotone" className="text-primary" />
+                    <User size={16} className="text-primary" />
                     {caseData.client_name}
                   </div>
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <MapPin size={16} weight="duotone" className="text-primary" />
+                    <MapPin size={16} className="text-primary" />
                     {JURISDICTION_NAMES[caseData.jurisdiction] || caseData.jurisdiction}
                   </div>
                 </div>
@@ -267,7 +253,7 @@ export default function CaseFlowPage() {
         <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3">
-              <ClockClockwise size={24} weight="duotone" className="text-primary" />
+              <ClockClockwise size={24} className="text-primary" />
               Lifecycle Audit Log
             </CardTitle>
             <Badge variant="secondary" className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider">
@@ -296,10 +282,10 @@ export default function CaseFlowPage() {
                             ? "bg-primary border-primary/20 text-white shadow-lg shadow-primary/30 scale-110" 
                             : "bg-white border-border text-muted-foreground group-hover:border-primary/40 group-hover:text-primary"
                         )}>
-                          {entry.action.includes('FILE') ? <CloudArrowUp size={18} weight="duotone" /> : 
-                           entry.action.includes('SUBMIT') ? <ShieldCheck size={18} weight="duotone" /> :
-                           entry.action.includes('UPDATE') ? <FileText size={18} weight="duotone" /> :
-                           <CheckCircle size={18} weight="duotone" />}
+                          {entry.action.includes('FILE') ? <CloudArrowUp size={18} /> : 
+                           entry.action.includes('SUBMIT') ? <ShieldCheck size={18} /> :
+                           entry.action.includes('UPDATE') ? <FileText size={18} /> :
+                           <CheckCircle size={18} />}
                         </div>
                         
                         <div className={cn(
@@ -322,12 +308,12 @@ export default function CaseFlowPage() {
                             </div>
                             <div className="flex items-center gap-3 text-[11px] font-bold text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full border border-border/30 shadow-sm">
                               <div className="flex items-center gap-1.5">
-                                <Calendar size={14} weight="duotone" className="text-primary" />
+                                <Calendar size={14} className="text-primary" />
                                 {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </div>
                               <Separator orientation="vertical" className="h-3" />
                               <div className="flex items-center gap-1.5">
-                                <Clock size={14} weight="duotone" className="text-primary" />
+                                <Clock size={14} className="text-primary" />
                                 {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
@@ -374,7 +360,7 @@ export default function CaseFlowPage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/10 rounded-3xl border border-dashed border-border">
-                  <Archive size={64} weight="duotone" className="text-muted-foreground/20 mb-6" />
+                  <Archive size={64} className="text-muted-foreground/20 mb-6" />
                   <Typography.h3 className="text-muted-foreground">No history recorded yet</Typography.h3>
                   <Typography.muted>The lifecycle of this case is currently in its initial phase.</Typography.muted>
                 </div>
@@ -388,7 +374,7 @@ export default function CaseFlowPage() {
         <Card className="shadow-premium border-none rounded-3xl overflow-hidden bg-white">
           <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
             <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3" data-tour="case-notes">
-              <FileText size={24} weight="duotone" className="text-primary" />
+              <FileText size={24} className="text-primary" />
               Case Notes & Communications
             </CardTitle>
           </CardHeader>

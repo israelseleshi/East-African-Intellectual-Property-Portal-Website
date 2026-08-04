@@ -20,7 +20,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import { Typography } from './ui/typography';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/api/httpClient';
 

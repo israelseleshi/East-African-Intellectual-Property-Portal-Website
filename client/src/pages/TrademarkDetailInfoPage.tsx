@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, FileText, PencilSimple, PencilSimpleLine, ClockCounterClockwise, DownloadSimple, Info, Buildings, MapPin, Phone, Envelope, Calendar, CheckSquare, List, WarningCircle, X, Upload, XCircle, User, IdentificationCard } from '@phosphor-icons/react'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { ArrowLeft, FileText, Pencil as PencilSimple, PenLine as PencilSimpleLine, RotateCcw as ClockCounterClockwise, Download as DownloadSimple, Info, Building2 as Buildings, MapPin, Phone, Mail as Envelope, Calendar, CheckSquare, List, AlertCircle as WarningCircle, X, Upload, XCircle, User, IdCard as IdentificationCard } from 'lucide-react'
 import { format } from 'date-fns'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -257,23 +257,42 @@ function EditableField({
 function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: string }) {
   const [candidateIndex, setCandidateIndex] = useState(0)
   const [failed, setFailed] = useState(false)
+  const [loadAttempts, setLoadAttempts] = useState(0)
 
   const candidates = useMemo(() => {
     return getMarkImageCandidates(markImage)
   }, [markImage])
 
-  useEffect(() => { setCandidateIndex(0); setFailed(false) }, [markImage, candidates.join('|')])
+  useEffect(() => {
+    setCandidateIndex(0); setFailed(false); setLoadAttempts(0)
+  }, [markImage])
+
+  useEffect(() => {
+    if (failed && loadAttempts < 3) {
+      const timer = setTimeout(() => {
+        setFailed(false)
+        setLoadAttempts(a => a + 1)
+        setCandidateIndex(0)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [failed, loadAttempts])
 
   const current = candidates[candidateIndex]
+
+  const handleError = () => {
+    if (candidateIndex < candidates.length - 1) {
+      setCandidateIndex(idx => idx + 1)
+    } else {
+      setFailed(true)
+    }
+  }
 
   return (
     <div className="flex h-32 sm:h-40 md:h-56 w-32 sm:w-40 md:w-56 shrink-0 items-center justify-center overflow-hidden rounded-[2.5rem] bg-white text-muted-foreground shadow-premium border-none transition-transform hover:scale-105 duration-500">
       {!failed && current ? (
-        <img src={current} alt={`${label} logo`} className="h-full w-full object-contain p-6" onError={() => {
-          if (candidateIndex < candidates.length - 1) setCandidateIndex(idx => idx + 1)
-          else setFailed(true)
-        }} />
-      ) : <Buildings size={64} weight="duotone" className="opacity-20" />}
+        <img src={current} alt={`${label} logo`} className="h-full w-full object-contain p-6" loading="lazy" onError={handleError} />
+      ) : <Buildings size={64} className="opacity-20" />}
     </div>
   )
 }
@@ -663,7 +682,7 @@ export default function TrademarkDetailInfoPage() {
     return (
       <div className="w-full mx-auto p-4 md:p-8 flex flex-col items-center justify-center py-24 bg-[#F8F9FA] min-h-screen text-center">
         <div className="p-6 rounded-full bg-primary/5 mb-6">
-          <WarningCircle size={64} weight="duotone" className="text-primary/40" />
+          <WarningCircle size={64} className="text-primary/40" />
         </div>
         <Typography.h2 className="font-black mb-2">Record Not Found</Typography.h2>
         <Typography.p className="text-muted-foreground mb-8 text-lg">We couldn't locate the trademark record you're looking for.</Typography.p>
@@ -679,7 +698,7 @@ export default function TrademarkDetailInfoPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-6">
         <div className="flex items-center gap-6 w-full">
           <Button variant="ghost" size="icon" onClick={() => navigate('/trademarks')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
-            <ArrowLeft size={24} weight="bold" />
+            <ArrowLeft size={24} />
           </Button>
           <div className="min-w-0 flex-1 space-y-1">
             <Typography.h1 className="truncate font-black tracking-tight">{markName}</Typography.h1>
@@ -702,27 +721,27 @@ export default function TrademarkDetailInfoPage() {
           {isEditing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing} disabled={isSaving} className="h-12 px-6 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl">
-                <X size={20} weight="bold" className="mr-2" />Cancel
+                <X size={20} className="mr-2" />Cancel
               </Button>
               <Button onClick={saveCase} disabled={isSaving} className="h-12 px-8 rounded-xl font-black shadow-lg shadow-primary/20">
-                <PencilSimpleLine size={20} weight="bold" className="mr-2" />{isSaving ? 'Processing...' : 'Commit Changes'}
+                <PencilSimpleLine size={20} className="mr-2" />{isSaving ? 'Processing...' : 'Commit Changes'}
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" onClick={() => navigate(`/case-flow/${tm.id}`)} disabled={fromTrash} title={fromTrash ? 'Cannot manage lifecycle of deleted items' : undefined} className="h-12 px-5 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl whitespace-nowrap">
-                <ClockCounterClockwise size={20} weight="bold" className="mr-2" />Record Lifecycle
+                <ClockCounterClockwise size={20} className="mr-2" />Record Lifecycle
               </Button>
               {isRegistered && !fromTrash && (
                 <Button variant="default" onClick={() => navigate(`/eipa-forms/renewal-form?caseId=${tm.id}`)} className="h-12 px-5 rounded-xl font-black shadow-lg shadow-primary/20 whitespace-nowrap">
-                  <FileText size={20} weight="bold" className="mr-2" />Process Renewal
+                  <FileText size={20} className="mr-2" />Process Renewal
                 </Button>
               )}
               <Button variant="ghost" onClick={handleDownloadForm} className="h-12 px-5 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl whitespace-nowrap">
-                <DownloadSimple size={20} weight="bold" className="mr-2" />Export Form
+                <DownloadSimple size={20} className="mr-2" />Export Form
               </Button>
               <Button variant="ghost" onClick={startEditing} disabled={fromTrash} title={fromTrash ? 'Cannot edit deleted items' : undefined} className="h-12 px-5 rounded-xl font-bold bg-white shadow-premium hover:shadow-xl whitespace-nowrap">
-                <PencilSimple size={20} weight="bold" className="mr-2" />Edit Case
+                <PencilSimple size={20} className="mr-2" />Edit Case
               </Button>
             </>
           )}
@@ -736,7 +755,7 @@ export default function TrademarkDetailInfoPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <User size={24} weight="duotone" />
+                  <User size={24} />
                 </div>
                 <CardTitle className="text-lg font-black tracking-tight">Applicant Details</CardTitle>
               </div>
@@ -747,14 +766,14 @@ export default function TrademarkDetailInfoPage() {
                 onClick={() => navigate(`/clients/${tm.client?.id || ''}`)}
                 disabled={!tm.client}
               >
-                View Profile <ArrowLeft size={16} weight="bold" className="rotate-180" />
+                View Profile <ArrowLeft size={16} className="rotate-180" />
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-8 space-y-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-60">
-                <IdentificationCard size={16} weight="bold" /> Identity & Type
+                <IdentificationCard size={16} /> Identity & Type
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <Field label="Legal Entity Name" value={tm.client?.name || eipaField('applicant_name_english')} />
@@ -766,7 +785,7 @@ export default function TrademarkDetailInfoPage() {
             
             <div className="pt-8 border-t border-[#F8F9FA] space-y-4">
               <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-60">
-                <Envelope size={16} weight="bold" /> Communication
+                <Envelope size={16} /> Communication
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <Field label="Primary Email" value={tm.client?.email || eipaField('email')} />
@@ -781,7 +800,7 @@ export default function TrademarkDetailInfoPage() {
           <CardHeader className="bg-[#F8F9FA] border-none py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Buildings size={24} weight="duotone" />
+                <Buildings size={24} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Legal Representative</CardTitle>
             </div>
@@ -805,7 +824,7 @@ export default function TrademarkDetailInfoPage() {
           <CardHeader className="bg-[#F8F9FA] border-none py-6 px-10">
             <div className="flex items-center gap-4">
               <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                <FileText size={28} weight="duotone" />
+                <FileText size={28} />
               </div>
               <CardTitle className="text-xl font-black tracking-tight">Technical Specification</CardTitle>
             </div>
@@ -823,12 +842,12 @@ export default function TrademarkDetailInfoPage() {
                     <div className="relative w-full h-full p-8">
                       <img src={markImagePreview || resolveMarkImageUrl(getDisplayValue('mark_image', tm.mark_image))} alt="Mark asset preview" className="w-full h-full object-contain" />
                       <button onClick={(e) => { e.stopPropagation(); removeImage(); }} className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl text-destructive hover:scale-110 transition-transform">
-                        <XCircle size={24} weight="fill" />
+                        <XCircle size={24} />
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-center space-y-3 px-6">
-                      <div className="h-16 w-16 rounded-3xl bg-white flex items-center justify-center text-primary/30 group-hover:text-primary transition-all shadow-sm group-hover:scale-110"><Upload size={32} weight="bold" /></div>
+                      <div className="h-16 w-16 rounded-3xl bg-white flex items-center justify-center text-primary/30 group-hover:text-primary transition-all shadow-sm group-hover:scale-110"><Upload size={32} /></div>
                       <div className="space-y-1">
                         <p className="text-lg font-black text-[#1A1A1A]">Upload Visual Asset</p>
                         <p className="text-sm font-bold text-muted-foreground">High-resolution PNG or JPG up to 2MB</p>
@@ -873,7 +892,7 @@ export default function TrademarkDetailInfoPage() {
           <CardHeader className="bg-[#F8F9FA] border-none py-6 px-10">
             <div className="flex items-center gap-4">
               <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                <WarningCircle size={28} weight="duotone" />
+                <WarningCircle size={28} />
               </div>
               <CardTitle className="text-xl font-black tracking-tight">Priority Claims & Disclaimers</CardTitle>
             </div>
@@ -927,7 +946,7 @@ export default function TrademarkDetailInfoPage() {
           <CardHeader className="bg-[#F8F9FA] border-none py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <IdentificationCard size={24} weight="duotone" />
+                <IdentificationCard size={24} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Filing Authorization</CardTitle>
             </div>
@@ -961,7 +980,7 @@ export default function TrademarkDetailInfoPage() {
           <CardHeader className="bg-[#F8F9FA] border-none py-6 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <List size={24} weight="duotone" />
+                <List size={24} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Nice Classification</CardTitle>
             </div>
@@ -998,7 +1017,7 @@ export default function TrademarkDetailInfoPage() {
           <CardHeader className="bg-[#F8F9FA] border-none py-6 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Calendar size={24} weight="duotone" />
+                <Calendar size={24} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Registry Timeline</CardTitle>
             </div>
@@ -1020,7 +1039,7 @@ export default function TrademarkDetailInfoPage() {
             <CardHeader className="bg-[#F0FDF4] border-none py-6 px-10">
               <div className="flex items-center gap-4">
                 <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-600">
-                  <FileText size={28} weight="duotone" />
+                  <FileText size={28} />
                 </div>
                 <CardTitle className="text-xl font-black tracking-tight text-emerald-900">Renewal Repository</CardTitle>
               </div>

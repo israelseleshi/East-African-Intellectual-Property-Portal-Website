@@ -1,16 +1,5 @@
-import {
-  Calendar as CalendarIcon,
-  Funnel,
-  CaretDown,
-  CaretLeft,
-  CaretRight as ChevronsRight,
-  Clock,
-  WarningCircle,
-  CheckCircle,
-  List,
-  DownloadSimple,
-} from '@phosphor-icons/react'
-import { useNavigate } from 'react-router-dom'
+import { Calendar as CalendarIcon, Filter as Funnel, ChevronDown as CaretDown, ChevronLeft as CaretLeft, ChevronRight as ChevronsRight, Clock, AlertCircle as WarningCircle, CheckCircle, List, Download as DownloadSimple } from 'lucide-react'
+import { useNavigate } from 'react-router'
 import { useState, useEffect, useMemo } from 'react'
 import { trademarkService } from '../utils/api'
 import { casesApi } from '@/api/cases'
@@ -377,7 +366,7 @@ export default function DeadlinesPage() {
                 <div className="p-6 border-b bg-muted/10">
                   <div className="flex items-center justify-between">
                     <Typography.h4 className="text-primary font-bold flex items-center gap-2 tracking-tight" data-tour="deadline-list">
-                      <List size={22} weight="bold" /> 
+                      <List size={22} /> 
                       Deadline Registry
                     </Typography.h4>
                     <Select value={yearFilter} onValueChange={setYearFilter}>
@@ -403,7 +392,7 @@ export default function DeadlinesPage() {
                       if (listDeadlines.length === 0) {
                         return (
                           <div className="px-6 py-20 text-center">
-                            <CalendarIcon size={64} className="mx-auto text-muted-foreground/20 mb-6" weight="duotone" />
+                            <CalendarIcon size={64} className="mx-auto text-muted-foreground/20 mb-6" />
                             <p className="text-muted-foreground font-medium">No deadlines recorded for {yearFilter}.</p>
                           </div>
                         )
@@ -450,7 +439,7 @@ export default function DeadlinesPage() {
                                         </div>
                                       </div>
                                       <div className="flex flex-col items-end gap-2">
-                                        <ChevronsRight size={24} weight="bold" className="text-primary/10 group-hover:text-primary/40 group-hover:translate-x-2 transition-all duration-300" />
+                                        <ChevronsRight size={24} className="text-primary/10 group-hover:text-primary/40 group-hover:translate-x-2 transition-all duration-300" />
                                         {daysLeft < 0 && <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">OVERDUE</span>}
                                       </div>
                                     </div>
@@ -465,7 +454,7 @@ export default function DeadlinesPage() {
                   </ScrollArea>
                 ) : (
                   <div className="px-6 py-20 text-center">
-                    <CalendarIcon size={64} className="mx-auto text-muted-foreground/20 mb-6" weight="duotone" />
+                    <CalendarIcon size={64} className="mx-auto text-muted-foreground/20 mb-6" />
                     <p className="text-muted-foreground font-medium">No deadlines matching your search criteria.</p>
                   </div>
                 )}
@@ -475,7 +464,7 @@ export default function DeadlinesPage() {
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-4">
                     <Typography.h3 className="flex items-center gap-3 font-bold text-primary tracking-tight">
-                      <CalendarIcon data-tour="calendar-view" size={28} className="text-primary/60" weight="duotone" />
+                      <CalendarIcon data-tour="calendar-view" size={28} className="text-primary/60" />
                       {currentMonth.toLocaleString('en-US', { month: 'long' })}
                     </Typography.h3>
                     <Select
@@ -493,8 +482,8 @@ export default function DeadlinesPage() {
                     </Select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => navigateMonth('prev')}><CaretLeft size={20} weight="bold" /></Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => navigateMonth('next')}><ChevronsRight size={20} weight="bold" /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => navigateMonth('prev')}><CaretLeft size={20} /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => navigateMonth('next')}><ChevronsRight size={20} /></Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-7 gap-3 text-center text-sm mb-8">

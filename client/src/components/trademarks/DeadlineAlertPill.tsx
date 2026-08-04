@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { deriveAlertInfo, getSeverityStyle } from '@/utils/alertHelpers'
 
@@ -5,7 +6,7 @@ interface DeadlineAlertPillProps {
   row: Record<string, unknown>
 }
 
-export function DeadlineAlertPill({ row }: DeadlineAlertPillProps) {
+export const DeadlineAlertPill = memo(function DeadlineAlertPill({ row }: DeadlineAlertPillProps) {
   const info = deriveAlertInfo(row)
   if (info.severity === 'none') return null
   const style = getSeverityStyle(info.severity)
@@ -44,4 +45,4 @@ export function DeadlineAlertPill({ row }: DeadlineAlertPillProps) {
       </PopoverContent>
     </Popover>
   )
-}
+})

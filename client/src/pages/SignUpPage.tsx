@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, Link } from "react-router"
 import { z } from "zod"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import { useAuthStore } from "@/store/authStore"

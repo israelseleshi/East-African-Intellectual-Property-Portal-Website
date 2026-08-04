@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, useLocation } from 'react-router';
 import { api, trademarkService } from '../utils/api';
 import { useToast } from '../components/ui/toast';
 import { Typography } from '@/components/ui/typography';

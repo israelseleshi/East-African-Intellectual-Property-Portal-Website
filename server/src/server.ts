@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -9,6 +10,7 @@ const __dirname = path.dirname(__filename);
 import { uploadDir } from './utils/constants.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 // Import Routes
 import authRoutes from './routes/auth.js';
@@ -26,6 +28,7 @@ import formsRoutes from './routes/forms.js';
 import agentsRoutes from './routes/agents.js';
 import aiRoutes from './routes/ai.js';
 import settingsRoutes from './routes/settings.js';
+import logsRoutes from './routes/logs.js';
 import { ensureAuthTables, pool } from './database/db.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -50,6 +53,15 @@ console.warn = (...args: unknown[]) => {
 };
 
 // Middleware
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, code: 'GLOBAL_RATE_LIMIT', message: 'Too many requests, slow down.' },
+});
+app.use(globalLimiter);
+app.use(compression());
 app.use(cors({
   origin: [
     'https://eastafricanip.com',
@@ -67,8 +79,9 @@ app.use(helmet({
     useDefaults: true,
     directives: {
       'default-src': ["'self'"],
-      'script-src': ["'self'", "'unsafe-inline'"],
+      'script-src': ["'self'"],
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      'report-uri': ['/api/csp-violation'],
       'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
       'img-src': ["'self'", 'data:', 'blob:', 'https://eastafricanip.com', 'https://www.eastafricanip.com'],
       'connect-src': ["'self'", 'https://eastafricanip.com', 'https://www.eastafricanip.com', 'http://eastafricanip.com', 'http://www.eastafricanip.com', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001']
@@ -78,9 +91,15 @@ app.use(helmet({
 }));
 app.use(cookieParser());
 app.use(attachRequestContext);
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(csrfTokenSetter);
+
+// CSP violation report endpoint
+app.post('/csp-violation', (req: express.Request, res: express.Response) => {
+  logger.warn('csp-violation', req.body?.['csp-report'] || req.body);
+  res.status(204).end();
+});
 
 // Ensure upload directories exist
 if (!fs.existsSync(uploadDir)) {
@@ -90,49 +109,6 @@ const MARKS_UPLOAD_DIR = path.resolve(uploadDir, 'marks');
 if (!fs.existsSync(MARKS_UPLOAD_DIR)) {
   fs.mkdirSync(MARKS_UPLOAD_DIR, { recursive: true });
 }
-
-// Serve uploads from both /uploads and /api/uploads for production compatibility
-app.use('/uploads', express.static(uploadDir, {
-  setHeaders: (res) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Disposition', 'attachment');
-  }
-}));
-app.use('/api/uploads', express.static(uploadDir, {
-  setHeaders: (res) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Disposition', 'attachment');
-  }
-}));
-
-app.get('/uploads/*', (req: any, res, next) => {
-  const filename = req.params[0];
-  const filePath = path.join(uploadDir, filename);
-  if (fs.existsSync(filePath)) {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Disposition', 'attachment');
-    return res.sendFile(filePath);
-  }
-  next();
-});
-
-app.get('/api/uploads/*', (req: any, res, next) => {
-  const filename = req.params[0];
-  const filePath = path.join(uploadDir, filename);
-  if (fs.existsSync(filePath)) {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Disposition', 'attachment');
-    return res.sendFile(filePath);
-  }
-  next();
-});
-
-app.get('/api/uploads/*', (req: any, res, next) => {
-  const filename = req.params[0];
-  const filePath = path.join(uploadDir, filename);
-  if (fs.existsSync(filePath)) return res.sendFile(filePath);
-  next();
-});
 
 const formsUploadCandidates = [
   process.env.FORMS_UPLOAD_DIR,
@@ -207,6 +183,7 @@ const registerRoutes = (prefix: string = '') => {
   app.use(`${prefix}/agents`, agentsRoutes);
   app.use(`${prefix}/ai`, aiRoutes);
   app.use(`${prefix}/settings`, settingsRoutes);
+  app.use(`${prefix}/logs`, logsRoutes);
 };
 
 // Register routes at both root and /api

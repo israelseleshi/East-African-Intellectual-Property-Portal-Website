@@ -1,4 +1,4 @@
-import { DownloadSimple } from '@phosphor-icons/react'
+import { Download as DownloadSimple } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Typography } from '@/components/ui/typography'
 

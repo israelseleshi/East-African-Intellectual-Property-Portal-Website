@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, ArrowClockwise } from '@phosphor-icons/react';
+import { Play, RefreshCw as ArrowClockwise } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import CaseStageTracker from '@/components/CaseStageTracker';
@@ -156,7 +156,7 @@ export default function CaseFlowDemoPage() {
             disabled={isSimulating}
             className="apple-button-primary flex items-center gap-2"
           >
-            <Play size={18} weight="fill" />
+            <Play size={18} />
             {isSimulating ? 'Simulating...' : 'Run Auto Simulation'}
           </Button>
           <Button

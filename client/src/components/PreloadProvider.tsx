@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { preloadMultiple, PreloadRegistryKey } from '@/utils/preloader';
 
 type PreloadMap = Record<string, PreloadRegistryKey[]>;

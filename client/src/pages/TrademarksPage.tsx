@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, MagnifyingGlass, DownloadSimple, CaretLeft, CaretRight, CaretUp, CaretDown, SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, SealCheck, Globe, Trash, CheckSquare, Square, Table as TableIcon } from '@phosphor-icons/react'
+import { useNavigate, useSearchParams } from 'react-router'
+import { Plus, Search as MagnifyingGlass, Download as DownloadSimple, ChevronLeft as CaretLeft, ChevronRight as CaretRight, ChevronUp as CaretUp, ChevronDown as CaretDown, LayoutGrid as SquaresFour, List, ShieldCheck, File, CheckCircle, Clock, Eye, BadgeCheck as SealCheck, Globe, Trash2 as Trash, CheckSquare, Square, Table as TableIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,7 @@ import { Typography } from '@/components/ui/typography'
 import { Spinner } from '@/components/ui/spinner'
 import { getMarkImageCandidates } from '@/utils/markImage'
 import { useToast } from '@/components/ui/toast'
-import { useExcelExport } from '@/hooks/useExcelExport'
+import { useExcelExport, ExcelColumn } from '@/hooks/useExcelExport'
 import ExportProgressModal from '@/components/ExportProgressModal'
 import HelpButton from '@/components/HelpButton'
 import { casesApi, CasesQuery } from '@/api/cases'
@@ -43,6 +43,7 @@ import {
   saveColumnPreferences,
   getColumnById,
   ALL_COLUMNS,
+  COLUMN_GROUPS,
   getDefaultPreferences,
   type ColumnDef,
   type ColumnPreferences,
@@ -88,23 +89,50 @@ function markLabel(t: { markName?: string; mark_name?: string }) {
 function MarkInfoThumbnail({ markImage, label }: { markImage?: string; label: string }) {
   const [candidateIndex, setCandidateIndex] = useState(0)
   const [failed, setFailed] = useState(false)
+  const [loadAttempts, setLoadAttempts] = useState(0)
 
   const candidates = useMemo(() => {
     return getMarkImageCandidates(markImage)
   }, [markImage])
 
-  useEffect(() => { setCandidateIndex(0); setFailed(false) }, [markImage, candidates.join('|')])
+  useEffect(() => { setCandidateIndex(0); setFailed(false); setLoadAttempts(0) }, [markImage])
+
+  useEffect(() => {
+    if (failed && loadAttempts < 3) {
+      const timer = setTimeout(() => {
+        setFailed(false)
+        setLoadAttempts(a => a + 1)
+        setCandidateIndex(0)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [failed, loadAttempts])
 
   const current = candidates[candidateIndex]
+
+  const handleError = () => {
+    if (candidateIndex < candidates.length - 1) {
+      setCandidateIndex(idx => idx + 1)
+    } else {
+      setFailed(true)
+    }
+  }
 
   return (
     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-muted-foreground shadow-sm">
       {!failed && current ? (
-        <img src={current} alt={`${label} logo`} className="h-full w-full object-cover" onError={() => {
-          if (candidateIndex < candidates.length - 1) setCandidateIndex(idx => idx + 1)
-          else setFailed(true)
-        }} />
-      ) : <ShieldCheck size={24} />}
+        <img
+          src={current}
+          alt={`${label} logo`}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={handleError}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+          <ShieldCheck size={20} className="text-muted-foreground/60" />
+        </div>
+      )}
     </div>
   )
 }
@@ -166,7 +194,32 @@ async function compressImageBytes(buffer: ArrayBuffer, mimeType: string): Promis
       reject(e)
     }
     img.src = url
-  })
+  }  )
+}
+
+// ── Excel group color helpers ──────────────────────────────────────
+function getGroupFillColor(groupId: string): string {
+  const colors: Record<string, string> = {
+    markInfo: 'DCE8F5',  // bg-blue-100
+    dates: 'FEF3CD',     // bg-amber-100
+    status: 'D5F5E3',    // bg-emerald-100
+    client: 'E8DAEF',    // bg-purple-100
+    priority: 'FCE4EC',  // bg-rose-100
+    lifecycle: 'F1F5F9', // bg-slate-100
+  }
+  return colors[groupId] || 'F3F4F6'
+}
+
+function getGroupTextColor(groupId: string): string {
+  const colors: Record<string, string> = {
+    markInfo: '1E40AF',  // text-blue-800
+    dates: '92400E',     // text-amber-800
+    status: '065F46',    // text-emerald-800
+    client: '5B21B6',    // text-purple-800
+    priority: '9F1239',  // text-rose-800
+    lifecycle: '1E293B', // text-slate-800
+  }
+  return colors[groupId] || '1F2937'
 }
 
 async function fetchImageForExcel(imageUrl: string): Promise<{ bytes: Uint8Array; extension: 'png' | 'jpeg' } | null> {
@@ -547,6 +600,33 @@ export default function TrademarksPage() {
     }
   }
 
+  const exportColExtractors: Record<string, (c: CaseRow) => string> = {
+    markName: (c) => markLabel(c),
+    markType: (c) => c.markType || 'Word',
+    filingNumber: (c) => c.filing_number || c.filingNumber || 'PENDING',
+    registrationNumber: (c) => c.registration_number || (c as CaseRow).registrationNumber || '—',
+    certificateNumber: (c) => c.certificate_number || (c as any).certificateNumber || '—',
+    colorIndication: (c) => c.colorIndication || '—',
+    filingDate: (c) => (c.filingDate || c.filing_date) ? new Date(c.filingDate || c.filing_date!).toISOString().split('T')[0] : '—',
+    publicationDate: (c) => (c.publicationDate || c.publication_date) ? new Date(c.publicationDate || c.publication_date!).toISOString().split('T')[0] : '—',
+    registrationDate: (c) => (c.registrationDt || c.registration_dt) ? new Date(c.registrationDt || c.registration_dt!).toISOString().split('T')[0] : '—',
+    expiryDate: (c) => (c.expiryDate || c.expiry_date) ? new Date(c.expiryDate || c.expiry_date!).toISOString().split('T')[0] : '—',
+    nextRenewalDate: (c) => (c.nextRenewalDate || c.next_renewal_date) ? new Date(c.nextRenewalDate || c.next_renewal_date!).toISOString().split('T')[0] : '—',
+    nextActionDate: (c) => (c.nextActionDate || c.next_action_date) ? new Date(c.nextActionDate || c.next_action_date!).toISOString().split('T')[0] : '—',
+    status: (c) => STATUS_NAMES[c.status || 'DRAFT'] || c.status || 'Draft',
+    flowStage: (c) => (c as any).flow_stage || (c as any).flowStage || '—',
+    jurisdiction: (c) => JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction || 'Ethiopia',
+    clientName: (c) => c.client_name || c.client?.name || '—',
+    clientType: (c) => c.client_type || c.client?.type || '—',
+    priority: (c) => c.priority || '—',
+    priorityCountry: (c) => (c as any).priority_country || '—',
+    priorityFilingDate: (c) => (c as any).priority_filing_date || '—',
+    createdAt: (c) => c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '—',
+    updatedAt: (c) => c.updated_at ? new Date(c.updated_at).toISOString().split('T')[0] : '—',
+    deadlineType: (c) => (c as any).deadline_type || (c as any).deadlineType || '—',
+    deadlineDue: (c) => (c as any).deadline_due || (c as any).deadlineDue || '—',
+  }
+
   const handleExportExcel = async () => {
     const exportResponse = await casesApi.listPage({
       q,
@@ -560,51 +640,79 @@ export default function TrademarksPage() {
     const exportRows = Array.isArray(exportResponse?.rows) ? (exportResponse.rows as CaseRow[]) : []
     if (!exportRows.length) return
 
+    // Build export column definitions — insert a dedicated markImage column after markName
+    const baseCols = ALL_COLUMNS.filter(c => c.id !== 'actions')
+    const exportColDefs: ColumnDef[] = []
+    for (const col of baseCols) {
+      exportColDefs.push(col)
+      if (col.id === 'markName') {
+        exportColDefs.push({
+          id: 'markImage',
+          label: 'Mark Image',
+          group: col.group,
+          defaultVisible: false,
+          fieldKey: 'mark_image',
+        })
+      }
+    }
+    // Cache the 1-based column index for image placement
+    const imageColIdx = exportColDefs.findIndex(c => c.id === 'markImage') + 1
+
+    const exportColumns: ExcelColumn[] = exportColDefs.map(def => ({
+      header: def.label,
+      key: def.id,
+      width: def.id === 'markName' ? 30 : def.id === 'markImage' ? 14 : def.id === 'clientName' ? 30 : 20,
+    }))
+
+    // Build group boundary indices (1-based) for category sub-header row
+    const groupBoundaries: { groupId: string; groupLabel: string; fillColor: string; textColor: string; start: number; end: number }[] = []
+    let colIndex = 0
+    for (const col of exportColDefs) {
+      colIndex++
+      const group = COLUMN_GROUPS.find(g => g.id === col.group)
+      if (!group) continue
+      const prev = groupBoundaries[groupBoundaries.length - 1]
+      if (!prev || prev.groupId !== col.group) {
+        groupBoundaries.push({
+          groupId: col.group,
+          groupLabel: group.label,
+          fillColor: getGroupFillColor(col.group),
+          textColor: getGroupTextColor(col.group),
+          start: colIndex,
+          end: colIndex,
+        })
+      } else {
+        prev.end = colIndex
+      }
+    }
+
     startExport({
       sheetName: 'Trademarks',
       fileName: 'EAIP_Trademarks',
-      columns: [
-        { header: 'Mark Image', key: 'markImage', width: 22 },
-        { header: 'Mark Name', key: 'markName', width: 30 },
-        { header: 'Mark Type', key: 'markType', width: 15 },
-        { header: 'Filing Number', key: 'filingNumber', width: 20 },
-        { header: 'Registration Number', key: 'regNumber', width: 20 },
-        { header: 'Jurisdiction', key: 'jurisdiction', width: 20 },
-        { header: 'Current Status', key: 'status', width: 15 },
-        { header: 'Filing Date', key: 'filingDate', width: 15 },
-        { header: 'Registration Date', key: 'regDate', width: 15 },
-        { header: 'Next Action Date', key: 'nextAction', width: 15 },
-        { header: 'Client/Owner Name', key: 'client', width: 30 },
-        { header: 'Client Type', key: 'clientType', width: 15 },
-        { header: 'Color Indication', key: 'colors', width: 25 },
-        { header: 'Priority Info', key: 'priority', width: 25 },
-        { header: 'System Created', key: 'createdAt', width: 20 },
-      ],
+      columns: exportColumns,
       rows: exportRows,
-      mapRow: (c) => ({
-        markImage: c.mark_image || c.markImage ? 'Image' : 'No Image',
-        markName: markLabel(c),
-        markType: c.markType || 'Word',
-        filingNumber: c.filing_number || c.filingNumber || 'PENDING',
-        regNumber: c.registration_number || (c as CaseRow).registrationNumber || '—',
-        jurisdiction: JURISDICTION_NAMES[c.jurisdiction || 'ET'] || c.jurisdiction || 'Ethiopia',
-        status: STATUS_NAMES[c.status || 'DRAFT'] || c.status || 'Draft',
-        filingDate: (c.filingDate || c.filing_date) ? new Date(c.filingDate || c.filing_date!).toISOString().split('T')[0] : '—',
-        regDate: (c.registrationDt || c.registration_dt) ? new Date(c.registrationDt || c.registration_dt!).toISOString().split('T')[0] : '—',
-        nextAction: (c.nextActionDate || c.next_action_date) ? new Date(c.nextActionDate || c.next_action_date!).toISOString().split('T')[0] : '—',
-        client: c.client_name || c.client?.name || '—',
-        clientType: c.client_type || c.client?.type || '—',
-        colors: c.colorIndication || '—',
-        priority: c.priority || '—',
-        createdAt: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '—',
-      }),
+      mapRow: (c) => {
+        const row: Record<string, string> = {}
+        for (const def of exportColDefs) {
+          if (def.id === 'markImage') {
+            row.markImage = ''  // image rendered visually by formatRow
+            continue
+          }
+          const extractor = exportColExtractors[def.id]
+          row[def.id] = extractor ? extractor(c) : '—'
+        }
+        return row
+      },
       formatHeader: (ws: unknown) => {
         const worksheet = ws as Record<string, unknown>
         const colCount = (worksheet.columns as unknown[]).length
-        ;(worksheet as any).spliceRows(1, 0, [], [])
+
+        // Insert 3 empty rows at top: title, categories, column headers
+        ;(worksheet as any).spliceRows(1, 0, [], [], [])
 
         const borderStyle = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
 
+        // ── Row 1: Title ──
         ;(worksheet as any).mergeCells(1, 1, 1, colCount)
         const titleCell = (worksheet as any).getCell(1, 1)
         titleCell.value = 'EAST AFRICAN INTELLECTUAL PROPERTY PORTAL — TRADEMARKS MASTER LIST'
@@ -614,43 +722,33 @@ export default function TrademarksPage() {
         titleCell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
         ;(worksheet as any).getRow(1).height = 35
 
-        ;(worksheet as any).mergeCells(2, 2, 2, 5)
-        ;(worksheet as any).mergeCells(2, 6, 2, 10)
-        ;(worksheet as any).mergeCells(2, 11, 2, 12)
-        ;(worksheet as any).mergeCells(2, 13, 2, 15)
+        // ── Row 2: Category / Group sub-headers with color coding ──
+        const catRow = (worksheet as any).getRow(2)
+        catRow.height = 28
 
-        const catFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
-        const catAlign = { vertical: 'middle', horizontal: 'center' }
-        const catData = [
-          { r: 2, c: 1, text: '1. IMAGE', color: 'FF4B5563' },
-          { r: 2, c: 2, text: '2. MARK IDENTIFICATION', color: 'FF5B9BD5' },
-          { r: 2, c: 6, text: '3. REGISTRATION & STATUS', color: 'FF70AD47' },
-          { r: 2, c: 11, text: '4. CLIENT INFORMATION', color: 'FF7030A0' },
-          { r: 2, c: 13, text: '5. ADDITIONAL DETAILS', color: 'FFED7D31' },
-        ]
-        for (const cat of catData) {
-          const cell = (worksheet as any).getCell(cat.r, cat.c)
-          cell.value = cat.text
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cat.color } }
-          cell.font = catFont
-          cell.alignment = catAlign
+        for (const group of groupBoundaries) {
+          if (group.start !== group.end) {
+            ;(worksheet as any).mergeCells(2, group.start, 2, group.end)
+          }
+          const cell = catRow.getCell(group.start)
+          cell.value = group.groupLabel
+          cell.font = { bold: true, color: { argb: `FF${group.textColor}` }, size: 10 }
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${group.fillColor}` } }
+          cell.alignment = { vertical: 'middle', horizontal: 'center' }
           cell.border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
         }
-        ;(worksheet as any).getRow(2).height = 30
 
+        // ── Row 3: Column headers ──
         const headerRow = (worksheet as any).getRow(3)
         headerRow.height = 35
         headerRow.font = { bold: true, color: { argb: 'FF000000' }, size: 10 }
         headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-        headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7E6E6' } }
-        for (let i = 2; i <= 5; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }
-        for (let i = 6; i <= 10; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } }
-        for (let i = 11; i <= 12; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4DFEC' } }
-        for (let i = 13; i <= colCount; i++) headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8CBAD' } }
         for (let i = 1; i <= colCount; i++) {
+          headerRow.getCell(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }
           headerRow.getCell(i).border = { top: borderStyle, left: borderStyle, bottom: borderStyle, right: borderStyle }
         }
 
+        // Freeze rows 1-3 (title + categories + headers) and add auto-filter on headers
         ;(worksheet as any).views = [{ state: 'frozen', ySplit: 3 }]
         ;(worksheet as any).autoFilter = {
           from: { row: 3, column: 1 },
@@ -661,7 +759,6 @@ export default function TrademarksPage() {
         try {
           const excelRow = row as Record<string, unknown>
           ;(excelRow as any).height = 65
-          ;(excelRow as any).getCell(1).alignment = { vertical: 'middle', horizontal: 'center' }
 
           const rawImagePath = (c.mark_image || c.markImage || '').trim()
           if (rawImagePath) {
@@ -678,17 +775,15 @@ export default function TrademarksPage() {
                 buffer: imagePayload.bytes,
                 extension: imagePayload.extension,
               })
-              ;(excelRow as any).getCell(1).value = ''
+              // Place image in the dedicated Mark Image column
               ws.addImage(imageId, {
-                tl: { col: 0.15, row: (excelRow as any).number - 0.9 },
+                tl: { col: imageColIdx - 0.85, row: (excelRow as any).number - 0.9 },
                 ext: { width: 55, height: 55 },
               })
-            } else {
-              ;(excelRow as any).getCell(1).value = 'Image Unavailable'
             }
           }
         } catch {
-          ;(row as any).getCell(1).value = 'Image Unavailable'
+          // ignore image errors in export
         }
       },
       successMessage: 'Detailed Excel file has been downloaded.',
@@ -758,7 +853,7 @@ export default function TrademarksPage() {
                 variant="destructive"
                 className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all"
               >
-                <Trash size={20} weight="bold" />
+                <Trash size={20} />
                 <span className="font-bold">Delete {selectedIds.size}</span>
               </Button>
             </div>
@@ -772,7 +867,7 @@ export default function TrademarksPage() {
             <span className="hidden sm:inline">Export Excel</span>
           </Button>
           <Button data-tour="new-application-button" onClick={() => navigate('/eipa-forms/application-form')} className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold">
-            <Plus size={20} weight="bold" className="mr-2" />
+            <Plus size={20} className="mr-2" />
             <span className="hidden sm:inline">New Application</span>
           </Button>
         </div>
@@ -790,7 +885,7 @@ export default function TrademarksPage() {
           <AlertDialogHeader className="p-10 border-b border-border/50 bg-destructive/5">
             <div className="flex items-center gap-5">
               <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive shadow-inner">
-                <Trash size={32} weight="duotone" />
+                <Trash size={32} />
               </div>
               <div>
                 <AlertDialogTitle className="text-2xl font-black tracking-tight uppercase">Purge Protocol</AlertDialogTitle>
@@ -884,8 +979,8 @@ export default function TrademarksPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <div className="flex items-center gap-1 bg-muted/30 rounded-xl p-1 h-12">
-              <Button data-tour="view-toggle" variant={viewMode === 'table' ? 'default' : 'ghost'} size="icon" className={`h-10 w-10 rounded-lg transition-all ${viewMode === 'table' ? 'shadow-md' : 'hover:bg-white/50'}`} onClick={() => setViewMode('table')}><List size={20} weight="bold" /></Button>
-              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="icon" className={`h-10 w-10 rounded-lg transition-all ${viewMode === 'grid' ? 'shadow-md' : 'hover:bg-white/50'}`} onClick={() => setViewMode('grid')}><SquaresFour size={20} weight="bold" /></Button>
+              <Button data-tour="view-toggle" variant={viewMode === 'table' ? 'default' : 'ghost'} size="icon" className={`h-10 w-10 rounded-lg transition-all ${viewMode === 'table' ? 'shadow-md' : 'hover:bg-white/50'}`} onClick={() => setViewMode('table')}><List size={20} /></Button>
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="icon" className={`h-10 w-10 rounded-lg transition-all ${viewMode === 'grid' ? 'shadow-md' : 'hover:bg-white/50'}`} onClick={() => setViewMode('grid')}><SquaresFour size={20} /></Button>
             </div>
           </div>
         </div>
@@ -907,7 +1002,7 @@ export default function TrademarksPage() {
         </div>
       ) : totalCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center border-2 border-dashed border-muted rounded-3xl bg-white/50">
-          <MagnifyingGlass size={64} className="text-muted-foreground/20 mb-6" weight="duotone" />
+          <MagnifyingGlass size={64} className="text-muted-foreground/20 mb-6" />
           <Typography.h3 className="text-primary font-bold tracking-tight">No trademarks found</Typography.h3>
           <Typography.p className="text-muted-foreground font-medium mt-2">Try adjusting your search query or filters.</Typography.p>
         </div>
@@ -974,6 +1069,15 @@ export default function TrademarksPage() {
         </div>
       ) : (
         <Card className="overflow-hidden border-none shadow-sm bg-white p-0">
+          {/* Synchronized top scroll bar */}
+          <div
+            ref={topScrollRef}
+            onScroll={syncScroll('top')}
+            className="overflow-x-auto w-full"
+            style={{ height: 0, minHeight: 0, overflowY: 'hidden' }}
+          >
+            <div ref={topSpacerRef} style={{ height: 1 }} />
+          </div>
           <div ref={bottomScrollRef} className="overflow-x-auto w-full" onScroll={syncScroll('bottom')}>
             <Table ref={tableRef}>
               <TableHeader>
@@ -984,7 +1088,7 @@ export default function TrademarksPage() {
                       className="flex items-center justify-center hover:scale-110 transition-transform"
                     >
                       {selectedIds.size === filteredRows.length && filteredRows.length > 0 ? (
-                        <CheckSquare size={18} className="text-primary" weight="fill" />
+                        <CheckSquare size={18} className="text-primary" />
                       ) : (
                         <Square size={18} className="text-muted-foreground/40" />
                       )}
@@ -998,10 +1102,10 @@ export default function TrademarksPage() {
                       Alert
                       {sortKey === 'alert' ? (
                         sortDir === 'asc'
-                          ? <CaretUp size={12} weight="bold" className="text-primary" />
-                          : <CaretDown size={12} weight="bold" className="text-primary" />
+                          ? <CaretUp size={12} className="text-primary" />
+                          : <CaretDown size={12} className="text-primary" />
                       ) : (
-                        <CaretUp size={12} weight="bold" className="opacity-30" />
+                        <CaretUp size={12} className="opacity-30" />
                       )}
                     </div>
                   </TableHead>
@@ -1019,9 +1123,9 @@ export default function TrademarksPage() {
                           {isSortable && (
                             isSorted
                               ? (sortDir === 'asc'
-                                  ? <CaretUp size={12} weight="bold" className="text-primary" />
-                                  : <CaretDown size={12} weight="bold" className="text-primary" />)
-                              : <CaretUp size={12} weight="bold" className="opacity-30" />
+                                  ? <CaretUp size={12} className="text-primary" />
+                                  : <CaretDown size={12} className="text-primary" />)
+                              : <CaretUp size={12} className="opacity-30" />
                           )}
                         </div>
                       </TableHead>
@@ -1038,7 +1142,7 @@ export default function TrademarksPage() {
                         className="flex items-center justify-center hover:scale-110 transition-transform"
                       >
                         {selectedIds.has(t.id) ? (
-                          <CheckSquare size={18} className="text-primary" weight="fill" />
+                          <CheckSquare size={18} className="text-primary" />
                         ) : (
                           <Square size={18} className="text-muted-foreground/20 group-hover:text-muted-foreground/40 transition-colors" />
                         )}
@@ -1072,7 +1176,7 @@ export default function TrademarksPage() {
           {totalPages > 1 && (
             <div className="flex flex-col items-center justify-center gap-6 border-t border-muted/30 px-6 py-10 bg-muted/5">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={20} weight="bold" /></Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><CaretLeft size={20} /></Button>
                 <div className="flex items-center gap-2">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                     // Show first page, last page, and pages around current page
@@ -1101,7 +1205,7 @@ export default function TrademarksPage() {
                     return null;
                   })}
                 </div>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><CaretRight size={20} weight="bold" /></Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><CaretRight size={20} /></Button>
               </div>
               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
                 Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} records

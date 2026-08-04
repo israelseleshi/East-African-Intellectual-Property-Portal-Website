@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, User, FileText, PencilSimple, Check, X, Envelope, Phone, MapPin, Globe, Buildings, IdentificationCard, GenderIntersex } from '@phosphor-icons/react'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { ArrowLeft, User, FileText, Pencil as PencilSimple, Check, X, Mail as Envelope, Phone, MapPin, Globe, Building2 as Buildings, IdCard as IdentificationCard, Users as GenderIntersex } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Typography } from '@/components/ui/typography'
@@ -184,7 +184,7 @@ export default function ClientDetailPage() {
       <header className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/clients')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
-            <ArrowLeft size={24} weight="bold" />
+            <ArrowLeft size={24} />
           </Button>
           <div>
             <Typography.h2a className="font-black">{isEditing ? 'Edit Client' : client.name}</Typography.h2a>
@@ -219,7 +219,7 @@ export default function ClientDetailPage() {
           <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <User size={22} weight="duotone" />
+                <User size={22} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Identity & Type</CardTitle>
             </div>
@@ -280,7 +280,7 @@ export default function ClientDetailPage() {
           <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Envelope size={22} weight="duotone" />
+                <Envelope size={22} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Contact Information</CardTitle>
             </div>
@@ -319,7 +319,7 @@ export default function ClientDetailPage() {
           <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <MapPin size={22} weight="duotone" />
+                <MapPin size={22} />
               </div>
               <CardTitle className="text-lg font-black tracking-tight">Address & Location</CardTitle>
             </div>
@@ -401,7 +401,7 @@ export default function ClientDetailPage() {
             <CardHeader className="bg-[#F8F9FA] border-b border-border/50 py-5 px-8">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <FileText size={22} weight="duotone" />
+                  <FileText size={22} />
                 </div>
                 <div>
                   <CardTitle className="text-lg font-black tracking-tight">Associated Trademarks</CardTitle>

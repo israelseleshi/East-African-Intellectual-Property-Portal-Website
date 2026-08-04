@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { FileText, User, MapPin, Phone, Briefcase, CheckSquare, Image as ImageIcon, Hash, List, PenTool, Upload, XCircle } from 'lucide-react';
 import { FormSection, FormField } from '../components/FormShared';
 import { CountrySelector } from '@/components/CountrySelector';
+import NiceClassPicker from '@/components/NiceClassPicker';
 import { EipaFormData, Client } from '../types';
 import { Input } from '@/components/ui/input';
 import {
@@ -162,6 +163,9 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
   const [selectedCaseDetails, setSelectedCaseDetails] = useState<string>('');
   const [selectedClassification, setSelectedClassification] = useState<string>('');
   const [selectedSignature, setSelectedSignature] = useState<string>('');
+  const [renewalNiceClasses, setRenewalNiceClasses] = useState<number[]>(
+    Array.isArray(formData.renewal_nice_classes) ? formData.renewal_nice_classes : []
+  );
 
   useEffect(() => {
       const loadAgents = async () => {
@@ -745,6 +749,19 @@ export const RenewalSection: React.FC<RenewalSectionProps> = ({
         }
       >
         <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-3">
+            <label className="text-label text-[var(--eai-text)]">Select Nice Classification Classes</label>
+            <NiceClassPicker
+              selectedClasses={renewalNiceClasses}
+              onChange={(classes) => {
+                setRenewalNiceClasses(classes);
+                if (setFormData) {
+                  setFormData(prev => ({ ...prev, renewal_nice_classes: classes }));
+                }
+              }}
+              placeholder="Select Nice classes for renewal..."
+            />
+          </div>
           <div className="space-y-3">
             <label className="text-label text-[var(--eai-text)]">List of goods and or services (Split into 6 lines for PDF)</label>
             <div className="grid grid-cols-1 gap-2">

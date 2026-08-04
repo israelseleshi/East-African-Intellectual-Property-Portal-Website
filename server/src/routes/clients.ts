@@ -11,6 +11,15 @@ const router = express.Router();
 
 const clientIdParamSchema = z.object({ id: z.string().min(1) });
 
+// IDOR guard — verify the authenticated user has access to this client
+const requireClientAccess = async (clientId: string, userId: string): Promise<boolean> => {
+  const [rows] = await pool.execute(
+    'SELECT id FROM trademark_cases WHERE client_id = ? AND user_id = ? LIMIT 1',
+    [clientId, userId]
+  );
+  return (rows as unknown[]).length > 0;
+};
+
 const listClientsQuerySchema = z.object({
   q: z.string().optional(),
   type: z.string().optional(),
@@ -135,9 +144,18 @@ router.get('/trash', authenticateToken, async (req, res) => {
 
 router.post('/:id/restore', authenticateToken, async (req, res) => {
   try {
+    const clientId = req.params.id;
+    if (!clientId) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CLIENT_ID', message: 'Invalid client id' });
+    }
+
+    if (!(await requireClientAccess(clientId, req.user!.id))) {
+      return sendApiError(req, res, 404, { code: 'CLIENT_NOT_FOUND', message: 'Client not found or access denied' });
+    }
+
     const [result] = await pool.execute(
       'UPDATE clients SET deleted_at = NULL WHERE id = ?',
-      [req.params.id]
+      [clientId]
     ) as [ResultSetHeader, unknown[]];
 
     if (result.affectedRows === 0) {
@@ -152,9 +170,18 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
 
 router.delete('/:id/permanent', authenticateToken, async (req, res) => {
   try {
+    const clientId = req.params.id;
+    if (!clientId) {
+      return sendApiError(req, res, 400, { code: 'INVALID_CLIENT_ID', message: 'Invalid client id' });
+    }
+
+    if (!(await requireClientAccess(clientId, req.user!.id))) {
+      return sendApiError(req, res, 404, { code: 'CLIENT_NOT_FOUND', message: 'Client not found or access denied' });
+    }
+
     const [result] = await pool.execute(
       'DELETE FROM clients WHERE id = ? AND deleted_at IS NOT NULL',
-      [req.params.id]
+      [clientId]
     ) as [ResultSetHeader, unknown[]];
 
     if (result.affectedRows === 0) {
@@ -176,6 +203,16 @@ router.post('/bulk-delete', authenticateToken, async (req, res) => {
         message: 'No valid IDs provided',
         details: parsed.error.flatten()
       });
+    }
+
+    // Verify user has access to ALL clients being deleted
+    for (const id of parsed.data.ids) {
+      if (!(await requireClientAccess(id, req.user!.id))) {
+        return sendApiError(req, res, 403, {
+          code: 'ACCESS_DENIED',
+          message: `Access denied to client ${id}`
+        });
+      }
     }
 
     const placeholders = parsed.data.ids.map(() => '?').join(',');
@@ -217,6 +254,20 @@ router.post('/merge', authenticateToken, async (req, res) => {
         code: 'INVALID_CLIENT_MERGE_PAYLOAD',
         message: 'Source and target client IDs are required',
         details: parsed.error.flatten()
+      });
+    }
+
+    // Verify user has access to both source and target clients
+    if (!(await requireClientAccess(parsed.data.sourceId, req.user!.id))) {
+      return sendApiError(req, res, 403, {
+        code: 'ACCESS_DENIED',
+        message: 'Access denied to source client'
+      });
+    }
+    if (!(await requireClientAccess(parsed.data.targetId, req.user!.id))) {
+      return sendApiError(req, res, 403, {
+        code: 'ACCESS_DENIED',
+        message: 'Access denied to target client'
       });
     }
 
@@ -307,6 +358,18 @@ router.get('/:id', authenticateToken, async (req, res) => {
       });
     }
 
+    // Check access: user must have at least one case linked to this client
+    const [caseRows] = await pool.execute(
+      'SELECT id FROM trademark_cases WHERE client_id = ? AND user_id = ? LIMIT 1',
+      [parsed.data.id, req.user!.id]
+    );
+    if ((caseRows as unknown[]).length === 0) {
+      return sendApiError(req, res, 404, {
+        code: 'CLIENT_NOT_FOUND',
+        message: 'Client not found or access denied'
+      });
+    }
+
     const [rows] = await pool.execute('SELECT * FROM clients WHERE id = ?', [parsed.data.id]);
     const client = (rows as unknown[])[0];
     if (!client) {
@@ -339,6 +402,13 @@ router.patch('/:id', authenticateToken, async (req, res) => {
         code: 'INVALID_CLIENT_ID',
         message: 'Invalid client id',
         details: parsedParams.error.flatten()
+      });
+    }
+
+    if (!(await requireClientAccess(parsedParams.data.id, req.user!.id))) {
+      return sendApiError(req, res, 404, {
+        code: 'CLIENT_NOT_FOUND',
+        message: 'Client not found or access denied'
       });
     }
 

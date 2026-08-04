@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { pool } from '../database/db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT 
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.execute(`
@@ -61,7 +62,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { name, country, city, subcity, woreda, houseNo, telephone, email, poBox, fax } = req.body;
     
@@ -100,7 +101,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, country, city, subcity, woreda, houseNo, telephone, email, poBox, fax } = req.body;
@@ -144,7 +145,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM agents WHERE id = ?', [id]);

@@ -1,32 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { invoiceService, clientService } from '../utils/api'
 import { financialsApi } from '@/api/financials'
 import { useSettingsStore } from '@/store/settingsStore'
-import {
-  CurrencyDollar,
-  ChartLineUp,
-  ArrowUpRight,
-  WarningCircle,
-  Clock,
-  Download,
-  Receipt,
-  CheckCircle,
-  Bank,
-  Plus,
-  Trash,
-  CaretLeft,
-  CaretRight,
-  X,
-  FileArrowDown,
-  CreditCard,
-  SquaresFour,
-  List,
-  CheckSquare,
-  Square,
-  ShareFat
-} from '@phosphor-icons/react'
+import { DollarSign as CurrencyDollar, TrendingUp as ChartLineUp, ArrowUpRight, AlertCircle as WarningCircle, Clock, Download, Receipt, CheckCircle, Landmark as Bank, Plus, Trash2 as Trash, ChevronLeft as CaretLeft, ChevronRight as CaretRight, X, FileDown as FileArrowDown, CreditCard, LayoutGrid as SquaresFour, List, CheckSquare, Square, Share2 as ShareFat } from 'lucide-react'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -577,7 +555,7 @@ export default function BillingPage() {
                 variant="destructive"
                 className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
               >
-                <Trash size={20} weight="bold" />
+                <Trash size={20} />
                 <span>Delete {selectedIds.size}</span>
               </Button>
             </div>
@@ -596,7 +574,7 @@ export default function BillingPage() {
             onClick={() => setIsCreateInvoiceModalOpen(true)}
             className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
           >
-            <Plus size={20} weight="bold" className="mr-2" />
+            <Plus size={20} className="mr-2" />
             Generate New Invoice
           </Button>
         </div>
@@ -608,18 +586,18 @@ export default function BillingPage() {
           <Card className="overflow-hidden border-none shadow-2xl bg-gradient-to-br from-[#1A1A1A] to-[#404040] text-white rounded-3xl transform hover:scale-[1.02] transition-all duration-300">
             <CardContent className="p-8 relative">
               <div className="absolute -top-6 -right-6 p-4 opacity-5 rotate-12">
-                <Receipt size={160} weight="duotone" />
+                <Receipt size={160} />
               </div>
               <div className="flex items-center justify-between mb-8 relative z-10">
                 <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-inner">
-                  <CurrencyDollar size={28} weight="bold" className="text-primary" />
+                  <CurrencyDollar size={28} className="text-primary" />
                 </div>
                 <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold tracking-widest uppercase">Overview</div>
               </div>
               <div className="text-sm font-bold text-white/50 tracking-wider uppercase mb-2 relative z-10">Total Revenue</div>
               <div className="text-4xl font-black tracking-tighter relative z-10">{formatAmount(stats.totalRevenue)}</div>
               <div className="mt-6 flex items-center gap-2 text-xs font-bold text-white relative z-10">
-                <ChartLineUp size={18} weight="bold" />
+                <ChartLineUp size={18} />
                 <span className="tracking-wide">ALL TIME PERFORMANCE</span>
               </div>
             </CardContent>
@@ -634,11 +612,11 @@ export default function BillingPage() {
           >
             <CardContent className="p-8 relative">
               <div className="absolute -top-6 -right-6 p-4 opacity-10 rotate-12">
-                <WarningCircle size={160} weight="duotone" />
+                <WarningCircle size={160} />
               </div>
               <div className="flex items-center justify-between mb-8 relative z-10">
                 <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-inner">
-                  <WarningCircle size={28} weight="bold" />
+                  <WarningCircle size={28} />
                 </div>
                 <div className={`px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-bold tracking-widest uppercase ${filters.status === 'OVERDUE' ? 'bg-white text-orange-600' : ''}`}>
                   {filters.status === 'OVERDUE' ? 'Filtered' : 'Priority'}
@@ -647,7 +625,7 @@ export default function BillingPage() {
               <div className="text-sm font-bold text-white/60 tracking-wider uppercase mb-2 relative z-10">Outstanding</div>
               <div className="text-4xl font-black tracking-tighter relative z-10">{formatAmount(stats.outstanding)}</div>
               <div className="mt-6 flex items-center gap-2 text-xs font-bold relative z-10">
-                <Clock size={18} weight="bold" />
+                <Clock size={18} />
                 <span className="tracking-wide">{stats.overdueCount} INVOICES OVERDUE</span>
               </div>
             </CardContent>
@@ -662,11 +640,11 @@ export default function BillingPage() {
           >
             <CardContent className="p-8 relative">
               <div className="absolute -top-6 -right-6 p-4 opacity-10 rotate-12">
-                <CheckCircle size={160} weight="duotone" />
+                <CheckCircle size={160} />
               </div>
               <div className="flex items-center justify-between mb-8 relative z-10">
                 <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-inner">
-                  <ArrowUpRight size={28} weight="bold" />
+                  <ArrowUpRight size={28} />
                 </div>
                 <div className={`px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[10px] font-bold tracking-widest uppercase ${filters.status === 'PAID' ? 'bg-white text-emerald-600' : ''}`}>
                   Current Month
@@ -690,17 +668,17 @@ export default function BillingPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {filters.status !== '__all__' && (
                   <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, status: '__all__' }))}>
-                    Status: {filters.status} <X size={14} weight="bold" />
+                    Status: {filters.status} <X size={14} />
                   </Badge>
                 )}
                 {filters.client !== '__all__' && (
                   <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, client: '__all__' }))}>
-                    Client: {clients.find(c => c.id === filters.client)?.name || 'Filtered'} <X size={14} weight="bold" />
+                    Client: {clients.find(c => c.id === filters.client)?.name || 'Filtered'} <X size={14} />
                   </Badge>
                 )}
                 {filters.trademark !== '__all__' && (
                   <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-xs uppercase cursor-pointer" onClick={() => setFilters(prev => ({ ...prev, trademark: '__all__' }))}>
-                    Record: {filters.trademark} <X size={14} weight="bold" />
+                    Record: {filters.trademark} <X size={14} />
                   </Badge>
                 )}
               </div>
@@ -712,14 +690,14 @@ export default function BillingPage() {
                 className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 title="Table View"
               >
-                <List size={22} weight={viewMode === 'table' ? 'fill' : 'regular'} />
+                <List size={22} />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 title="Grid View"
               >
-                <SquaresFour size={22} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+                <SquaresFour size={22} />
               </button>
             </div>
           </div>
@@ -771,7 +749,7 @@ export default function BillingPage() {
             </Select>
 
             <Button variant="outline" className="h-12 bg-white border-none shadow-sm hover:shadow-md transition-all rounded-xl font-bold flex items-center gap-2" onClick={resetFilters}>
-              <X size={18} weight="bold" /> Reset
+              <X size={18} /> Reset
             </Button>
           </div>
         </div>
@@ -780,14 +758,14 @@ export default function BillingPage() {
           {filteredTransactions.length === 0 ? (
             <Card className="flex flex-col items-center justify-center py-32 text-center border-none shadow-premium rounded-3xl bg-white">
               <div className="p-6 rounded-full bg-primary/5 mb-6">
-                <Receipt size={64} weight="duotone" className="text-primary/40" />
+                <Receipt size={64} className="text-primary/40" />
               </div>
               <Typography.h3 className="mb-2 font-bold">No transactions found</Typography.h3>
               <Typography.p className="max-w-md mx-auto text-muted-foreground text-lg">
                 Your financial ledger will appear here once invoices are generated or recorded.
               </Typography.p>
               <Button onClick={() => setIsCreateInvoiceModalOpen(true)} className="mt-8 h-12 px-8 rounded-xl shadow-lg">
-                <Plus className="mr-2" size={20} weight="bold" /> Create First Invoice
+                <Plus className="mr-2" size={20} /> Create First Invoice
               </Button>
             </Card>
           ) : viewMode === 'grid' ? (
@@ -808,14 +786,14 @@ export default function BillingPage() {
                         onClick={(e) => { e.stopPropagation(); toggleSelect(tx.id); }}
                         className={`p-1.5 rounded-xl bg-white/90 backdrop-blur-sm transition-all shadow-sm ${isSelected ? 'opacity-100 text-primary scale-110' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:scale-110'}`}
                       >
-                        {isSelected ? <CheckSquare size={24} weight="fill" /> : <Square size={24} />}
+                        {isSelected ? <CheckSquare size={24} /> : <Square size={24} />}
                       </button>
                     </div>
 
                     <CardContent className="p-8 pt-10">
                       <div className="flex items-start gap-4 mb-6">
                         <div className={`p-4 rounded-2xl transition-all duration-300 ${tx.status === 'PAID' ? 'bg-emerald-50 text-emerald-600' : tx.status === 'OVERDUE' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'} group-hover:shadow-md`}>
-                          <Receipt size={28} weight="duotone" />
+                          <Receipt size={28} />
                         </div>
                         <div className="flex-1 min-w-0 pt-1">
                           <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors">{tx.invoiceNumber || tx.id}</h3>
@@ -864,7 +842,7 @@ export default function BillingPage() {
                       <th className="px-8 py-5 w-16">
                         <button onClick={toggleSelectAll} className="hover:text-primary transition-colors">
                           {selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0 ? (
-                            <CheckSquare size={22} weight="fill" className="text-primary" />
+                            <CheckSquare size={22} className="text-primary" />
                           ) : (
                             <Square size={22} />
                           )}
@@ -888,7 +866,7 @@ export default function BillingPage() {
                         >
                           <td className="px-8 py-6" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => toggleSelect(tx.id)} className="text-muted-foreground hover:text-primary transition-colors">
-                              {isSelected ? <CheckSquare size={22} weight="fill" className="text-primary" /> : <Square size={22} />}
+                              {isSelected ? <CheckSquare size={22} className="text-primary" /> : <Square size={22} />}
                             </button>
                           </td>
                           <td className="px-6 py-6">
@@ -937,7 +915,7 @@ export default function BillingPage() {
                                   }}
                                   title="Record Payment"
                                 >
-                                  <CheckCircle size={22} weight="bold" />
+                                  <CheckCircle size={22} />
                                 </Button>
                               )}
                               <InvoiceSharePopover row={tx} />
@@ -951,7 +929,7 @@ export default function BillingPage() {
                                 }}
                                 title="Download PDF"
                               >
-                                <Download size={22} weight="bold" />
+                                <Download size={22} />
                               </Button>
                             </div>
                           </td>
@@ -975,7 +953,7 @@ export default function BillingPage() {
                   disabled={currentPage === 1}
                   className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
                 >
-                  <CaretLeft size={20} weight="bold" className="mr-2" />
+                  <CaretLeft size={20} className="mr-2" />
                   Previous
                 </Button>
                 <div className="flex items-center gap-1.5 px-2">
@@ -997,7 +975,7 @@ export default function BillingPage() {
                   className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
                 >
                   Next
-                  <CaretRight size={20} weight="bold" className="ml-2" />
+                  <CaretRight size={20} className="ml-2" />
                 </Button>
               </div>
             </div>
@@ -1010,7 +988,7 @@ export default function BillingPage() {
             <DialogHeader className="p-10 border-b border-border/50 bg-emerald-50/30">
               <div className="flex items-center gap-5">
                 <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
-                  <Bank size={32} weight="duotone" />
+                  <Bank size={32} />
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-black tracking-tight uppercase">Deposit Protocol</DialogTitle>
@@ -1095,7 +1073,7 @@ export default function BillingPage() {
             <DialogHeader className="p-12 border-b border-border/50 bg-primary/5">
               <div className="flex items-center gap-6">
                 <div className="h-16 w-16 rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center shadow-inner">
-                  <FileArrowDown size={36} weight="duotone" />
+                  <FileArrowDown size={36} />
                 </div>
                 <div>
                   <DialogTitle className="text-3xl font-black tracking-tighter uppercase">Invoicing Protocol</DialogTitle>
@@ -1161,7 +1139,7 @@ export default function BillingPage() {
                 <div className="flex items-center justify-between ml-1">
                   <Label className="font-black text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">Component Breakdown *</Label>
                   <Button variant="ghost" size="sm" onClick={addLineItem} className="font-black text-[10px] uppercase tracking-widest text-primary hover:bg-primary/5 rounded-xl px-6 h-10 border border-primary/10">
-                    <Plus size={16} weight="bold" className="mr-2" /> Add Component
+                    <Plus size={16} className="mr-2" /> Add Component
                   </Button>
                 </div>
                 
@@ -1211,7 +1189,7 @@ export default function BillingPage() {
                           onClick={() => removeLineItem(index)}
                           className="mt-8 text-destructive/20 hover:text-destructive hover:bg-destructive/5 rounded-2xl h-14 w-14 transition-all"
                         >
-                          <Trash size={24} weight="bold" />
+                          <Trash size={24} />
                         </Button>
                       )}
                     </div>
@@ -1245,7 +1223,7 @@ export default function BillingPage() {
             <AlertDialogHeader className="p-10 border-b border-border/50 bg-destructive/5">
               <div className="flex items-center gap-5">
                 <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive shadow-inner">
-                  <Trash size={32} weight="duotone" />
+                  <Trash size={32} />
                 </div>
                 <div>
                   <AlertDialogTitle className="text-2xl font-black tracking-tight uppercase">Purge Protocol</AlertDialogTitle>

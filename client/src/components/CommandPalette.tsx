@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { MagnifyingGlass, Plus, Archive, Clock, FileText, CreditCard, BookOpen, House, Command, Users, ShieldCheck, Building, User, Trash } from '@phosphor-icons/react'
+import { Search as MagnifyingGlass, Plus, Archive, Clock, FileText, CreditCard, BookOpen, Home as House, Command, Users, ShieldCheck, Building, User, Trash2 as Trash } from 'lucide-react'
 import { clientService, trademarkService } from '../utils/api'
 import { useAuthStore, canAccessFinance } from '../store/authStore'
 

@@ -1,7 +1,8 @@
+import { Sun, Moon, Search as MagnifyingGlass, LogOut as SignOut, Palette, Menu } from 'lucide-react'
 import { useMemo } from 'react'
-import { Sun, Moon, MagnifyingGlass, SignOut, Palette } from '@phosphor-icons/react'
+
 import { useAuthStore } from '../store/authStore'
-import { Menu } from 'lucide-react'
+
 import { useSidebar } from '@/components/ui/sidebar'
 import { useState, useEffect } from 'react'
 import {
@@ -90,9 +91,9 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
-                <Sun size={20} weight="fill" className="text-orange-400" />
+                <Sun size={20} className="text-orange-400" />
               ) : (
-                <Moon size={20} weight="fill" className="text-blue-600" />
+                <Moon size={20} className="text-blue-600" />
               )}
             </button>
           </div>
@@ -110,7 +111,7 @@ export default function TopBar({ title, theme, onToggleTheme, onOpenCommand, chi
               className="flex h-9 w-9 items-center justify-center rounded-none border border-[var(--eai-border)] bg-[var(--eai-surface)] hover:bg-red-50 hover:text-red-600 transition-colors shadow-sm"
               title="Logout"
             >
-              <SignOut size={20} weight="bold" />
+              <SignOut size={20} />
             </button>
           </div>
         </div>

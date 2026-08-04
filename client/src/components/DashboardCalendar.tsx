@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Calendar as CalendarIcon, CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { useNavigate } from 'react-router'
+import { Calendar as CalendarIcon, ChevronLeft as CaretLeft, ChevronRight as CaretRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -106,7 +106,7 @@ export default function DashboardCalendar() {
     <Card className="border-none shadow-sm hover:shadow-premium transition-all duration-500 bg-white h-full">
       <CardHeader className="pb-4">
         <CardTitle className="text-xl font-bold tracking-tight text-primary flex items-center gap-2">
-          <CalendarIcon size={24} className="text-primary/60" weight="duotone" />
+          <CalendarIcon size={24} className="text-primary/60" />
           Registry Calendar
         </CardTitle>
       </CardHeader>
@@ -132,10 +132,10 @@ export default function DashboardCalendar() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 transition-colors" onClick={() => navigateMonth('prev')}>
-              <CaretLeft size={20} weight="bold" />
+              <CaretLeft size={20} />
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 transition-colors" onClick={() => navigateMonth('next')}>
-              <CaretRight size={20} weight="bold" />
+              <CaretRight size={20} />
             </Button>
           </div>
         </div>

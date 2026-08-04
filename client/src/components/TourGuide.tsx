@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, CaretRight, CaretLeft } from '@phosphor-icons/react';
+import { X, ChevronRight as CaretRight, ChevronLeft as CaretLeft } from 'lucide-react';
 
 export interface TourStep {
   target: string;

@@ -365,7 +365,8 @@ export async function fillPdfForm(pdfUrl: string, data: Record<string, unknown>,
       setCheckbox(data.mark_type_word || data.type_word || (data as any).is_word === 1 || (data as any).is_word === true, ['mark_type_word', 'type_word']);
       setCheckbox(data.mark_type_mixed || data.k_type_mi || (data as any).is_mixed === 1 || (data as any).is_mixed === true, ['mark_type_mixed', 'k_type_mi']);
       setCheckbox(data.mark_type_three_dim || data.type_thre || (data as any).is_three_dim === 1 || (data as any).is_three_dim === true, ['mark_type_three_dim', 'type_thre']);
-      await fillField(['mark_description'], data.mark_description);
+      // Mark description intentionally left blank on PDF
+      await fillField(['mark_description'], '');
       await fillField(['mark_translation'], data.mark_translation);
       await fillField(['mark_transliteration'], data.mark_transliteration);
       await fillField(['mark_language_requiring_traslation', 'mark_language_requiring_translation'], data.mark_language_requiring_traslation);

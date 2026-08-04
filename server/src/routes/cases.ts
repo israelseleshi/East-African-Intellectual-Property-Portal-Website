@@ -271,6 +271,9 @@ const mapPriority = (payload: Record<string, unknown>): 'YES' | 'NO' => {
   return hasPriority ? 'YES' : 'NO';
 };
 
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 const saveMarkImageToUploads = (
   markImage: string,
   applicantName: string,
@@ -287,11 +290,24 @@ const saveMarkImageToUploads = (
 
   const mimeType = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
   const extension = mimeType.split('/')[1] || 'png';
+
+  // Validate MIME type against allowlist
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    throw new Error(`Unsupported image type: ${mimeType}. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`);
+  }
+
   const base64Data = parts[1];
+
+  // Validate file size (base64 is ~4/3 of binary size)
+  const decodedSize = Buffer.from(base64Data, 'base64').length;
+  if (decodedSize > MAX_FILE_SIZE_BYTES) {
+    throw new Error(`Image exceeds maximum size of ${MAX_FILE_SIZE_BYTES / 1024 / 1024} MB`);
+  }
 
   const safeApplicant = sanitizeFilename(applicantName || 'unknown');
   const safeMark = sanitizeFilename(markName || 'mark');
-  const filename = `mark_${safeApplicant}_${safeMark}_${Date.now()}.${extension}`;
+  const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+  const filename = `mark_${safeApplicant}_${safeMark}_${uniqueSuffix}.${extension}`;
   const marksDir = path.join(uploadDir, 'marks');
   if (!fs.existsSync(marksDir)) {
     fs.mkdirSync(marksDir, { recursive: true });
@@ -355,8 +371,8 @@ router.get('/trash', authenticateToken, async (req, res) => {
 router.post('/:id/restore', authenticateToken, async (req, res) => {
   try {
     const [result] = await pool.execute(
-      'UPDATE trademark_cases SET deleted_at = NULL WHERE id = ?',
-      [req.params.id]
+      'UPDATE trademark_cases SET deleted_at = NULL WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user!.id]
     ) as [ResultSetHeader, unknown[]];
 
     if (result.affectedRows === 0) {
@@ -372,8 +388,8 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
 router.delete('/:id/permanent', authenticateToken, async (req, res) => {
   try {
     const [result] = await pool.execute(
-      'DELETE FROM trademark_cases WHERE id = ? AND deleted_at IS NOT NULL',
-      [req.params.id]
+      'DELETE FROM trademark_cases WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL',
+      [req.params.id, req.user!.id]
     ) as [ResultSetHeader, unknown[]];
 
     if (result.affectedRows === 0) {
@@ -389,8 +405,8 @@ router.delete('/:id/permanent', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const [result] = await pool.execute(
-      'UPDATE trademark_cases SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
-      [req.params.id]
+      'UPDATE trademark_cases SET deleted_at = NOW() WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      [req.params.id, req.user!.id]
     ) as [ResultSetHeader, unknown[]];
 
     if (result.affectedRows === 0) {
@@ -777,14 +793,15 @@ router.post('/', authenticateToken, async (req, res) => {
     const niceClasses = extractNiceClasses(payload);
     const goodsServicesDescription = collectGoodsServicesDescription(payload);
     if (niceClasses.length > 0) {
-      for (const niceClass of niceClasses) {
+      const placeholders = niceClasses.map(() => '(?, ?, ?)').join(', ');
+      const values = niceClasses.flatMap((niceClass) => {
         const description = (niceClass.description || goodsServicesDescription || '').trim();
-
-        await connection.execute(
-          'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
-          [newCaseId, niceClass.classNo, description]
-        );
-      }
+        return [newCaseId, niceClass.classNo, description];
+      });
+      await connection.execute(
+        `INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES ${placeholders}`,
+        values
+      );
     }
 
     await connection.execute(
@@ -920,6 +937,18 @@ router.patch('/:id', authenticateToken, async (req, res) => {
         code: 'INVALID_CASE_ID',
         message: 'Invalid case id',
         details: parsedParams.error.flatten()
+      });
+    }
+
+    // Verify ownership: case must belong to the authenticated user
+    const [caseRows] = await pool.execute(
+      'SELECT id FROM trademark_cases WHERE id = ? AND user_id = ? LIMIT 1',
+      [parsedParams.data.id, req.user!.id]
+    );
+    if ((caseRows as unknown[]).length === 0) {
+      return sendApiError(req, res, 404, {
+        code: 'CASE_NOT_FOUND',
+        message: 'Case not found or access denied'
       });
     }
 

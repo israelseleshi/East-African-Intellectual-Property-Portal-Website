@@ -474,10 +474,12 @@ export const caseRepository = {
     description: string
   ): Promise<void> {
     await connection.execute('DELETE FROM nice_class_mappings WHERE case_id = ?', [caseId]);
-    for (const classNo of classNumbers) {
+    if (classNumbers.length > 0) {
+      const placeholders = classNumbers.map(() => '(?, ?, ?)').join(', ');
+      const values = classNumbers.flatMap((classNo) => [caseId, classNo, description]);
       await connection.execute(
-        'INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES (?, ?, ?)',
-        [caseId, classNo, description]
+        `INSERT INTO nice_class_mappings (case_id, class_no, description) VALUES ${placeholders}`,
+        values
       );
     }
   },

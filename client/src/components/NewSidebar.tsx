@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
+import { NavLink, useLocation, useNavigate } from "react-router"
 import { useAuthStore, canAccessFinance, isSuperAdmin } from "@/store/authStore"
 import { useSidebar } from "@/components/ui/sidebar"
 import {

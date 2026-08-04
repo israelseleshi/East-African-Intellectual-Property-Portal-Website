@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { Question } from '@phosphor-icons/react'
+import { HelpCircle as Question } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -199,7 +199,7 @@ export default function HelpButton({ pageId }: HelpButtonProps) {
               className="text-muted-foreground hover:text-foreground hover:bg-muted"
               aria-label="Start help tour"
             >
-              <Question size={20} weight="regular" />
+              <Question size={20} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

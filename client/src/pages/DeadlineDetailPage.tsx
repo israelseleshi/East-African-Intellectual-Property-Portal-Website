@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router'
 import { useEffect, useState, useMemo } from 'react'
-import { ArrowLeft, Calendar, FileText, Clock, Info, CheckCircle, WarningCircle, Buildings } from '@phosphor-icons/react'
+import { ArrowLeft, Calendar, FileText, Clock, Info, CheckCircle, AlertCircle as WarningCircle, Building2 as Buildings } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Typography } from '@/components/ui/typography'
 import { Button } from '@/components/ui/button'
@@ -113,7 +113,7 @@ export default function DeadlineDetailPage() {
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500 bg-[#F8F9FA] min-h-screen">
       <header className="flex items-start gap-4 mb-8">
         <Button variant="outline" size="icon" onClick={() => navigate('/deadlines')} className="h-14 w-14 shrink-0 rounded-2xl bg-white shadow-premium hover:shadow-xl transition-all">
-          <ArrowLeft size={24} weight="bold" />
+          <ArrowLeft size={24} />
         </Button>
         <div className="flex-1">
           <div className="flex items-start justify-between gap-4">
@@ -142,7 +142,7 @@ export default function DeadlineDetailPage() {
           <CardContent className="p-8 space-y-8">
             <div className="flex items-center gap-8">
               <div className={`p-4 rounded-3xl ${isOverdue ? 'bg-red-500/10 text-red-600' : 'bg-primary/10 text-primary'}`}>
-                <Calendar size={48} weight="duotone" />
+                <Calendar size={48} />
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Action Due By</p>
@@ -157,7 +157,7 @@ export default function DeadlineDetailPage() {
 
             <div className="p-6 bg-muted/30 rounded-2xl border border-dashed">
               <div className="flex items-center gap-2 mb-2 text-primary">
-                <Info size={18} weight="bold" />
+                <Info size={18} />
                 <span className="text-sm font-bold uppercase tracking-wider" data-tour="strategic-context">Strategic Context</span>
               </div>
               <p className="text-foreground leading-relaxed italic text-sm">

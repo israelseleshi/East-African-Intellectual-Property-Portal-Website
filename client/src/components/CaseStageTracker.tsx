@@ -1,17 +1,5 @@
 import { useState } from 'react';
-import {
-  FileText,
-  CheckCircle,
-  ShieldCheck,
-  Globe,
-  Certificate,
-  Clock,
-  Warning,
-  XCircle,
-  Calendar,
-  Hourglass,
-  ArrowRight
-} from '@phosphor-icons/react';
+import { FileText, CheckCircle, ShieldCheck, Globe, Award as Certificate, Clock, AlertTriangle as Warning, XCircle, Calendar, Hourglass, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Typography } from '@/components/ui/typography';
@@ -126,7 +114,7 @@ export default function CaseStageTracker({
       <CardHeader className="bg-muted/30 border-b border-border/50 py-6 px-8">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-black tracking-tight flex items-center gap-3">
-            <Clock size={24} weight="duotone" className="text-primary" />
+            <Clock size={24} className="text-primary" />
             Case Flow Timeline
           </CardTitle>
           <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary font-black uppercase tracking-widest text-[10px]">
@@ -150,7 +138,7 @@ export default function CaseStageTracker({
           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none">
             {(() => {
               const StageIcon = STAGES[currentIndex]?.icon || FileText;
-              return <StageIcon size={120} weight="duotone" />;
+              return <StageIcon size={120} />;
             })()}
           </div>
           
@@ -160,7 +148,7 @@ export default function CaseStageTracker({
                 const StageIcon = STAGES[currentIndex]?.icon || FileText;
                 return (
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform duration-500">
-                    <StageIcon size={32} weight="duotone" />
+                    <StageIcon size={32} />
                   </div>
                 );
               })()}
@@ -181,7 +169,7 @@ export default function CaseStageTracker({
                   "px-4 py-2.5 rounded-xl border text-sm font-black flex items-center gap-3 shadow-sm",
                   getUrgencyColor(getStageDeadline(currentStage)!)
                 )}>
-                  <Calendar size={18} weight="duotone" />
+                  <Calendar size={18} />
                   <div>
                     <div className="text-[9px] uppercase tracking-wider opacity-70">Regulatory Deadline</div>
                     {new Date(getStageDeadline(currentStage)!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -199,7 +187,7 @@ export default function CaseStageTracker({
                   className="h-12 px-6 rounded-xl font-black uppercase tracking-wider text-xs shadow-lg shadow-primary/20 hover:shadow-xl transition-all"
                 >
                   {STAGES[currentIndex]?.actionLabel || 'Advance Stage'}
-                  <ArrowRight size={16} weight="bold" className="ml-2" />
+                  <ArrowRight size={16} className="ml-2" />
                 </Button>
               )}
             </div>
@@ -233,7 +221,7 @@ export default function CaseStageTracker({
                           : "border-border bg-white text-muted-foreground/40"
                     )}
                   >
-                    {isCompleted ? <CheckCircle weight="bold" size={24} /> : <stage.icon size={24} weight={isCurrent ? "duotone" : "regular"} />}
+                    {isCompleted ? <CheckCircle size={24} /> : <stage.icon size={24} />}
                   </div>
 
                   <div className={cn(
@@ -281,7 +269,7 @@ export default function CaseStageTracker({
               >
                 {isCompleted && (
                   <div className="absolute top-0 right-0 p-4">
-                    <CheckCircle size={48} weight="duotone" className="text-emerald-500/10" />
+                    <CheckCircle size={48} className="text-emerald-500/10" />
                   </div>
                 )}
                 
@@ -290,7 +278,7 @@ export default function CaseStageTracker({
                     "h-12 w-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 shadow-sm",
                     isCompleted ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
                   )}>
-                    {isCompleted ? <CheckCircle size={28} weight="duotone" /> : <Icon size={28} weight="duotone" />}
+                    {isCompleted ? <CheckCircle size={28} /> : <Icon size={28} />}
                   </div>
                   {(isCurrent || (isNext && isEditable)) && (
                     <Button
@@ -325,7 +313,7 @@ export default function CaseStageTracker({
                     "mt-4 pt-4 border-t border-border/40 flex items-center gap-2 text-[11px] font-black uppercase tracking-tighter",
                     isCurrent ? "text-primary" : "text-muted-foreground"
                   )}>
-                    <Calendar size={14} weight="duotone" />
+                    <Calendar size={14} />
                     Target: {new Date(deadline).toLocaleDateString()}
                   </div>
                 )}
@@ -358,7 +346,7 @@ export default function CaseStageTracker({
                      variants[index % variants.length]
                    )}
                  >
-                   <action.icon size={18} weight="duotone" className="mr-2" />
+                   <action.icon size={18} className="mr-2" />
                    {action.label}
                  </Button>
                );

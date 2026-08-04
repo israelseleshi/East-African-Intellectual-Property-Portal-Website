@@ -1,25 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Building, 
-  User, 
-  Envelope, 
-  MapPin, 
-  SquaresFour, 
-  List, 
-  Trash, 
-  FileArrowDown, 
-  CheckSquare, 
-  Square,
-  CaretLeft,
-  CaretRight,
-  ArrowsMerge,
-  CaretUp,
-  CaretDown,
-  MagnifyingGlass
-} from '@phosphor-icons/react';
+import { Plus, Building, User, Mail as Envelope, MapPin, LayoutGrid as SquaresFour, List, Trash2 as Trash, FileDown as FileArrowDown, CheckSquare, Square, ChevronLeft as CaretLeft, ChevronRight as CaretRight, GitMerge as ArrowsMerge, ChevronUp as CaretUp, ChevronDown as CaretDown, Search as MagnifyingGlass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -333,7 +315,7 @@ export default function ClientsPage() {
                   variant="secondary"
                   className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
                 >
-                  <ArrowsMerge size={20} weight="bold" />
+                  <ArrowsMerge size={20} />
                   <span>Merge Records</span>
                 </Button>
               )}
@@ -343,7 +325,7 @@ export default function ClientsPage() {
                 variant="destructive"
                 className="flex items-center gap-2 h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
               >
-                <Trash size={20} weight="bold" />
+                <Trash size={20} />
                 <span>Delete {selectedIds.size}</span>
               </Button>
             </div>
@@ -361,7 +343,7 @@ export default function ClientsPage() {
             className="h-12 px-6 rounded-xl shadow-sm hover:shadow-md transition-all font-bold"
             data-tour="new-client-btn"
           >
-            <Plus size={20} weight="bold" className="mr-2" />
+            <Plus size={20} className="mr-2" />
             <span>New Client Record</span>
           </Button>
         </div>
@@ -392,7 +374,7 @@ export default function ClientsPage() {
                       className="sr-only"
                     />
                     <div className={`p-2 rounded-lg ${mergeTargetId === client.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      {mergeTargetId === client.id ? <CheckSquare size={20} weight="fill" /> : <Square size={20} />}
+                      {mergeTargetId === client.id ? <CheckSquare size={20} /> : <Square size={20} />}
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold">{client.name}</div>
@@ -473,14 +455,14 @@ export default function ClientsPage() {
               className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               title="Grid View"
             >
-              <SquaresFour size={22} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+              <SquaresFour size={22} />
             </button>
             <button
               onClick={() => setViewMode('table')}
               className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-premium text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               title="Table View"
             >
-              <List size={22} weight={viewMode === 'table' ? 'fill' : 'regular'} />
+              <List size={22} />
             </button>
           </div>
         </div>
@@ -490,7 +472,7 @@ export default function ClientsPage() {
         {(clients || []).length === 0 ? (
           <Card className="flex flex-col items-center justify-center py-32 text-center border-none shadow-premium rounded-3xl bg-white">
             <div className="p-6 rounded-full bg-primary/5 mb-6">
-              <Building size={64} weight="duotone" className="text-primary/40" />
+              <Building size={64} className="text-primary/40" />
             </div>
             <Typography.h3 className="mb-2 font-bold">No clients found</Typography.h3>
               <Typography.p className="max-w-md mx-auto text-muted-foreground text-lg">
@@ -498,7 +480,7 @@ export default function ClientsPage() {
               </Typography.p>
             {!searchQuery && (
               <Button onClick={() => navigate('/clients/new')} className="mt-8 h-12 px-8 rounded-xl shadow-lg">
-                <Plus className="mr-2" size={20} weight="bold" /> Add Client
+                <Plus className="mr-2" size={20} /> Add Client
               </Button>
             )}
           </Card>
@@ -521,13 +503,13 @@ export default function ClientsPage() {
                     }}
                     className={`absolute top-4 right-4 z-10 p-1.5 rounded-xl bg-white/90 backdrop-blur-sm transition-all shadow-sm ${isSelected ? 'opacity-100 text-primary scale-110' : 'opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:scale-110'}`}
                   >
-                    {isSelected ? <CheckSquare size={24} weight="fill" /> : <Square size={24} />}
+                    {isSelected ? <CheckSquare size={24} /> : <Square size={24} />}
                   </button>
 
                   <CardContent className="flex-1 p-8 pt-10">
                     <div className="flex flex-col items-center text-center mb-6">
                       <div className={`p-5 rounded-2xl transition-all duration-300 mb-4 ${isSelected ? 'bg-primary text-primary-foreground shadow-lg scale-110' : 'bg-[#F8F9FA] text-primary group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:scale-110'}`}>
-                        <Icon size={32} weight="duotone" />
+                        <Icon size={32} />
                       </div>
                       <Typography.h3 className="line-clamp-2 font-bold mb-2 group-hover:text-primary transition-colors h-14 flex items-center justify-center">
                         {client.name}
@@ -569,7 +551,7 @@ export default function ClientsPage() {
                     <th className="px-8 py-5 w-16">
                       <button onClick={toggleSelectAll} className="hover:text-primary transition-colors">
                         {selectedIds.size === (clients || []).length && (clients || []).length > 0 ? (
-                          <CheckSquare size={22} weight="fill" className="text-primary" />
+                          <CheckSquare size={22} className="text-primary" />
                         ) : (
                           <Square size={22} />
                         )}
@@ -577,22 +559,22 @@ export default function ClientsPage() {
                     </th>
                     <th className="px-6 py-5">
                       <button onClick={() => handleSort('name')} className="flex items-center gap-2 hover:text-primary transition-colors">
-                        Client Name {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
+                        Client Name {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />)}
                       </button>
                     </th>
                     <th className="px-6 py-5">
                       <button onClick={() => handleSort('type')} className="flex items-center gap-2 hover:text-primary transition-colors">
-                        Category {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
+                        Category {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />)}
                       </button>
                     </th>
                     <th className="px-6 py-5">
                       <button onClick={() => handleSort('email')} className="flex items-center gap-2 hover:text-primary transition-colors">
-                        Contact Email {sortConfig?.key === 'email' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
+                        Contact Email {sortConfig?.key === 'email' && (sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />)}
                       </button>
                     </th>
                     <th className="px-6 py-5">
                       <button onClick={() => handleSort('location')} className="flex items-center gap-2 hover:text-primary transition-colors">
-                        Headquarters {sortConfig?.key === 'location' && (sortConfig.direction === 'asc' ? <CaretUp size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />)}
+                        Headquarters {sortConfig?.key === 'location' && (sortConfig.direction === 'asc' ? <CaretUp size={14} /> : <CaretDown size={14} />)}
                       </button>
                     </th>
                   </tr>
@@ -609,13 +591,13 @@ export default function ClientsPage() {
                       >
                         <td className="px-8 py-5" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => toggleSelect(client.id)} className="text-muted-foreground hover:text-primary transition-colors">
-                            {isSelected ? <CheckSquare size={22} weight="fill" className="text-primary" /> : <Square size={22} />}
+                            {isSelected ? <CheckSquare size={22} className="text-primary" /> : <Square size={22} />}
                           </button>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-4">
                             <div className="p-2.5 rounded-xl bg-[#F8F9FA] text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                              <Icon size={20} weight="duotone" />
+                              <Icon size={20} />
                             </div>
                             <span className="font-bold text-base text-[#1A1A1A] group-hover:text-primary transition-colors">{client.name}</span>
                           </div>
@@ -653,7 +635,7 @@ export default function ClientsPage() {
                 disabled={currentPage === 1}
                 className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
               >
-                <CaretLeft size={20} weight="bold" className="mr-2" />
+                <CaretLeft size={20} className="mr-2" />
                 Previous
               </Button>
               <div className="flex items-center gap-1.5 px-2">
@@ -675,7 +657,7 @@ export default function ClientsPage() {
                 className="h-11 px-4 rounded-xl hover:bg-white hover:shadow-premium transition-all font-bold disabled:opacity-30"
               >
                 Next
-                <CaretRight size={20} weight="bold" className="ml-2" />
+                <CaretRight size={20} className="ml-2" />
               </Button>
             </div>
           </div>

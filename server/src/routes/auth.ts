@@ -127,7 +127,7 @@ const resetPasswordSchema = z.object({
 
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
-const ACCESS_TTL = '7d';
+const ACCESS_TTL = '15m';
 const REFRESH_DAYS = 30;
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -152,14 +152,14 @@ const setAuthCookies = (res: express.Response, accessToken: string, refreshToken
   res.cookie(ACCESS_COOKIE, accessToken, {
     httpOnly: true,
     secure: isSecure,
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     domain: undefined
   });
   res.cookie(REFRESH_COOKIE, refreshToken, {
     httpOnly: true,
     secure: isSecure,
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     domain: undefined
   });
@@ -375,7 +375,13 @@ router.post('/change-password', authenticateToken, csrfMiddleware, async (req, r
 
     await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, req.user!.id]);
 
-    res.json({ success: true, message: 'Password changed successfully' });
+    // Revoke all existing refresh tokens to invalidate old sessions
+    await pool.execute(
+      'UPDATE user_refresh_tokens SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL AND expires_at > NOW()',
+      [req.user!.id]
+    );
+
+    res.json({ success: true, message: 'Password changed successfully. All other sessions have been logged out.' });
   } catch (error) {
     logRouteError(req, 'auth.changePassword', error);
     sendApiError(req, res, 500, { code: 'PASSWORD_CHANGE_FAILED', message: 'Failed to change password' });
@@ -783,7 +789,7 @@ router.post('/2fa/setup', authenticateToken, csrfMiddleware, async (req, res) =>
   }
 });
 
-router.post('/2fa/verify', authenticateToken, csrfMiddleware, async (req, res) => {
+router.post('/2fa/verify', authenticateToken, verifyLoginLimiter, csrfMiddleware, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {

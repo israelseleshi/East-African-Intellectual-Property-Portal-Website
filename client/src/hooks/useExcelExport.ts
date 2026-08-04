@@ -13,8 +13,10 @@ export interface UseExcelExportOptions<T> {
   columns: ExcelColumn[]
   rows: T[]
   mapRow: (item: T, index: number) => Record<string, unknown>
+  imageCache?: Map<string, { bytes: Uint8Array; extension: 'png' | 'jpeg' } | null>
+  logger?: any
   formatHeader?: (worksheet: unknown) => void
-  formatRow?: (row: unknown, item: T, index: number) => void | Promise<void>
+  formatRow?: (row: unknown, item: T, index: number, context: { worksheet: unknown; workbook: unknown; imageCache?: Map<string, any>; logger?: any }) => void | Promise<void>
   successMessage?: string
   errorMessage?: string
 }
@@ -24,7 +26,7 @@ export function useExcelExport() {
   const [exportProgress, setExportProgress] = useState(0)
 
   const startExport = useCallback(async <T>(opts: UseExcelExportOptions<T>) => {
-    const { sheetName, fileName, columns, rows, mapRow, formatHeader, formatRow, successMessage, errorMessage } = opts
+    const { sheetName, fileName, columns, rows, mapRow, imageCache, logger, formatHeader, formatRow, successMessage, errorMessage } = opts
 
     if (rows.length === 0) {
       toast.error('No data to export')
@@ -97,7 +99,11 @@ export function useExcelExport() {
         })
 
         if (formatRow) {
-          await formatRow(row, rows[i], i)
+          try {
+            await formatRow(row, rows[i], i, { worksheet, workbook, imageCache, logger })
+          } catch (rowErr) {
+            console.error(`Error formatting row ${i}:`, rowErr)
+          }
         }
 
         setExportProgress(Math.round(((i + 1) / rows.length) * 90) + 5)
@@ -111,10 +117,18 @@ export function useExcelExport() {
       const link = document.createElement('a')
       link.href = url
       link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`
+      
+      console.log(`[Excel] File size: ${blob.size} bytes, initiating download...`);
+      
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      
+      // Ensure the download is triggered and give time for browser to process
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        console.log(`[Excel] Download initiated and cleaned up`);
+      }, 100)
 
       setExportProgress(100)
       toast.success(successMessage || 'Excel file has been downloaded.')
@@ -127,5 +141,5 @@ export function useExcelExport() {
     }
   }, [])
 
-  return { isExporting, exportProgress, startExport }
+  return { isExporting, exportProgress, startExport, setIsExporting, setExportProgress }
 }

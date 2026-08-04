@@ -162,6 +162,7 @@ export interface EipaFormData {
   renewal_goods_services_4?: string;
   renewal_goods_services_5?: string;
   renewal_goods_services_6?: string;
+  renewal_nice_classes?: number[];
 
   // Signature
   renewal_sign_day?: string;

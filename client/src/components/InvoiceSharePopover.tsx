@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ShareFat, Copy, Envelope, WhatsappLogo, ClockCounterClockwise } from '@phosphor-icons/react'
+import { Share2 as ShareFat, Copy, Mail as Envelope, MessageCircle as WhatsappLogo, RotateCcw as ClockCounterClockwise } from 'lucide-react'
 import { toast } from 'sonner'
 
 const RECENT_INVOICE_SHARES_KEY = 'eaip_recent_invoice_shares'

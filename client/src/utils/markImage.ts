@@ -19,9 +19,14 @@ const toCanonicalApiUrl = (normalizedPath: string): string => {
   if (withoutLeadingSlash.startsWith('uploads/')) return `${origin}/api/${withoutLeadingSlash}`;
   if (withoutLeadingSlash.startsWith('marks/')) return `${origin}/api/uploads/${withoutLeadingSlash}`;
 
-  // Legacy cases may store only file names.
+  // Legacy cases may store only file names or partial paths.
   if (/^mark_/i.test(withoutLeadingSlash)) return `${origin}/api/uploads/marks/${withoutLeadingSlash}`;
   if (/^file-/i.test(withoutLeadingSlash)) return `${origin}/api/uploads/${withoutLeadingSlash}`;
+
+  // Generic fallback: try as a subpath under uploads/marks
+  if (/\.(png|jpe?g|gif|webp|svg)$/i.test(withoutLeadingSlash)) {
+    return `${origin}/api/uploads/marks/${withoutLeadingSlash}`;
+  }
 
   return `${origin}/api/forms-download/${withoutLeadingSlash}`;
 };
@@ -51,6 +56,7 @@ export const getMarkImageCandidates = (rawPath?: string): string[] => {
 
   // In local dev with production-like DB data, remote tends to be valid while local files may be missing.
   if (/localhost|127\.0\.0\.1/i.test(window.location.hostname)) {
+    // Return remote first (prod-api) since it's more reliable than local api routes
     return Array.from(new Set([remote, canonical]));
   }
 

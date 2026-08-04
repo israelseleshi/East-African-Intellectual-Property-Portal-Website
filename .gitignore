@@ -117,3 +117,9 @@ server/.htaccess
 logs/
 docs/CONTEXT.local.md
 
+
+# Documentation and internal scripts
+api-endpoints.md
+network-capture.mjs
+pages.md
+SECURITY_REPORT.md

@@ -1,5 +1,5 @@
-import { useRouteError, isRouteErrorResponse, Link } from 'react-router-dom'
-import { WarningCircle, House } from '@phosphor-icons/react'
+import { useRouteError, isRouteErrorResponse, Link } from 'react-router'
+import { AlertCircle as WarningCircle, Home as House } from 'lucide-react'
 
 export default function ErrorPage() {
     const error = useRouteError()
@@ -21,7 +21,7 @@ export default function ErrorPage() {
         <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--eai-bg)] p-4 text-center">
             <div className="max-w-md rounded-2xl border border-[var(--eai-border)] bg-white p-8 shadow-xl dark:bg-slate-900">
                 <div className="mb-6 flex justify-center text-red-500">
-                    <WarningCircle size={64} weight="duotone" />
+                    <WarningCircle size={64} />
                 </div>
                 <h1 className="mb-2 text-2xl font-bold text-slate-900 dark:text-white">
                     Oops! Something went wrong

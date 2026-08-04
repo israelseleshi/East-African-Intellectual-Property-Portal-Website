@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useLayoutEffect, type CSSProperties } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 
 import CommandPalette from '../components/CommandPalette'

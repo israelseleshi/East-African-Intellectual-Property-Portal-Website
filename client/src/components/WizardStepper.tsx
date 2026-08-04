@@ -1,4 +1,4 @@
-import { Check } from '@phosphor-icons/react'
+import { Check } from 'lucide-react'
 
 type Step = {
   title: string
@@ -38,7 +38,7 @@ export default function WizardStepper({ steps, activeIndex, collapsed = false }:
                       ? 'bg-[var(--eai-success)] text-white'
                       : 'bg-[var(--eai-bg)] text-[var(--eai-text-secondary)]'
                 ].join(' ')}>
-                  {isDone ? <Check size={16} weight="bold" /> : i + 1}
+                  {isDone ? <Check size={16} /> : i + 1}
                 </div>
                 {isCurrent && (
                   <span className="flex h-2 w-2 rounded-none bg-[var(--eai-primary)] animate-pulse" />

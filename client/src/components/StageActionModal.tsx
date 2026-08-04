@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Info } from '@phosphor-icons/react';
+import { Info } from 'lucide-react';
 import type { CaseFlowStage } from '@/shared/database';
 
 interface StageActionModalProps {
@@ -133,7 +133,7 @@ export function StageActionModal({ isOpen, onClose, onConfirm, currentStage, nex
             <DialogContent className="apple-dialog sm:max-w-[425px]">
                 <DialogHeader>
                     <div className="flex items-center gap-2 text-[var(--eai-primary)] mb-2">
-                        <Info size={24} weight="duotone" />
+                        <Info size={24} />
                         <DialogTitle className="text-[20px] font-bold tracking-tight">
                             {config.title}
                         </DialogTitle>

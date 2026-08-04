@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link } from "react-router"
 import { authApi } from "@/api/auth"
 import { useAuthStore, isSuperAdmin } from "@/store/authStore"
 import { Button } from "@/components/ui/button"
